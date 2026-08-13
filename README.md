@@ -1,4 +1,4 @@
-# Cool-Mod-For-CloneHero
+# Cool-Mod-For-CloneHero (works for the v1.0.0.4080-final version)
 This mod adds some cool features I would like Clone Hero to have.
 
 ## How to install
