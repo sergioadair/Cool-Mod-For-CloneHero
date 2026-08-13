@@ -5,8 +5,11 @@ This mod adds some cool features I would like Clone Hero to have.
 Just replace the **Assembly-CSharp.dll** file in the path:
 
 \AppData\Local\Programs\Clone Hero\Clone Hero_Data\Managed\Assembly-CSharp.dll
-And put the **yourock.opus** file in the folder (create it if it doesn't exist yet):
+
+And put the **yourock.opus** file in (create the folder if it doesn't exist yet):
+
 \Clone Hero\Custom\Sounds\
+
 (the \Clone Hero folder where you also put songs in, not the AppData one). 
 
 ## Features
