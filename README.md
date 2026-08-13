@@ -2,7 +2,7 @@
 This mod adds some cool features I would like Clone Hero to have.
 
 ## How to install
-Just replace the **Assembly-CSharp.dll** file in the path:
+Just replace the **Assembly-CSharp.dll** file in the path (I recommend making a copy first, in case something goes wrong):
 
 \AppData\Local\Programs\Clone Hero\Clone Hero_Data\Managed\Assembly-CSharp.dll
 
