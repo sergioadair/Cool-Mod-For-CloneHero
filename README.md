@@ -3,6 +3,7 @@ This mod adds some cool features I would like Clone Hero to have.
 
 ## How to install
 Just replace the **Assembly-CSharp.dll** file in the path:
+
 \AppData\Local\Programs\Clone Hero\Clone Hero_Data\Managed\Assembly-CSharp.dll
 And put the **yourock.opus** file in the folder (create it if it doesn't exist yet):
 \Clone Hero\Custom\Sounds\
