@@ -32,7 +32,7 @@ If set to 'Yes' the game will start changing the menu background every 15 minute
 You can set the time between each backgorund change in the **\Clone Hero\settings.ini** file:
 Under **[video]** just change the **menu_bg_slideshow_seconds** parameter to the time in seconds of your preference.
 
- - **New 'Difficulty' scale info of the song:**
+ - **New 'Difficulty' 0-100 scale info of the song:**
 
 Instead of just the arbitrarily set variable 'Intensity', now we show under the right panel of the song details the **Difficulty** variable, mathematically calculated to represent the general difficulty of the song, it goes from 0-100. the formula is calculated like this:
 
