@@ -6,11 +6,12 @@ Just replace the **Assembly-CSharp.dll** file in the path:
 
 \AppData\Local\Programs\Clone Hero\Clone Hero_Data\Managed\Assembly-CSharp.dll
 
-And put the **yourock.opus** file in (create the folder if it doesn't exist yet):
+Now in the \Clone Hero folder where you also put songs in, not the AppData one:
+Put the **yourock.opus** file in (create the folder if it doesn't exist yet):
 
 \Clone Hero\Custom\Sounds\
 
-(the \Clone Hero folder where you also put songs in, not the AppData one). 
+I also provide a \Menu Backgrounds folder with a few backgrounds, if you want to add them.
 
 ## Features
 
