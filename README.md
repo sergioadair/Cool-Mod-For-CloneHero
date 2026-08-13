@@ -15,7 +15,8 @@ And put the **yourock.opus** file in (create the folder if it doesn't exist yet)
 ## Features
 
  - **Custom menu backgrounds**:
-Easily add them to 
+Easily add them to
+
 *\Clone Hero\Custom\Menu Backgrounds*
 and they'll be available in the game menu settings.
 
