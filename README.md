@@ -54,4 +54,4 @@ There's an **Add to Favorites** / **Remove from Favorites** option for every son
 
  - **Custom sound at the end of the song:**
 
-The game plays the classic **'You Rock'** sound (from GH3) at the end of the song. You can change it by replacing the file **\Clone Hero\Custom\Sounds\yourock.opus**.
+The game plays the classic **'You Rock'** sound (from GH3) at the end of the song. You can change it by replacing the file **\Clone Hero\Custom\Sounds\yourock.opus**. You can set it on or off by changing the setting: Settings > Audio > Finished Song SFX > Yes/No
