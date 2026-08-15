@@ -1,57 +1,178 @@
-# Cool-Mod-For-CloneHero (works for the v1.0.0.4080-final version)
-This mod adds some cool features I would like Clone Hero to have.
+# Cool Mod For Clone Hero
 
-## How to install
-Just replace the **Assembly-CSharp.dll** file in the path (I recommend making a copy first, in case something goes wrong):
+A set of quality-of-life features I always wanted Clone Hero to have: a real
+**difficulty score** for every song, **custom menu backgrounds**, a background
+**slideshow**, a **Favorites** filter and a **custom sound** when you finish a
+song.
 
-\AppData\Local\Programs\Clone Hero\Clone Hero_Data\Managed\Assembly-CSharp.dll
+Two builds are available, one per game version:
 
-Now in the \Clone Hero folder where you also put songs in, not the AppData one:
-Put the **yourock.opus** file in (create the folder if it doesn't exist yet):
+| Game version | Folder | How it works |
+|---|---|---|
+| **1.1.0.6142-final** | [`v1.1.0.6142-final/`](v1.1.0.6142-final/) | MelonLoader mod (`.dll` you drop in) |
+| **1.0.0.4080-final** | [`v1.0.0.4080-final/`](v1.0.0.4080-final/) | patched `Assembly-CSharp.dll` |
 
-\Clone Hero\Custom\Sounds\
+> Check your version in the bottom corner of the main menu. Pick the folder that
+> matches — they are **not** interchangeable.
 
-I also provide a \Menu Backgrounds folder with a few backgrounds, if you want to add them.
+---
 
-## Features
+## ✨ Features
 
- - **Custom menu backgrounds**:
+### 🎯 Difficulty — a real 0–100 score for every song
 
-Easily add them to
+Clone Hero's built-in *Intensity* is a number the charter types in by hand, so
+it means something different from one chart to the next. **Difficulty** is
+calculated from the chart itself, so it is consistent across your whole library.
 
-*\Clone Hero\Custom\Menu Backgrounds*
+It shows up right under the instrument icons in the song panel:
 
-and they'll be available in the game menu settings.
+```
+Difficulty: 73
+```
 
- - **Menu background slideshow:**
+**How it is calculated** — difficulty is how fast you actually have to play
+during the song's densest stretch:
 
-Settings > Video > Menu BG Slideshow
+| Step | What happens |
+|---|---|
+| 1 | Every note time is read from the `.chart` / `.mid`, converted to real seconds (BPM changes included). **Chords count as one note** |
+| 2 | A **10-second sliding window** finds the densest stretch → peak notes per second |
+| 3 | Per instrument, the difficulties are averaged with ascending weights, so Expert dominates |
+| 4 | **25 %** the average across instruments + **75 %** the single hardest chart |
+| 5 | Scaled with **14 NPS = 100**, clamped and rounded |
 
-If set to 'Yes' the game will start changing the menu background every 15 minutes (by default) going through your **\Custom\Menu Backgrounds** folder.
+Why the peak and not the average: a calm song with one brutal solo *does* play
+hard. Measured against `diff_guitar` over ~3600 songs, the average correlates
+0.36 and the peak 0.58.
 
-You can set the time between each backgorund change in the **\Clone Hero\settings.ini** file:
-Under **[video]** just change the **menu_bg_slideshow_seconds** parameter to the time in seconds of your preference.
+On a typical library the median song lands around **42**, the top 10 % above
+**65**, and the top 1 % above **89**.
 
- - **New 'Difficulty' 0-100 scale info of the song:**
+**Generate it**: `Settings > General > Calculate Difficulty`. A progress panel
+shows while it runs (~40 s for 3600 songs) and the value is written to each
+`song.ini` as `diff_global`. Restart or rescan afterwards so the game reloads
+them.
 
-Instead of just the arbitrarily set variable 'Intensity', now we show under the right panel of the song details the **Difficulty** variable, mathematically calculated to represent the general difficulty of the song, it goes from 0-100. the formula is calculated like this:
+**Sort by it**: `(Hold) Sort List > Sort Options > Difficulty`, grouped in tens
+— `90-99 Difficulty`, `80-89 Difficulty`… and `No Difficulty` at the end.
 
-**NPS per chart** : 10-second peak , using a sliding window aligned with note timings.
+---
 
-**Weighted values:** 0.25 average across instruments + 0.75 maximum.
+### 🖼️ Custom menu backgrounds
 
-**Reference calibrated to 14:** 14 NPS as the maximum.
+Drop any `.png` / `.jpg` / `.jpeg` into your **Menu Backgrounds** folder and
+they show up as extra options in `Settings > Video > Menu Backgrounds`, listed
+by file name. Your choice is remembered between sessions.
 
-You can generate every song Difficulty by selecting:
+A starter pack is included in [`assets/Menu Backgrounds/`](assets/Menu%20Backgrounds/).
 
-Settings > General > Calculate Difficulty
+### 🔀 Menu background slideshow
 
-it's the last option of the list. The new Sort Option **'Difficulty'** will appear.
+`Settings > Video > Menu BG Slideshow` — rotates through your custom
+backgrounds automatically. The interval is configurable (15 minutes by default).
 
- - **Favorite songs:**
+### ⭐ Favorites filter
 
-There's an **Add to Favorites** / **Remove from Favorites** option for every song in the **Song Options** menu and a **Favorites** filter in the **Filter Options**.
+The game already lets you favorite songs and sort by it, but there is no way to
+**filter** by it. This adds `Favorites` to `(Hold) Sort List > Filter Options`.
 
- - **Custom sound at the end of the song:**
+It reuses the game's own favorites, so nothing is stored separately and your
+existing favorites just work.
 
-The game plays the classic **'You Rock'** sound (from GH3) at the end of the song. You can change it by replacing the file **\Clone Hero\Custom\Sounds\yourock.opus**. You can set it on or off by changing the setting: Settings > Audio > Finished Song SFX > Yes/No
+### 🔊 Custom sound when you finish a song
+
+Plays the classic **"You Rock"** sound from GH3 when the results screen appears.
+Replace the file to use your own — `.opus`, `.ogg`, `.mp3` and `.wav` all work.
+
+Toggle it at `Settings > Audio > Finished Song SFX`.
+
+---
+
+## 📥 Installation
+
+### For game version 1.1.0.6142-final
+
+This build is a **MelonLoader mod**, so it does not touch any game file.
+
+1. **Install MelonLoader 0.7.3 or newer** — download from
+   [github.com/LavaGang/MelonLoader](https://github.com/LavaGang/MelonLoader/releases)
+   and extract `MelonLoader.x64.zip` into your Clone Hero folder (the one with
+   `Clone Hero.exe`).
+2. **Run the game once** and wait at the main menu. MelonLoader generates the
+   files it needs — this takes a couple of minutes the first time. Close it.
+3. Copy [`v1.1.0.6142-final/CloneHeroMod.dll`](v1.1.0.6142-final/) into the
+   `Mods` folder that MelonLoader created.
+4. Copy [`assets/Sounds/yourock.opus`](assets/Sounds/) into
+   `PlayerData\Custom\Sounds\`.
+5. *(Optional)* Copy the images from [`assets/Menu Backgrounds/`](assets/Menu%20Backgrounds/)
+   into `PlayerData\Custom\Menu Backgrounds\`.
+
+> Where is `PlayerData`? On a **portable** install it sits next to
+> `Clone Hero.exe`. On a normal install use `Documents\Clone Hero\` instead.
+
+**To uninstall**, delete `Mods\CloneHeroMod.dll`. To remove everything, delete
+the `MelonLoader` and `Mods` folders and `version.dll`.
+
+### For game version 1.0.0.4080-final
+
+This build replaces a game file, so **make a backup first**.
+
+1. Back up
+   `…\Clone Hero\Clone Hero_Data\Managed\Assembly-CSharp.dll`.
+2. Replace it with [`v1.0.0.4080-final/Assembly-CSharp.dll`](v1.0.0.4080-final/).
+3. Copy [`assets/Sounds/yourock.opus`](assets/Sounds/) into
+   `Documents\Clone Hero\Custom\Sounds\` (create the folder if needed).
+4. *(Optional)* Copy the images into
+   `Documents\Clone Hero\Custom\Menu Backgrounds\`.
+
+---
+
+## ⚙️ Settings
+
+The 1.1.0.6142 build keeps its settings in a `[mods]` section of your
+`settings.ini`, next to the game's own. Everything has a menu option except the
+slideshow interval and the sound volume.
+
+| Key | Default | What it does |
+|---|---|---|
+| `difficulty_reference_nps` | `14` | Notes per second that equals 100/100. Raise it to compress the scale, lower it to expand |
+| `menu_bg_slideshow` | `0` | Background slideshow on/off |
+| `menu_bg_slideshow_seconds` | `900` | Seconds between background changes |
+| `menu_background_custom` | — | Which custom background is selected (written by the mod) |
+| `finished_song_sfx` | `1` | End-of-song sound on/off |
+| `finished_song_sfx_volume` | `1` | Multiplies that sound's volume |
+
+On the 1.0.0.4080 build the slideshow interval lives under `[video]` as
+`menu_bg_slideshow_seconds`.
+
+---
+
+## ⚠️ Known limitation (1.1.0.6142 build)
+
+**While sorting by `Difficulty`, song filters do not update the list on screen.**
+Every other sort criterion works normally, and no other feature is affected.
+
+The song sections *are* rebuilt correctly behind the scenes — the game just does
+not repaint them, because its refresh routine only knows about its own sort
+criteria. Several approaches were tried and documented; if you know the engine
+well and have an idea, PRs are welcome.
+
+---
+
+## 🔧 Building from source
+
+The 1.1.0.6142 mod source is in [`v1.1.0.6142-final/src/`](v1.1.0.6142-final/src/).
+You need the .NET 6 SDK and a copy of the game with MelonLoader already run once
+(the build references the interop assemblies it generates).
+
+```bash
+dotnet build src/CloneHeroMod.csproj -c Release -p:GameDir="C:\path\to\Clone Hero"
+```
+
+The resulting `.dll` is copied into the game's `Mods` folder automatically.
+
+> **If you edit the source**: the `.cs` files **must** be saved as UTF-8 **with
+> BOM**. They contain the game's obfuscated identifiers as Unicode modifier
+> letters, and without a BOM the compiler reads them with the system ANSI
+> codepage and silently corrupts them.
