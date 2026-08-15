@@ -14,11 +14,17 @@
   </PropertyGroup>
 
   <!--
-    Ruta de la instalacion del juego. Se puede sobreescribir sin tocar este
-    archivo:   dotnet build -p:GameDir="D:\ruta\Clone Hero"
+    Path to your Clone Hero installation (the folder with Clone Hero.exe).
+    MelonLoader must have been run once already, so that the interop
+    assemblies this project references exist.
+
+    Either edit the line below, or pass it on the command line without
+    touching this file:
+
+        dotnet build -c Release -p:GameDir="D:\Games\Clone Hero"
   -->
   <PropertyGroup>
-    <GameDir Condition="'$(GameDir)' == ''">C:\Users\sergi\Desktop\Juegos\Clone Hero</GameDir>
+    <GameDir Condition="'$(GameDir)' == ''">PATH\TO\Clone Hero</GameDir>
     <MlDir>$(GameDir)\MelonLoader\net6</MlDir>
     <Il2CppDir>$(GameDir)\MelonLoader\Il2CppAssemblies</Il2CppDir>
   </PropertyGroup>
@@ -83,6 +89,13 @@
       <Private>false</Private>
     </Reference>
   </ItemGroup>
+
+  <!-- Mensaje claro si GameDir no se ha configurado, en vez de una cascada de
+       referencias no encontradas. -->
+  <Target Name="ComprobarGameDir" BeforeTargets="ResolveAssemblyReferences">
+    <Error Condition="!Exists('$(Il2CppDir)')"
+           Text="GameDir does not point to a valid Clone Hero install with MelonLoader run at least once. Expected to find: $(Il2CppDir). Set it in CloneHeroMod.csproj or pass -p:GameDir=&quot;...&quot; on the command line." />
+  </Target>
 
   <!-- Al compilar, deja el .dll directamente en la carpeta Mods del juego. -->
   <Target Name="CopiarAMods" AfterTargets="Build" Condition="Exists('$(GameDir)\Mods')">
