@@ -109,16 +109,21 @@ This build is a **MelonLoader mod**, so it does not touch any game file.
    into your **`Custom\Menu Backgrounds\`** folder.
 
 > **Where is that folder?** It depends on how the game is installed, and the
-> mod detects it automatically:
+> mod detects it automatically — including when Documents is redirected to
+> OneDrive:
 >
 > | Install | Folder |
 > |---|---|
 > | Portable | `PlayerData\Custom\` — next to `Clone Hero.exe` |
 > | Normal | `Documents\Clone Hero\Custom\` |
+> | Normal + OneDrive | `OneDrive\Documents\Clone Hero\Custom\` |
 >
-> The same applies to `settings.ini`. If you are unsure which one the mod
-> picked, `MelonLoader\Latest.log` says so on startup:
-> `[Rutas] instalacion portable: …` or `[Rutas] instalacion normal: …`
+> The same applies to `settings.ini`. `MelonLoader\Latest.log` says which one
+> it picked on startup — look for a `[Rutas]` line.
+>
+> If detection ever fails, it logs every path it tried and you can point it
+> manually: create `MelonLoader\clone-hero-data-folder.txt` containing the
+> full path to your `Clone Hero` data folder.
 
 **To uninstall**, delete `Mods\CloneHeroMod.dll`. To remove everything, delete
 the `MelonLoader` and `Mods` folders and `version.dll`.
