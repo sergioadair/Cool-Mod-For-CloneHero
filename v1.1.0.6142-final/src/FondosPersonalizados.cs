@@ -44,11 +44,7 @@ namespace CloneHeroMod
 
         public static string Carpeta
         {
-            get
-            {
-                string raiz = Directory.GetParent(MelonEnvironment.MelonLoaderDirectory).FullName;
-                return Path.Combine(raiz, "PlayerData", "Custom", "Menu Backgrounds");
-            }
+            get { return RutasJuego.CarpetaCustom("Menu Backgrounds"); }
         }
 
         // ------------------------------------------------------------ escaneo

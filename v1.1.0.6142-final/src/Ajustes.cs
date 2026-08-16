@@ -111,11 +111,9 @@ namespace CloneHeroMod
 
         private static string RutaSettings()
         {
-            // El juego es portable: settings.ini vive en PlayerData, junto al
-            // ejecutable. MelonLoaderDirectory esta dentro de la carpeta del
-            // juego, asi que se sube un nivel.
-            string raiz = Directory.GetParent(MelonEnvironment.MelonLoaderDirectory).FullName;
-            return Path.Combine(raiz, "PlayerData", "settings.ini");
+            // La carpeta de datos cambia segun como este instalado el juego
+            // (PlayerData si es portable, Documents\Clone Hero si no).
+            return RutasJuego.RutaSettings();
         }
 
         private static string RutaRespaldo()
