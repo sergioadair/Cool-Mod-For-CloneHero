@@ -103,13 +103,22 @@ This build is a **MelonLoader mod**, so it does not touch any game file.
    files it needs — this takes a couple of minutes the first time. Close it.
 3. Copy [`v1.1.0.6142-final/CloneHeroMod.dll`](v1.1.0.6142-final/) into the
    `Mods` folder that MelonLoader created.
-4. Copy [`assets/Sounds/yourock.opus`](assets/Sounds/) into
-   `PlayerData\Custom\Sounds\`.
+4. Copy [`assets/Sounds/yourock.opus`](assets/Sounds/) into your
+   **`Custom\Sounds\`** folder.
 5. *(Optional)* Copy the images from [`assets/Menu Backgrounds/`](assets/Menu%20Backgrounds/)
-   into `PlayerData\Custom\Menu Backgrounds\`.
+   into your **`Custom\Menu Backgrounds\`** folder.
 
-> Where is `PlayerData`? On a **portable** install it sits next to
-> `Clone Hero.exe`. On a normal install use `Documents\Clone Hero\` instead.
+> **Where is that folder?** It depends on how the game is installed, and the
+> mod detects it automatically:
+>
+> | Install | Folder |
+> |---|---|
+> | Portable | `PlayerData\Custom\` — next to `Clone Hero.exe` |
+> | Normal | `Documents\Clone Hero\Custom\` |
+>
+> The same applies to `settings.ini`. If you are unsure which one the mod
+> picked, `MelonLoader\Latest.log` says so on startup:
+> `[Rutas] instalacion portable: …` or `[Rutas] instalacion normal: …`
 
 **To uninstall**, delete `Mods\CloneHeroMod.dll`. To remove everything, delete
 the `MelonLoader` and `Mods` folders and `version.dll`.
@@ -131,7 +140,7 @@ This build replaces a game file, so **make a backup first**.
 ## ⚙️ Settings
 
 The 1.1.0.6142 build keeps its settings in a `[mods]` section of your
-`settings.ini`, next to the game's own. Everything has a menu option except the
+`settings.ini` (in the folder shown above), next to the game's own. Everything has a menu option except the
 slideshow interval and the sound volume.
 
 | Key | Default | What it does |

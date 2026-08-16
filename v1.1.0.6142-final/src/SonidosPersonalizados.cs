@@ -36,19 +36,7 @@ namespace CloneHeroMod
 
         public static string Carpeta
         {
-            get
-            {
-                string raiz = Directory.GetParent(MelonEnvironment.MelonLoaderDirectory).FullName;
-                string c = Path.Combine(raiz, "PlayerData", "Custom", "Sounds");
-                try
-                {
-                    Directory.CreateDirectory(c);
-                }
-                catch (Exception)
-                {
-                }
-                return c;
-            }
+            get { return RutasJuego.CarpetaCustom("Sounds"); }
         }
 
         // ------------------------------------------------------------ resolver
