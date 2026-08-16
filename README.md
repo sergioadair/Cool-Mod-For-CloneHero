@@ -59,7 +59,7 @@ them.
 
 ---
 
-### 🖼️ Custom menu backgrounds
+### 🖼️  menu backgrounds
 
 Drop any `.png` / `.jpg` / `.jpeg` into your **Menu Backgrounds** folder and
 they show up as extra options in `Settings > Video > Menu Backgrounds`, listed
@@ -69,7 +69,7 @@ A starter pack is included in [`assets/Menu Backgrounds/`](assets/Menu%20Backgro
 
 ### 🔀 Menu background slideshow
 
-`Settings > Video > Menu BG Slideshow` — rotates through your custom
+`Settings > Video > Menu BG Slideshow` — rotates through your 
 backgrounds automatically. The interval is configurable (15 minutes by default).
 
 ### ⭐ Favorites filter
@@ -80,7 +80,7 @@ The game already lets you favorite songs and sort by it, but there is no way to
 It reuses the game's own favorites, so nothing is stored separately and your
 existing favorites just work.
 
-### 🔊 Custom sound when you finish a song
+### 🔊  sound when you finish a song
 
 Plays the classic **"You Rock"** sound from GH3 when the results screen appears.
 Replace the file to use your own — `.opus`, `.ogg`, `.mp3` and `.wav` all work.
@@ -104,9 +104,9 @@ This build is a **MelonLoader mod**, so it does not touch any game file.
 3. Copy [`v1.1.0.6142-final/CloneHeroMod.dll`](v1.1.0.6142-final/) into the
    `Mods` folder that MelonLoader created.
 4. Copy [`assets/Sounds/yourock.opus`](assets/Sounds/) into
-   `\Custom\Sounds\`.
+   `PlayerData\Custom\Sounds\`.
 5. *(Optional)* Copy the images from [`assets/Menu Backgrounds/`](assets/Menu%20Backgrounds/)
-   into `\Custom\Menu Backgrounds\`.
+   into `PlayerData\Custom\Menu Backgrounds\`.
 
 > Where is `PlayerData`? On a **portable** install it sits next to
 > `Clone Hero.exe`. On a normal install use `Documents\Clone Hero\` instead.
