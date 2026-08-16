@@ -106,7 +106,7 @@ This build is a **MelonLoader mod**, so it does not touch any game file.
 4. Copy [`assets/Sounds/yourock.opus`](assets/Sounds/) into
    `PlayerData\Custom\Sounds\`.
 5. *(Optional)* Copy the images from [`assets/Menu Backgrounds/`](assets/Menu%20Backgrounds/)
-   into `PlayerData\Custom\Menu Backgrounds\`.
+   into `\Custom\Menu Backgrounds\`.
 
 > Where is `PlayerData`? On a **portable** install it sits next to
 > `Clone Hero.exe`. On a normal install use `Documents\Clone Hero\` instead.
