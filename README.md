@@ -104,7 +104,7 @@ This build is a **MelonLoader mod**, so it does not touch any game file.
 3. Copy [`v1.1.0.6142-final/CloneHeroMod.dll`](v1.1.0.6142-final/) into the
    `Mods` folder that MelonLoader created.
 4. Copy [`assets/Sounds/yourock.opus`](assets/Sounds/) into
-   `PlayerData\Custom\Sounds\`.
+   `\Custom\Sounds\`.
 5. *(Optional)* Copy the images from [`assets/Menu Backgrounds/`](assets/Menu%20Backgrounds/)
    into `\Custom\Menu Backgrounds\`.
 
