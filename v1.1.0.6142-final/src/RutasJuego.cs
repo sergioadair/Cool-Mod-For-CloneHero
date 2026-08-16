@@ -81,6 +81,12 @@ namespace CloneHeroMod
                     MelonLogger.Msg("[Rutas] portable: " + portable);
                     return portable;
                 }
+                if (Directory.Exists(portable))
+                {
+                    MelonLogger.Warning("[Rutas] existe " + portable
+                        + " pero no tiene settings.ini ni Songs: se ignora. "
+                        + "Si lo creo una version antigua de este mod, se puede borrar.");
+                }
             }
             catch (Exception)
             {
@@ -116,7 +122,13 @@ namespace CloneHeroMod
             return "";
         }
 
-        // Una carpeta de datos de Clone Hero tiene al menos una de estas cosas.
+        // Solo cuenta como carpeta de datos si tiene algo que escribe EL JUEGO.
+        //
+        // Ojo con "Custom": NO sirve como prueba. Una version anterior de este
+        // mod creaba <juego>\PlayerData\Custom\... sin comprobar nada, y en las
+        // instalaciones normales dejo un arbol falso ahi. Si se acepta Custom,
+        // ese resto se detecta como instalacion portable para siempre y el mod
+        // sigue mirando donde no es.
         private static bool EsCarpetaDelJuego(string ruta)
         {
             try
@@ -126,8 +138,7 @@ namespace CloneHeroMod
                     return false;
                 }
                 return File.Exists(Path.Combine(ruta, "settings.ini"))
-                    || Directory.Exists(Path.Combine(ruta, "Songs"))
-                    || Directory.Exists(Path.Combine(ruta, "Custom"));
+                    || Directory.Exists(Path.Combine(ruta, "Songs"));
             }
             catch (Exception)
             {
