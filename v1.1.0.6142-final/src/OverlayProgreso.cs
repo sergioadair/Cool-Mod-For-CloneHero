@@ -45,6 +45,7 @@ namespace CloneHeroMod
                     + hechas.ToString() + " / " + total.ToString()
                     + "   (" + pct.ToString() + "%)\n\n"
                     + "Written: " + CalculadorDificultad.Escritas.ToString()
+                    + "    Up to date: " + CalculadorDificultad.AlDia.ToString()
                     + "    Skipped: " + CalculadorDificultad.Saltadas.ToString()
                     + "    No data: " + CalculadorDificultad.Falladas.ToString()
                     + "\n\nPlease wait...";

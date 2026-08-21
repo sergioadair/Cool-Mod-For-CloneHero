@@ -53,9 +53,14 @@ On a typical library the median song lands around **42**, the top 10 % above
 **65**, and the top 1 % above **89**.
 
 **Generate it**: `Settings > General > Calculate Difficulty`. A progress panel
-shows while it runs (~40 s for 3600 songs) and the value is written to each
-`song.ini` as `diff_global`. Restart or rescan afterwards so the game reloads
-them.
+shows while it runs and the value is written to each `song.ini` as
+`diff_global`. Restart or rescan afterwards so the game reloads them.
+
+The work is spread across your CPU cores (one is left free so the game stays
+smooth), and songs that are already up to date are skipped — a second run over
+the same library takes a couple of seconds. Changing
+`difficulty_reference_nps` recalculates everything, since that value rescales
+the whole scoring.
 
 **Sort by it**: `(Hold) Sort List > Sort Options > Difficulty`, grouped in tens
 — `90-99 Difficulty`, `80-89 Difficulty`… and `No Difficulty` at the end.
@@ -182,6 +187,7 @@ has a menu option except the slideshow interval and the sound volume.
 | `finished_song_sfx` | `1` | End-of-song sound on/off |
 | `finished_song_sfx_volume` | `1` | Multiplies that sound's volume |
 | `show_difficulty` | `1` | Show the `Difficulty: X` label on the song panel |
+| `difficulty_last_ref` | — | Reference used on the last calculation (written by the mod) |
 
 On the 1.0.0.4080 build the slideshow interval lives under `[video]` as
 `menu_bg_slideshow_seconds`.
