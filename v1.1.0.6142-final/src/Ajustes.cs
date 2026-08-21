@@ -231,6 +231,36 @@ namespace CloneHeroMod
             }
         }
 
+        // Con que referencia se calcularon las dificultades la ultima vez. Si
+        // cambia, los diff_global guardados ya no valen y hay que rehacerlos
+        // todos; mientras no cambie, se pueden reaprovechar.
+        public const string ClaveUltimaRef = "difficulty_last_ref";
+
+        public static float UltimaRefUsada()
+        {
+            try
+            {
+                float? v = LeerClave(RutaSettings(), Seccion, ClaveUltimaRef);
+                return v ?? -1f;
+            }
+            catch (Exception)
+            {
+                return -1f;
+            }
+        }
+
+        public static void GuardarUltimaRef(float valor)
+        {
+            try
+            {
+                EscribirClave(RutaSettings(), Seccion, ClaveUltimaRef, valor);
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Ajustes] guardar ultima ref: " + ex.Message);
+            }
+        }
+
         public static void GuardarFondo(int valor)
         {
             try
