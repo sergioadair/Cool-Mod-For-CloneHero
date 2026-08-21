@@ -13,8 +13,8 @@ namespace CloneHeroMod
     //   1. El nombre del archivo cuando el fondo elegido es uno nuestro. El
     //      juego no tiene texto para indices que no conoce, asi que esas
     //      opciones salian en blanco.
-    //   2. La fila "Menu BG Slideshow", que hasta ahora solo existia en
-    //      settings.ini.
+    //   2. Las filas "Menu BG Slideshow" y "Show Difficulty", que hasta ahora
+    //      solo existian en settings.ini.
     //
     // El estado del slideshow va en el propio texto de la fila
     // ("Menu BG Slideshow: Yes") en vez de en un widget Yes/No aparte: el juego
@@ -23,6 +23,7 @@ namespace CloneHeroMod
     public static class MenuVideo
     {
         public const string PrefijoSlideshow = "Menu BG Slideshow";
+        public const string PrefijoMostrarDificultad = "Show Difficulty";
         public const string OpcionFondos = "Menu Backgrounds";
 
         // Nombres de los 14 fondos de serie. Sirven para localizar el widget de
@@ -179,6 +180,8 @@ namespace CloneHeroMod
                 // limites de navegacion, y si la fila se anade despues queda
                 // visible pero inalcanzable.
                 FilasMenu.Anadir(v, TextoSlideshow(), PrefijoSlideshow);
+                FilasMenu.Anadir(v, TextoMostrarDificultad(), PrefijoMostrarDificultad);
+                DiagnosticoFilas.Volcar(v);
             }
             catch (Exception ex)
             {
@@ -189,6 +192,17 @@ namespace CloneHeroMod
         private static string TextoSlideshow()
         {
             return PrefijoSlideshow + ": " + (Ajustes.SlideshowActivo ? "Yes" : "No");
+        }
+
+        private static string TextoMostrarDificultad()
+        {
+            return PrefijoMostrarDificultad + ": " + (Ajustes.MostrarDificultad ? "Yes" : "No");
+        }
+
+        // El texto que le toca a cada una de nuestras filas segun su ajuste.
+        private static string TextoDe(string prefijo)
+        {
+            return prefijo == PrefijoSlideshow ? TextoSlideshow() : TextoMostrarDificultad();
         }
 
         // Tras refrescar etiquetas: pone el nombre del archivo si el fondo
@@ -353,9 +367,22 @@ namespace CloneHeroMod
                     return;
                 }
                 string actual = OpcionResaltada();
-                if (actual == null || !actual.StartsWith(PrefijoSlideshow, StringComparison.Ordinal))
+                if (actual == null)
                 {
                     return;
+                }
+                string prefijo = null;
+                if (actual.StartsWith(PrefijoSlideshow, StringComparison.Ordinal))
+                {
+                    prefijo = PrefijoSlideshow;
+                }
+                else if (actual.StartsWith(PrefijoMostrarDificultad, StringComparison.Ordinal))
+                {
+                    prefijo = PrefijoMostrarDificultad;
+                }
+                if (prefijo == null)
+                {
+                    return;      // fila del juego: no es cosa nuestra
                 }
                 // Se comporta como cualquier ajuste del juego: hay que PULSAR la
                 // opcion y entonces moverse cambia el valor. Solo pasar por
@@ -375,7 +402,7 @@ namespace CloneHeroMod
                 // la transicion se detectaba en el primer movimiento y de forma
                 // intermitente. Los dos menus entregan eventos distintos y no
                 // se pueden unificar; cada uno se queda con lo que funciona.
-                if (!EstaAbierta())
+                if (!EstaAbierta(prefijo))
                 {
                     return;
                 }
@@ -389,11 +416,17 @@ namespace CloneHeroMod
                 }
                 ultimaConmutacion = ahora;
 
-                bool nuevo = !Ajustes.SlideshowActivo;
-                Ajustes.GuardarSlideshow(nuevo);
-                int fila = FilasMenu.IndiceDe(menuVideo, PrefijoSlideshow);
-                FilasMenu.CambiarTexto(menuVideo, fila, TextoSlideshow());
-                RefrescarFila(fila);
+                if (prefijo == PrefijoSlideshow)
+                {
+                    Ajustes.GuardarSlideshow(!Ajustes.SlideshowActivo);
+                }
+                else
+                {
+                    Ajustes.GuardarMostrarDificultad(!Ajustes.MostrarDificultad);
+                }
+                int fila = FilasMenu.IndiceDe(menuVideo, prefijo);
+                FilasMenu.CambiarTexto(menuVideo, fila, TextoDe(prefijo));
+                RefrescarFila(fila, TextoDe(prefijo));
             }
             catch (Exception)
             {
@@ -423,7 +456,7 @@ namespace CloneHeroMod
         private static PropertyInfo[] candidatasAbierta;
         private static readonly List<string> vistasVacias = new List<string>();
 
-        private static bool EstaAbierta()
+        private static bool EstaAbierta(string prefijo)
         {
             try
             {
@@ -456,7 +489,7 @@ namespace CloneHeroMod
                     // (es decir, es la de "abierta" y no la de "resaltada") y
                     // ahora contiene nuestra fila.
                     if (vistasVacias.Contains(p.Name)
-                        && v.StartsWith(PrefijoSlideshow, StringComparison.Ordinal))
+                        && v.StartsWith(prefijo, StringComparison.Ordinal))
                     {
                         abierta = true;
                     }
@@ -471,7 +504,7 @@ namespace CloneHeroMod
 
         // El texto de menuStrings solo se relee al redibujar, asi que se
         // escribe tambien directamente en la fila fisica.
-        private static void RefrescarFila(int indice)
+        private static void RefrescarFila(int indice, string texto)
         {
             try
             {
@@ -494,7 +527,7 @@ namespace CloneHeroMod
                 var t = idx.GetValue(arr, new object[] { indice }) as Il2CppTMPro.TextMeshProUGUI;
                 if (t != null)
                 {
-                    t.text = TextoSlideshow();
+                    t.text = texto;
                 }
             }
             catch (Exception)

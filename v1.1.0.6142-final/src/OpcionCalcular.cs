@@ -128,6 +128,10 @@ namespace CloneHeroMod
                 ultimoMenu = general;
                 Resolver(general.GetType());
                 AnadirFila(general);
+                // El resultado de la ultima comprobacion no se arrastra entre
+                // visitas al menu (salvo el aviso de reiniciar).
+                Actualizador.OlvidarResultado();
+                FilasMenu.Escribir(general, Actualizador.Etiqueta, Actualizador.Texto());
             }
             catch (Exception ex)
             {
@@ -159,16 +163,36 @@ namespace CloneHeroMod
                     }
                 }
                 string actual = propOpcionActual.GetValue(menu) as string;
-                if (actual != Nombre)
+                if (actual == Nombre)
                 {
+                    MelonLogger.Msg("[Opcion] activada desde el menu");
+                    CalculadorDificultad.Lanzar();
                     return;
                 }
-                MelonLogger.Msg("[Opcion] activada desde el menu");
-                CalculadorDificultad.Lanzar();
+                // El texto de esta fila cambia segun como vaya la descarga, asi
+                // que se compara por el principio.
+                if (actual != null
+                    && actual.StartsWith(Actualizador.Etiqueta, StringComparison.Ordinal))
+                {
+                    Actualizador.Lanzar();
+                    FilasMenu.Escribir(menu, Actualizador.Etiqueta, Actualizador.Texto());
+                }
             }
             catch (Exception)
             {
             }
+        }
+
+        // La descarga corre en otro hilo y ahi no se puede tocar Unity: cuando
+        // termina deja aviso y la fila se reescribe desde el hilo principal.
+        // Fuera de ese momento esto es una comparacion de un bool.
+        public static void Tick()
+        {
+            if (!Actualizador.Consumir() || ultimoMenu == null)
+            {
+                return;
+            }
+            FilasMenu.Escribir(ultimoMenu, Actualizador.Etiqueta, Actualizador.Texto());
         }
 
         // ---------------------------------------------------------- resolucion
@@ -266,6 +290,10 @@ namespace CloneHeroMod
         }
 
         // -------------------------------------------------------------- fila -
+        // El montaje de la fila lo hace FilasMenu: las filas de estos menus son
+        // contenedores dentro de un VerticalLayoutGroup, y clonar solo la
+        // etiqueta la dejaba fuera del layout y del alcance del scroll, pegada
+        // al borde difuminado de la mascara.
         private static void AnadirFila(object menu)
         {
             if (propMenuStrings == null)
@@ -278,185 +306,8 @@ namespace CloneHeroMod
                 return;
             }
             ResolverOpcionActual(menu, filas);
-
-            for (int i = 0; i < filas.Length; i++)
-            {
-                if (filas[i] == Nombre)
-                {
-                    return;      // ya estaba
-                }
-            }
-
-            int filasAntes = filas.Length;
-            Il2CppStringArray nuevas = new Il2CppStringArray(filas.Length + 1);
-            for (int i = 0; i < filas.Length; i++)
-            {
-                nuevas[i] = filas[i];
-            }
-            nuevas[filas.Length] = Nombre;
-            propMenuStrings.SetValue(menu, nuevas);
-
-            ClonarFila(menu);
-
-            MelonLogger.Msg("[Opcion] fila anadida: " + filasAntes.ToString()
-                            + " -> " + nuevas.Length.ToString());
-        }
-
-        // Clona la ultima fila fisica. Mismo procedimiento que en la v1.0: el
-        // paso vertical sale de textPositionDifference, y si viene a cero se
-        // mide entre las dos ultimas filas.
-        private static void ClonarFila(object menu)
-        {
-            try
-            {
-                if (propTextObjects == null)
-                {
-                    return;
-                }
-                object arrTexto = propTextObjects.GetValue(menu);
-                if (arrTexto == null)
-                {
-                    return;
-                }
-                PropertyInfo len = arrTexto.GetType().GetProperty("Length");
-                PropertyInfo idx = arrTexto.GetType().GetProperty("Item");
-                if (len == null || idx == null)
-                {
-                    return;
-                }
-                int n = (int)len.GetValue(arrTexto);
-                if (n < 1)
-                {
-                    return;
-                }
-                // Solo se clona si de verdad falta una fila fisica. Clonar
-                // cuando el menu ya tenia de sobra deja una fila fantasma.
-                Il2CppStringArray filas = propMenuStrings.GetValue(menu) as Il2CppStringArray;
-                if (filas != null && n >= filas.Length)
-                {
-                    MelonLogger.Msg("[Opcion] no hace falta clonar (filas=" + n.ToString()
-                                    + ", opciones=" + filas.Length.ToString() + ")");
-                    return;
-                }
-
-                var ultimo = idx.GetValue(arrTexto, new object[] { n - 1 }) as Il2CppTMPro.TextMeshProUGUI;
-                if (ultimo == null)
-                {
-                    return;
-                }
-
-                Vector3 paso = Vector3.zero;
-                if (propTextPosDiff != null)
-                {
-                    Vector3 d = (Vector3)propTextPosDiff.GetValue(menu);
-                    paso = new Vector3(0f, -d.y, 0f);
-                }
-                if (paso.sqrMagnitude < 0.0001f && n >= 2)
-                {
-                    var previo = idx.GetValue(arrTexto, new object[] { n - 2 }) as Il2CppTMPro.TextMeshProUGUI;
-                    if (previo != null)
-                    {
-                        paso = ultimo.transform.localPosition - previo.transform.localPosition;
-                    }
-                }
-                if (paso.sqrMagnitude < 0.0001f)
-                {
-                    paso = new Vector3(0f, -80f, 0f);
-                }
-
-                var nuevo = UnityEngine.Object.Instantiate(ultimo);
-                nuevo.name = "CalculateDifficultyRow";
-                nuevo.transform.SetParent(ultimo.transform.parent, false);
-                nuevo.transform.localScale = ultimo.transform.localScale;
-                nuevo.transform.localRotation = ultimo.transform.localRotation;
-                nuevo.transform.localPosition = ultimo.transform.localPosition + paso;
-                nuevo.transform.SetSiblingIndex(ultimo.transform.GetSiblingIndex() + 1);
-
-                // La fila que se clona puede ser de tipo Yes/No, y entonces el
-                // clon arrastra su palomita y su texto de valor. La nuestra es
-                // de accion, no de ajuste: se le quitan los hijos heredados.
-                LimpiarHijos(nuevo.transform);
-                nuevo.text = Nombre;
-
-                object arrNuevo = Activator.CreateInstance(arrTexto.GetType(), new object[] { n + 1 });
-                PropertyInfo idxN = arrNuevo.GetType().GetProperty("Item");
-                for (int i = 0; i < n; i++)
-                {
-                    idxN.SetValue(arrNuevo, idx.GetValue(arrTexto, new object[] { i }), new object[] { i });
-                }
-                idxN.SetValue(arrNuevo, nuevo, new object[] { n });
-                propTextObjects.SetValue(menu, arrNuevo);
-
-                ClonarFondo(menu, paso);
-                MelonLogger.Msg("[Opcion] fila clonada, paso=" + paso.ToString());
-            }
-            catch (Exception ex)
-            {
-                MelonLogger.Error("[Opcion] clonar: " + ex);
-            }
-        }
-
-        private static void LimpiarHijos(Transform t)
-        {
-            try
-            {
-                for (int i = t.childCount - 1; i >= 0; i--)
-                {
-                    UnityEngine.Object.Destroy(t.GetChild(i).gameObject);
-                }
-            }
-            catch (Exception ex)
-            {
-                MelonLogger.Warning("[Opcion] limpiar hijos: " + ex.Message);
-            }
-        }
-
-        private static void ClonarFondo(object menu, Vector3 paso)
-        {
-            try
-            {
-                if (propBackgrounds == null)
-                {
-                    return;
-                }
-                object arr = propBackgrounds.GetValue(menu);
-                if (arr == null)
-                {
-                    return;
-                }
-                PropertyInfo len = arr.GetType().GetProperty("Length");
-                PropertyInfo idx = arr.GetType().GetProperty("Item");
-                int n = (int)len.GetValue(arr);
-                if (n < 1)
-                {
-                    return;
-                }
-                var ultimo = idx.GetValue(arr, new object[] { n - 1 }) as UnityEngine.UI.Image;
-                object nuevo = null;
-                if (ultimo != null)
-                {
-                    var clon = UnityEngine.Object.Instantiate(ultimo);
-                    clon.name = "CalculateDifficultyBg";
-                    clon.transform.SetParent(ultimo.transform.parent, false);
-                    clon.transform.localScale = ultimo.transform.localScale;
-                    clon.transform.localRotation = ultimo.transform.localRotation;
-                    clon.transform.localPosition = ultimo.transform.localPosition + paso;
-                    clon.transform.SetSiblingIndex(ultimo.transform.GetSiblingIndex() + 1);
-                    nuevo = clon;
-                }
-                object arrNuevo = Activator.CreateInstance(arr.GetType(), new object[] { n + 1 });
-                PropertyInfo idxN = arrNuevo.GetType().GetProperty("Item");
-                for (int i = 0; i < n; i++)
-                {
-                    idxN.SetValue(arrNuevo, idx.GetValue(arr, new object[] { i }), new object[] { i });
-                }
-                idxN.SetValue(arrNuevo, nuevo, new object[] { n });
-                propBackgrounds.SetValue(menu, arrNuevo);
-            }
-            catch (Exception ex)
-            {
-                MelonLogger.Warning("[Opcion] fondo: " + ex.Message);
-            }
+            FilasMenu.Anadir(menu, Nombre, Nombre);
+            FilasMenu.Anadir(menu, Actualizador.Texto(), Actualizador.Etiqueta);
         }
     }
 }

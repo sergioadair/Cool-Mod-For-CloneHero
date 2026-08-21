@@ -22,6 +22,7 @@ namespace CloneHeroMod
         private static PropertyInfo propCanvas;
         private static bool visibleAntes;
         private static bool avisadoSinArchivo;
+        private static readonly Buscador.Intento intento = new Buscador.Intento(13);
 
         public static void Tick()
         {
@@ -55,11 +56,18 @@ namespace CloneHeroMod
         {
             if (pantalla == null)
             {
-                pantalla = UnityEngine.Object.FindObjectOfType<Il2Cpp.EndOfSong>();
-                if (pantalla == null)
+                // Los reintentos se espacian solos: ver Buscador.
+                if (!intento.Toca())
                 {
                     return null;
                 }
+                pantalla = UnityEngine.Object.FindObjectOfType<Il2Cpp.EndOfSong>();
+                if (pantalla == null)
+                {
+                    intento.Fallo();
+                    return null;
+                }
+                intento.Exito();
                 propCanvas = null;
             }
             if (propCanvas == null)

@@ -387,12 +387,37 @@ namespace CloneHeroMod
         // tiene al menos una normal y otra de leaderboards), asi que se aplica
         // a todas: quedarse con la primera que devuelve FindObjectOfType
         // significaba estar pintando sobre una que no se ve.
+        private static List<UnityEngine.UI.RawImage> cacheRawImages;
+        private static readonly Buscador.Intento intento = new Buscador.Intento(7);
+
+        // RENDIMIENTO: FindObjectsOfType es aun mas caro que la version en
+        // singular, porque ademas reserva un array. La lista se guarda y solo
+        // se rehace cuando toca (ver Buscador) o si alguna referencia murio.
+
         private static List<UnityEngine.UI.RawImage> RawImagesDelFondo()
         {
+            if (cacheRawImages != null && !intento.Toca())
+            {
+                bool validas = cacheRawImages.Count > 0;
+                for (int i = 0; validas && i < cacheRawImages.Count; i++)
+                {
+                    if (cacheRawImages[i] == null)
+                    {
+                        validas = false;
+                    }
+                }
+                if (validas)
+                {
+                    return cacheRawImages;
+                }
+            }
+
             List<UnityEngine.UI.RawImage> lista = new List<UnityEngine.UI.RawImage>();
             var todos = UnityEngine.Object.FindObjectsOfType<Il2Cpp.MenuBackground>();
             if (todos == null)
             {
+                cacheRawImages = lista;
+                intento.Fallo();
                 return lista;
             }
             for (int i = 0; i < todos.Length; i++)
@@ -441,6 +466,8 @@ namespace CloneHeroMod
                         + "  padre=" + (ri.transform.parent != null ? ri.transform.parent.name : "-"));
                 }
             }
+            cacheRawImages = lista;
+            if (lista.Count > 0) { intento.Exito(); } else { intento.Fallo(); }
             return lista;
         }
 
