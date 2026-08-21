@@ -11,12 +11,17 @@ using MelonLoader.Utils;
 
 namespace CloneHeroMod
 {
-    // Mod de exploracion. No cambia nada del juego: solo vuelca a un archivo de
-    // texto el estado real de las estructuras que necesitamos enganchar, para
-    // no tener que adivinarlo desde el volcado estatico (que no trae cuerpos de
-    // metodo, asi que no deja ver el contenido de los arrays).
+    // Punto de entrada del mod: instala las funciones al arrancar y reparte
+    // el trabajo por fotograma.
     //
-    // Genera:  <juego>\MelonLoader\diagnostico-ch.txt
+    // RENDIMIENTO: mientras la escena activa es "Gameplay" no se ejecuta nada
+    // en absoluto. Lo que habia antes (busquedas de objetos y recuentos sobre
+    // miles de canciones corriendo en cada fotograma) costaba FPS y provocaba
+    // tirones durante la cancion.
+    //
+    // Conserva los volcados de diagnostico que sirvieron para localizar las
+    // estructuras del juego, pero solo se ejecutan si existe el archivo
+    // MelonLoader\diagnostico.flag.
     public class Diagnostico : MelonMod
     {
         // Nombres ofuscados confirmados en el volcado de v1.1.0.6142.
@@ -41,6 +46,11 @@ namespace CloneHeroMod
 
         public override void OnUpdate()
         {
+            // Durante la cancion el mod no hace absolutamente nada.
+            if (Buscador.EnJuego)
+            {
+                return;
+            }
             // F10 lanza el calculo de dificultad de toda la biblioteca.
             // De momento va por tecla y no por opcion de menu: anadir filas a
             // los menus en IL2CPP es un trabajo aparte que todavia no esta.
@@ -63,8 +73,11 @@ namespace CloneHeroMod
             if (yaVolcado)
             {
                 // Mantiene lleno el hueco de la cache de secciones.
-                OrdenDificultad.Tick();
+                // La etiqueta primero: refresca la referencia a SongSelect que
+                // el orden consulta para saber si hay que hacer algo.
                 EtiquetaDificultad.Tick();
+                OrdenDificultad.Tick();
+                OpcionCalcular.Tick();
                 OverlayProgreso.Refrescar();
                 SfxFinDeCancion.Tick();
                 return;
@@ -79,6 +92,7 @@ namespace CloneHeroMod
             yaVolcado = true;
             try
             {
+                Actualizador.LimpiarRestos();
                 OrdenDificultad.Instalar();
                 FondosPersonalizados.Instalar();
                 FiltroFavoritos.Instalar();
@@ -87,9 +101,16 @@ namespace CloneHeroMod
                 OrdenDificultad.InstalarParcheRefresco(HarmonyInstance);
                 MenuVideo.InstalarParches(HarmonyInstance);
                 MenuAudio.InstalarParches(HarmonyInstance);
-                Volcar();
-                DiagnosticoOrden.Volcar();
-                DiagnosticoMenu.Volcar();
+                // Los volcados recorren los 1475 tipos del juego y leen todos
+                // sus miembros estaticos: util para investigar, pero caro y sin
+                // sentido en uso normal. Solo si se pide con un archivo.
+                if (File.Exists(Path.Combine(MelonEnvironment.MelonLoaderDirectory,
+                                             "diagnostico.flag")))
+                {
+                    Volcar();
+                    DiagnosticoOrden.Volcar();
+                    DiagnosticoMenu.Volcar();
+                }
                 LanzarSiHayBandera();
             }
             catch (Exception ex)
@@ -98,8 +119,24 @@ namespace CloneHeroMod
             }
         }
 
+        // Al cambiar de escena es cuando de verdad pueden aparecer o
+        // desaparecer los objetos que buscamos, asi que se reinicia la espera
+        // de las busquedas. Fuera de esos momentos van espaciandose solas.
+        public override void OnSceneWasLoaded(int indice, string nombre)
+        {
+            Buscador.EscenaCambiada(nombre);
+            // Los paneles del menu se destruyen al cambiar de escena; sus
+            // punteros pueden reutilizarse, asi que la cache de etiquetas se
+            // tira para no dar por buena una que ya no existe.
+            EtiquetaDificultad.OlvidarPaneles();
+        }
+
         public override void OnLateUpdate()
         {
+            if (Buscador.EnJuego)
+            {
+                return;
+            }
             FondosPersonalizados.Tick();
         }
 

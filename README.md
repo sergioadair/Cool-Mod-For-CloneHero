@@ -5,6 +5,9 @@ A set of quality-of-life features I always wanted Clone Hero to have: a real
 **slideshow**, a **Favorites** filter and a **custom sound** when you finish a
 song.
 
+The 1.1.0.6142 build also **updates itself** from this repo with one menu
+option, and stays completely idle while you are playing a song.
+
 Two builds are available, one per game version:
 
 | Game version | Folder | How it works |
@@ -57,9 +60,12 @@ them.
 **Sort by it**: `(Hold) Sort List > Sort Options > Difficulty`, grouped in tens
 — `90-99 Difficulty`, `80-89 Difficulty`… and `No Difficulty` at the end.
 
+**Hide it**: `Settings > Video > Show Difficulty` takes the label off the song
+panel without touching the values already stored in your `song.ini` files.
+
 ---
 
-### 🖼️  menu backgrounds
+### 🖼️ Custom menu backgrounds
 
 Drop any `.png` / `.jpg` / `.jpeg` into your **Menu Backgrounds** folder and
 they show up as extra options in `Settings > Video > Menu Backgrounds`, listed
@@ -69,7 +75,7 @@ A starter pack is included in [`assets/Menu Backgrounds/`](assets/Menu%20Backgro
 
 ### 🔀 Menu background slideshow
 
-`Settings > Video > Menu BG Slideshow` — rotates through your 
+`Settings > Video > Menu BG Slideshow` — rotates through your custom
 backgrounds automatically. The interval is configurable (15 minutes by default).
 
 ### ⭐ Favorites filter
@@ -80,12 +86,28 @@ The game already lets you favorite songs and sort by it, but there is no way to
 It reuses the game's own favorites, so nothing is stored separately and your
 existing favorites just work.
 
-### 🔊  sound when you finish a song
+### 🔊 Custom sound when you finish a song
 
 Plays the classic **"You Rock"** sound from GH3 when the results screen appears.
 Replace the file to use your own — `.opus`, `.ogg`, `.mp3` and `.wav` all work.
 
 Toggle it at `Settings > Audio > Finished Song SFX`.
+
+### 🔄 One-click updates
+
+`Settings > General > Update Cool Mod` downloads the latest build straight from
+this repo and installs it. The row tells you how it went — `up to date`,
+`done, restart`, or `failed` — and the details go to `MelonLoader\Latest.log`.
+
+There is no version number to keep track of: the mod compares what it downloads
+with what you have installed, byte for byte. Restart the game to load the new
+build.
+
+### ⚡ Stays out of the way while you play
+
+The mod does **nothing at all** while a song is running — every one of its
+per-frame checks is switched off the moment the gameplay scene loads, and
+switched back on when you return to the menus. No frame drops, no stutter.
 
 ---
 
@@ -125,6 +147,9 @@ This build is a **MelonLoader mod**, so it does not touch any game file.
 > manually: create `MelonLoader\clone-hero-data-folder.txt` containing the
 > full path to your `Clone Hero` data folder.
 
+> After this first install you never have to download the `.dll` by hand
+> again — `Settings > General > Update Cool Mod` does it for you.
+
 **To uninstall**, delete `Mods\CloneHeroMod.dll`. To remove everything, delete
 the `MelonLoader` and `Mods` folders and `version.dll`.
 
@@ -145,8 +170,8 @@ This build replaces a game file, so **make a backup first**.
 ## ⚙️ Settings
 
 The 1.1.0.6142 build keeps its settings in a `[mods]` section of your
-`settings.ini` (in the folder shown above), next to the game's own. Everything has a menu option except the
-slideshow interval and the sound volume.
+`settings.ini` (in the folder shown above), next to the game's own. Everything
+has a menu option except the slideshow interval and the sound volume.
 
 | Key | Default | What it does |
 |---|---|---|
@@ -156,6 +181,7 @@ slideshow interval and the sound volume.
 | `menu_background_custom` | — | Which custom background is selected (written by the mod) |
 | `finished_song_sfx` | `1` | End-of-song sound on/off |
 | `finished_song_sfx_volume` | `1` | Multiplies that sound's volume |
+| `show_difficulty` | `1` | Show the `Difficulty: X` label on the song panel |
 
 On the 1.0.0.4080 build the slideshow interval lives under `[video]` as
 `menu_bg_slideshow_seconds`.

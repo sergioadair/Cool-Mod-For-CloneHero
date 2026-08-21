@@ -27,6 +27,7 @@ namespace CloneHeroMod
         public const string ClaveSlideshow = "menu_bg_slideshow";
         public const string ClaveSlideshowSegundos = "menu_bg_slideshow_seconds";
         public const string ClaveSfxFin = "finished_song_sfx";
+        public const string ClaveMostrarDificultad = "show_difficulty";
         public const string ClaveVolumenSfx = "finished_song_sfx_volume";
 
         public const float SlideshowPorDefecto = 0f;         // 0 = apagado
@@ -35,6 +36,7 @@ namespace CloneHeroMod
         public const float SegundosMax = 86400f;
 
         private static float sfxFin = 1f;
+        private static float mostrarDificultad = 1f;
         private static float volumenSfx = 1f;
         private static float slideshow;
         private static float slideshowSegundos = SegundosPorDefecto;
@@ -69,6 +71,30 @@ namespace CloneHeroMod
             catch (Exception ex)
             {
                 MelonLogger.Warning("[Ajustes] guardar sfx: " + ex.Message);
+            }
+        }
+
+        // Muestra u oculta la etiqueta "Difficulty: X" del panel de informacion
+        // de la cancion. Se conmuta desde Settings > Video.
+        public static bool MostrarDificultad
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return mostrarDificultad >= 0.5f;
+            }
+        }
+
+        public static void GuardarMostrarDificultad(bool activo)
+        {
+            try
+            {
+                mostrarDificultad = activo ? 1f : 0f;
+                EscribirClave(RutaSettings(), Seccion, ClaveMostrarDificultad, mostrarDificultad);
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Ajustes] guardar show difficulty: " + ex.Message);
             }
         }
 
@@ -155,12 +181,14 @@ namespace CloneHeroMod
 
                 sfxFin = LeerOEscribir(ruta, ClaveSfxFin, 1f, 0f, 1f);
                 volumenSfx = LeerOEscribir(ruta, ClaveVolumenSfx, 1f, 0f, 1f);
+                mostrarDificultad = LeerOEscribir(ruta, ClaveMostrarDificultad, 1f, 0f, 1f);
 
                 GuardarRespaldo(referenceNps);
                 MelonLogger.Msg("[Ajustes] ReferenceNps=" + Texto(referenceNps)
                     + "  slideshow=" + (slideshow >= 0.5f ? "si" : "no")
                     + "  segundos=" + Texto(slideshowSegundos)
-                    + "  sfxFin=" + (sfxFin >= 0.5f ? "si" : "no"));
+                    + "  sfxFin=" + (sfxFin >= 0.5f ? "si" : "no")
+                    + "  mostrarDificultad=" + (mostrarDificultad >= 0.5f ? "si" : "no"));
             }
             catch (Exception ex)
             {

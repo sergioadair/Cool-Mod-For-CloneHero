@@ -41,6 +41,8 @@ namespace CloneHeroMod
         private static PropertyInfo campoInicioSeccion;
         private static int visiblesUltimaConstruccion = -1;
         private static int contadorRevision;
+        private static PropertyInfo propLongitud;
+        private static PropertyInfo propElemento;
         private static int nuestroIndice = -1;
         private static bool instalado;
         private static bool fallado;
@@ -365,6 +367,21 @@ namespace CloneHeroMod
             {
                 return;
             }
+            // RENDIMIENTO: esto corre en cada fotograma, tambien mientras se
+            // juega una cancion. Si nuestro criterio no es el activo no hay
+            // nada que mantener, y esta comprobacion es una sola lectura sobre
+            // un PropertyInfo ya resuelto.
+            if (!EsNuestroCriterioActivo())
+            {
+                return;
+            }
+            // Y solo si estamos en la lista de canciones. Durante una cancion
+            // no hay nada que mantener, y el recuento de visibles recorre miles
+            // de entradas: era la causa de los tirones en pleno gameplay.
+            if (!EtiquetaDificultad.HaySeleccion)
+            {
+                return;
+            }
             try
             {
                 if (campoCache == null)
@@ -382,13 +399,20 @@ namespace CloneHeroMod
                 }
                 // No se puede tipar el array en tiempo de compilacion: su
                 // elemento es el tipo Seccion, que solo conocemos como Type.
-                // Se trabaja por reflexion.
-                PropertyInfo len = bruto.GetType().GetProperty("Length");
-                if (len == null)
+                // Se trabaja por reflexion, pero los PropertyInfo se resuelven
+                // UNA vez: antes se hacia GetProperty en cada fotograma, que es
+                // una busqueda por nombre y sale cara.
+                if (propLongitud == null || propElemento == null)
+                {
+                    Type ta = bruto.GetType();
+                    propLongitud = ta.GetProperty("Length");
+                    propElemento = ta.GetProperty("Item");
+                }
+                if (propLongitud == null || propElemento == null)
                 {
                     return;
                 }
-                int longitud = (int)len.GetValue(bruto);
+                int longitud = (int)propLongitud.GetValue(bruto);
                 if (nuestroIndice >= longitud)
                 {
                     AmpliarCache(bruto, longitud);
@@ -404,8 +428,11 @@ namespace CloneHeroMod
                     // se fuerza la reconstruccion si el conjunto visible
                     // cambio. Sin esto, ordenando por Difficulty los filtros
                     // parecen no hacer nada.
+                    // Recuento cada ~2 segundos, no cada 20 fotogramas:
+                    // recorrer miles de canciones leyendo una propiedad de
+                    // Il2Cpp por cada una es justo lo que provocaba tirones.
                     contadorRevision++;
-                    if (contadorRevision < 20)
+                    if (contadorRevision < 120)
                     {
                         return;
                     }
@@ -864,13 +891,13 @@ namespace CloneHeroMod
 
         private static object ElementoCache(object arr, int i)
         {
-            PropertyInfo idx = arr.GetType().GetProperty("Item");
+            PropertyInfo idx = propElemento ?? arr.GetType().GetProperty("Item");
             return idx != null ? idx.GetValue(arr, new object[] { i }) : null;
         }
 
         private static void PonerElementoCache(object arr, int i, object v)
         {
-            PropertyInfo idx = arr.GetType().GetProperty("Item");
+            PropertyInfo idx = propElemento ?? arr.GetType().GetProperty("Item");
             if (idx != null)
             {
                 idx.SetValue(arr, v, new object[] { i });
