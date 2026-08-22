@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Reflection;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using MelonLoader;
@@ -18,6 +19,95 @@ namespace CloneHeroMod
     // acababa metida entre los dropdowns.
     public static class FilasMenu
     {
+        // Quita el degradado del final de la lista.
+        //
+        // Lo que se ve tenue al final de un menu de ajustes no es transparencia
+        // de las filas —su alfa es 1— sino una imagen de degradado superpuesta:
+        // BaseSettingMenu.fadeImage.
+        //
+        // SettingsMenu tiene dos sprites para ella, fadeGradient y
+        // noFadeGradient, y el primer intento fue cambiar uno por el otro.
+        // No sirve: se llaman FadedSettingsMenuGradient y SettingsMenuGradient,
+        // y AMBOS son degradados; el segundo solo desvanece menos. Lo que de
+        // verdad quita el efecto es apagar la imagen.
+        //
+        // El juego reserva dos filas de holgura al final de cada contenedor
+        // para que su ultima opcion no caiga en esa banda. Como nosotros
+        // anadimos filas y se la comemos, la alternativa era agrandar el
+        // contenedor; se intento tres veces y siempre acababa deformando las
+        // filas, porque segun el momento cuelgan de una caja de alto fijo o
+        // directamente del contenedor y ancladas en estiramiento. Apagar la
+        // imagen no toca ni geometria ni anclajes.
+
+        // Un aviso por menu, no uno global: con uno solo no se veia cual de
+        // los cuatro submenus no habia quedado bien.
+        private static readonly List<string> avisados = new List<string>();
+
+        public static void QuitarDegradado(Il2Cpp.BaseSettingMenu menu)
+        {
+            if (menu == null)
+            {
+                return;
+            }
+            string clave;
+            try { clave = menu.GetIl2CppType().Name; }
+            catch (Exception) { clave = "?"; }
+            bool avisar = !avisados.Contains(clave);
+
+            try
+            {
+                int apagadas = Apagar(menu.fadeImage) ? 1 : 0;
+
+                // Por si la imagen que se ve no es la que el menu declara:
+                // cualquier otra que muestre uno de los dos degradados.
+                Il2Cpp.SettingsMenu padre = menu.settingsMenu != null
+                    ? menu.settingsMenu.TryCast<Il2Cpp.SettingsMenu>()
+                    : null;
+                if (padre != null)
+                {
+                    var imagenes = menu.GetComponentsInChildren<UnityEngine.UI.Image>(true);
+                    for (int i = 0; i < imagenes.Length; i++)
+                    {
+                        var img = imagenes[i];
+                        if (img == null || img.sprite == null)
+                        {
+                            continue;
+                        }
+                        if (img.sprite == padre.fadeGradient
+                            || img.sprite == padre.noFadeGradient)
+                        {
+                            apagadas += Apagar(img) ? 1 : 0;
+                        }
+                    }
+                }
+
+                if (avisar)
+                {
+                    avisados.Add(clave);
+                    MelonLogger.Msg("[Filas] degradado en " + clave + ": "
+                        + apagadas.ToString() + " imagen(es) apagada(s)");
+                }
+            }
+            catch (Exception ex)
+            {
+                if (avisar)
+                {
+                    avisados.Add(clave);
+                    MelonLogger.Warning("[Filas] degradado en " + clave + ": " + ex.Message);
+                }
+            }
+        }
+
+        private static bool Apagar(UnityEngine.UI.Image img)
+        {
+            if (img == null || !img.enabled)
+            {
+                return false;
+            }
+            img.enabled = false;
+            return true;
+        }
+
         public static PropertyInfo Prop(Type t, string nombre)
         {
             BindingFlags f = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;

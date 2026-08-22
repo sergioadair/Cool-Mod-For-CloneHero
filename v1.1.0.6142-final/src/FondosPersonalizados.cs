@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using MelonLoader;
-using MelonLoader.Utils;
 using UnityEngine;
 
 namespace CloneHeroMod
@@ -26,7 +25,6 @@ namespace CloneHeroMod
         private static PropertyInfo propValor;    // prop_T_0 = valor actual
         private static PropertyInfo propMaximo;   // prop_T_1 = maximo
 
-        private static Il2Cpp.MenuBackground fondoActual;
         private static PropertyInfo propRawImage;
 
         private static bool instalado;

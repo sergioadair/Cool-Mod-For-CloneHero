@@ -1,5 +1,4 @@
 ﻿using System;
-using System.IO;
 using System.Reflection;
 using System.Collections.Generic;
 using HarmonyLib;
@@ -16,15 +15,27 @@ namespace CloneHeroMod
     //   2. Las filas "Menu BG Slideshow" y "Show Difficulty", que hasta ahora
     //      solo existian en settings.ini.
     //
-    // El estado del slideshow va en el propio texto de la fila
-    // ("Menu BG Slideshow: Yes") en vez de en un widget Yes/No aparte: el juego
-    // no tiene hueco de valor para una fila que no conoce, y crear uno a mano
-    // fue justo lo que descoloco el menu de Audio en la version anterior.
+    // NO CABEN MAS: el contenido del scroll tiene una altura fija puesta a mano
+    // — Video 1600 = (18 filas + 2) x 80 — y con estas dos ya va exactamente
+    // lleno. Una tercera fila se sale del area desplazable y no hay forma de
+    // llegar a ella. Se intento agrandar el contenedor y sale caro: segun como
+    // este montado el menu en ese momento, las filas cuelgan de una caja propia
+    // de alto fijo o directamente y ancladas en estiramiento, y en ese segundo
+    // caso agrandar el contenedor estira todas las filas y las solapa. La
+    // tercera opcion vive en Audio, que si tiene un hueco libre.
+    //
+    // El estado va en el propio texto de la fila ("Menu BG Slideshow: Yes") en
+    // vez de en un widget Yes/No aparte: el juego no tiene hueco de valor para
+    // una fila que no conoce, y crear uno a mano fue justo lo que descoloco el
+    // menu de Audio en la version anterior.
+    //
+    // La conmutacion no cuelga de los eventos del menu, sino de VigilanteMenu:
+    // ahi esta explicado por que, con los tres problemas distintos que dio
+    // hacerlo por eventos.
     public static class MenuVideo
     {
         public const string PrefijoSlideshow = "Menu BG Slideshow";
         public const string PrefijoMostrarDificultad = "Show Difficulty";
-        public const string OpcionFondos = "Menu Backgrounds";
 
         // Nombres de los 14 fondos de serie. Sirven para localizar el widget de
         // valor de la fila "Menu Backgrounds": es el unico que muestra uno de
@@ -58,9 +69,16 @@ namespace CloneHeroMod
                     BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
                 if (onEnable != null)
                 {
-                    harmony.Patch(onEnable, new HarmonyMethod(
-                        typeof(MenuVideo).GetMethod("PreOnEnable",
-                            BindingFlags.NonPublic | BindingFlags.Static)), null);
+                    // OnEnable de BaseSettingMenu, o sea TODOS los submenus de
+                    // ajustes. El prefix anade nuestras filas al de Video; el
+                    // postfix quita el degradado del final de la lista, y ese
+                    // vale para todos. Va DESPUES a proposito: el juego elige
+                    // ahi cual de los dos sprites poner.
+                    harmony.Patch(onEnable,
+                        new HarmonyMethod(typeof(MenuVideo).GetMethod("PreOnEnable",
+                            BindingFlags.NonPublic | BindingFlags.Static)),
+                        new HarmonyMethod(typeof(MenuVideo).GetMethod("PostOnEnable",
+                            BindingFlags.NonPublic | BindingFlags.Static)));
                 }
 
                 // El metodo de etiquetas: unico "public virtual void (string)".
@@ -93,65 +111,6 @@ namespace CloneHeroMod
                     MelonLogger.Warning("[MenuVideo] no se localizo el metodo de etiquetas");
                 }
 
-                // Select: NO se eligen por nombre. Los nombres que genera
-                // Il2CppInterop van numerados por clase, asi que el Select de
-                // Video no tiene por que llamarse igual que el de General; de
-                // hecho por nombre caian 5 candidatos y el unico que se
-                // disparaba corria en cada fotograma.
-                //
-                // Se emparejan por RANURA VIRTUAL: se toman los candidatos de
-                // GeneralSettingsMenu (donde el Select si funciona, es el que
-                // activa Calculate Difficulty), se coge su declaracion base con
-                // GetBaseDefinition() y se parchea en Video el override de esa
-                // misma ranura.
-                Type tGeneral = Ofuscado.Tipo("GeneralSettingsMenu");
-                MethodInfo postSelect = typeof(MenuVideo).GetMethod("PostSelect",
-                    BindingFlags.NonPublic | BindingFlags.Static);
-                int n = 0;
-                if (tGeneral != null)
-                {
-                    List<MethodInfo> basesBuenas = new List<MethodInfo>();
-                    MethodInfo[] gs = tGeneral.GetMethods(
-                        BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-                    for (int i = 0; i < gs.Length; i++)
-                    {
-                        if (EsCandidatoSelect(gs[i]))
-                        {
-                            basesBuenas.Add(gs[i].GetBaseDefinition());
-                        }
-                    }
-                    for (int i = 0; i < ms.Length; i++)
-                    {
-                        if (!EsCandidatoSelect(ms[i]))
-                        {
-                            continue;
-                        }
-                        MethodInfo baseV = ms[i].GetBaseDefinition();
-                        bool coincide = false;
-                        for (int j = 0; j < basesBuenas.Count; j++)
-                        {
-                            if (basesBuenas[j] == baseV)
-                            {
-                                coincide = true;
-                                break;
-                            }
-                        }
-                        if (!coincide)
-                        {
-                            continue;
-                        }
-                        try
-                        {
-                            harmony.Patch(ms[i], null, new HarmonyMethod(postSelect));
-                            n++;
-                            MelonLogger.Msg("[MenuVideo] Select emparejado: " + ms[i].Name);
-                        }
-                        catch (Exception)
-                        {
-                        }
-                    }
-                }
-                MelonLogger.Msg("[MenuVideo] candidatos a Select parcheados: " + n.ToString());
             }
             catch (Exception ex)
             {
@@ -181,11 +140,29 @@ namespace CloneHeroMod
                 // visible pero inalcanzable.
                 FilasMenu.Anadir(v, TextoSlideshow(), PrefijoSlideshow);
                 FilasMenu.Anadir(v, TextoMostrarDificultad(), PrefijoMostrarDificultad);
-                DiagnosticoFilas.Volcar(v);
+                vigilante.Preparar(v);
             }
             catch (Exception ex)
             {
                 MelonLogger.Error("[MenuVideo] PreOnEnable: " + ex);
+            }
+        }
+
+        // __instance se pide como Il2CppSystem.Object y se convierte a mano:
+        // BaseSettingMenu es abstracta y pedirla directamente hace fallar la
+        // conversion del trampolin.
+        private static void PostOnEnable(Il2CppSystem.Object __instance)
+        {
+            try
+            {
+                if (__instance == null)
+                {
+                    return;
+                }
+                FilasMenu.QuitarDegradado(__instance.TryCast<Il2Cpp.BaseSettingMenu>());
+            }
+            catch (Exception)
+            {
             }
         }
 
@@ -354,152 +331,31 @@ namespace CloneHeroMod
             }
         }
 
-        // Al activar la fila del slideshow, se conmuta y se reescribe su texto.
-        private static string quienLlama = "?";
+        private static readonly VigilanteMenu vigilante = new VigilanteMenu(
+            "MenuVideo", PrefijoSlideshow, PrefijoMostrarDificultad);
 
-        private static void PostSelect(MethodBase __originalMethod)
+        public static void Tick()
         {
-            try
+            string prefijo = vigilante.RecienAbierta(menuVideo);
+            if (prefijo != null)
             {
-                quienLlama = __originalMethod != null ? __originalMethod.Name : "?";
-                if (menuVideo == null)
-                {
-                    return;
-                }
-                string actual = OpcionResaltada();
-                if (actual == null)
-                {
-                    return;
-                }
-                string prefijo = null;
-                if (actual.StartsWith(PrefijoSlideshow, StringComparison.Ordinal))
-                {
-                    prefijo = PrefijoSlideshow;
-                }
-                else if (actual.StartsWith(PrefijoMostrarDificultad, StringComparison.Ordinal))
-                {
-                    prefijo = PrefijoMostrarDificultad;
-                }
-                if (prefijo == null)
-                {
-                    return;      // fila del juego: no es cosa nuestra
-                }
-                // Se comporta como cualquier ajuste del juego: hay que PULSAR la
-                // opcion y entonces moverse cambia el valor. Solo pasar por
-                // encima no debe tocarla.
-                //
-                // La diferencia esta en la propiedad "opcion abierta" del menu,
-                // que es nula mientras la fila solo esta resaltada. No se sabe
-                // de antemano cual de las propiedades string es: se aprende
-                // sola, marcando las que alguna vez se han visto vacias
-                // (la de la fila resaltada nunca lo esta dentro del menu).
-                // Conmuta con la opcion ABIERTA: se pulsa y luego se mueve.
-                //
-                // Se intento igualarlo al menu de Audio (conmutar solo al
-                // pulsar) detectando la transicion de cerrada a abierta, y
-                // quedo peor: en Video la propiedad de "abierta" todavia no
-                // esta puesta cuando corre el postfix de la pulsacion, asi que
-                // la transicion se detectaba en el primer movimiento y de forma
-                // intermitente. Los dos menus entregan eventos distintos y no
-                // se pueden unificar; cada uno se queda con lo que funciona.
-                if (!EstaAbierta(prefijo))
-                {
-                    return;
-                }
-
-                // Guarda contra rebotes por si el metodo se dispara mas de una
-                // vez por pulsacion.
-                float ahora = UnityEngine.Time.realtimeSinceStartup;
-                if (ahora - ultimaConmutacion < 0.25f)
-                {
-                    return;
-                }
-                ultimaConmutacion = ahora;
-
-                if (prefijo == PrefijoSlideshow)
-                {
-                    Ajustes.GuardarSlideshow(!Ajustes.SlideshowActivo);
-                }
-                else
-                {
-                    Ajustes.GuardarMostrarDificultad(!Ajustes.MostrarDificultad);
-                }
-                int fila = FilasMenu.IndiceDe(menuVideo, prefijo);
-                FilasMenu.CambiarTexto(menuVideo, fila, TextoDe(prefijo));
-                RefrescarFila(fila, TextoDe(prefijo));
-            }
-            catch (Exception)
-            {
+                Conmutar(prefijo);
             }
         }
 
-        private static float ultimaConmutacion;
-        private static readonly Dictionary<string, int> ultimoFrame = new Dictionary<string, int>();
-        private static readonly List<string> vetados = new List<string>();
-
-        // Firma comun de los candidatos a Select.
-        private static bool EsCandidatoSelect(MethodInfo m)
+        private static void Conmutar(string prefijo)
         {
-            if (m.ReturnType != typeof(void) || m.GetParameters().Length != 0
-                || !m.IsVirtual || m.IsSpecialName || !m.Name.StartsWith("Method_Public_"))
+            if (prefijo == PrefijoSlideshow)
             {
-                return false;
+                Ajustes.GuardarSlideshow(!Ajustes.SlideshowActivo);
             }
-            string nm = m.Name;
-            return nm != "Update" && nm != "Start" && nm != "Awake"
-                && nm != "OnEnable" && nm != "OnDisable" && nm != "OnDestroy";
-        }
-
-        // Propiedades string del menu que en algun momento se han visto vacias:
-        // ahi esta la de "opcion abierta". La de la fila resaltada nunca lo
-        // esta mientras el menu se ve, asi que queda descartada sola.
-        private static PropertyInfo[] candidatasAbierta;
-        private static readonly List<string> vistasVacias = new List<string>();
-
-        private static bool EstaAbierta(string prefijo)
-        {
-            try
+            else
             {
-                if (candidatasAbierta == null)
-                {
-                    candidatasAbierta = menuVideo.GetType().GetProperties(
-                        BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                }
-                bool abierta = false;
-                for (int i = 0; i < candidatasAbierta.Length; i++)
-                {
-                    PropertyInfo p = candidatasAbierta[i];
-                    if (p.PropertyType != typeof(string) || p.GetIndexParameters().Length != 0)
-                    {
-                        continue;
-                    }
-                    string v;
-                    try { v = p.GetValue(menuVideo) as string; }
-                    catch (Exception) { continue; }
-
-                    if (string.IsNullOrEmpty(v))
-                    {
-                        if (!vistasVacias.Contains(p.Name))
-                        {
-                            vistasVacias.Add(p.Name);
-                        }
-                        continue;
-                    }
-                    // Solo cuenta si esa propiedad se ha visto vacia alguna vez
-                    // (es decir, es la de "abierta" y no la de "resaltada") y
-                    // ahora contiene nuestra fila.
-                    if (vistasVacias.Contains(p.Name)
-                        && v.StartsWith(prefijo, StringComparison.Ordinal))
-                    {
-                        abierta = true;
-                    }
-                }
-                return abierta;
+                Ajustes.GuardarMostrarDificultad(!Ajustes.MostrarDificultad);
             }
-            catch (Exception)
-            {
-                return false;
-            }
+            int fila = FilasMenu.IndiceDe(menuVideo, prefijo);
+            FilasMenu.CambiarTexto(menuVideo, fila, TextoDe(prefijo));
+            RefrescarFila(fila, TextoDe(prefijo));
         }
 
         // El texto de menuStrings solo se relee al redibujar, asi que se
@@ -535,45 +391,6 @@ namespace CloneHeroMod
             }
         }
 
-        private static PropertyInfo propOpcionActual;
 
-        private static string OpcionResaltada()
-        {
-            if (propOpcionActual == null)
-            {
-                Il2CppStringArray filas = FilasMenu.Opciones(menuVideo);
-                if (filas == null)
-                {
-                    return null;
-                }
-                PropertyInfo[] props = menuVideo.GetType().GetProperties(
-                    BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
-                for (int i = 0; i < props.Length; i++)
-                {
-                    if (props[i].PropertyType != typeof(string)
-                        || props[i].GetIndexParameters().Length != 0)
-                    {
-                        continue;
-                    }
-                    string v;
-                    try { v = props[i].GetValue(menuVideo) as string; }
-                    catch (Exception) { continue; }
-                    if (string.IsNullOrEmpty(v))
-                    {
-                        continue;
-                    }
-                    for (int j = 0; j < filas.Length; j++)
-                    {
-                        if (filas[j] == v)
-                        {
-                            propOpcionActual = props[i];
-                            return v;
-                        }
-                    }
-                }
-                return null;
-            }
-            return propOpcionActual.GetValue(menuVideo) as string;
-        }
     }
 }

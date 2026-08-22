@@ -736,54 +736,6 @@ namespace CloneHeroMod
             }
         }
 
-        // Acceso al criterio de orden seleccionado, para la sonda y para el
-        // posible "empujon" que fuerce al juego a reconstruir.
-        public static bool LeerCriterioActivo(out int valor)
-        {
-            valor = -1;
-            try
-            {
-                if (ajusteOrden == null)
-                {
-                    return false;
-                }
-                if (propOrdenActual == null)
-                {
-                    propOrdenActual = ajusteOrden.GetType().GetProperty("prop_T_0",
-                        BindingFlags.Public | BindingFlags.Instance);
-                    if (propOrdenActual == null)
-                    {
-                        return false;
-                    }
-                }
-                object v = propOrdenActual.GetValue(ajusteOrden);
-                if (v is int n)
-                {
-                    valor = n;
-                    return true;
-                }
-            }
-            catch (Exception)
-            {
-            }
-            return false;
-        }
-
-        public static void EscribirCriterioActivo(int valor)
-        {
-            try
-            {
-                if (ajusteOrden != null && propOrdenActual != null)
-                {
-                    propOrdenActual.SetValue(ajusteOrden, valor);
-                }
-            }
-            catch (Exception ex)
-            {
-                MelonLogger.Warning("[Orden] escribir criterio: " + ex.Message);
-            }
-        }
-
         // Los cuatro int del ajuste de orden: actual, maximo, minimo, defecto.
         private static string ValoresAjuste()
         {
@@ -875,18 +827,6 @@ namespace CloneHeroMod
                 }
             }
             return n;
-        }
-
-        // Huella de que huecos de la cache estan llenos, para detectar cuando
-        // el juego reconstruye.
-        private static string EstadoCache(object arr, int longitud)
-        {
-            System.Text.StringBuilder sb = new System.Text.StringBuilder();
-            for (int i = 0; i < longitud; i++)
-            {
-                sb.Append(ElementoCache(arr, i) != null ? '#' : '.');
-            }
-            return sb.ToString();
         }
 
         private static object ElementoCache(object arr, int i)

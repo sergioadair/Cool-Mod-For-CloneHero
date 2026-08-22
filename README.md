@@ -1,12 +1,12 @@
 # Cool Mod For Clone Hero
 
 A set of quality-of-life features I always wanted Clone Hero to have: a real
-**difficulty score** for every song, **custom menu backgrounds**, a background
-**slideshow**, a **Favorites** filter and a **custom sound** when you finish a
-song.
+**difficulty score** for every song, a **note streak** callout while you play,
+**custom menu backgrounds**, a background **slideshow**, a **Favorites** filter
+and a **custom sound** when you finish a song.
 
 The 1.1.0.6142 build also **updates itself** from this repo with one menu
-option, and stays completely idle while you are playing a song.
+option, and is built to stay out of the way while you are playing.
 
 Two builds are available, one per game version:
 
@@ -70,6 +70,21 @@ panel without touching the values already stored in your `song.ini` files.
 
 ---
 
+### 🔥 Note streak callout
+
+The kind of thing other rhythm games have always had and this one never did: a
+**`50 Note Streak!`** flying across the screen when you hit 50 notes without
+missing, then 100, then every 100 after that.
+
+It animates in, holds, and fades out — gold with a black outline so it stays
+readable over bright backgrounds. Miss a note and the count starts over.
+
+Toggle it at `Settings > Gameplay > Show Cool Note Streak`.
+
+> It reads the streak counter the game already draws under your score, so
+> nothing about scoring is reimplemented or altered. With the option off, the
+> code does not run at all — see below.
+
 ### 🖼️ Custom menu backgrounds
 
 Drop any `.png` / `.jpg` / `.jpeg` into your **Menu Backgrounds** folder and
@@ -110,9 +125,13 @@ build.
 
 ### ⚡ Stays out of the way while you play
 
-The mod does **nothing at all** while a song is running — every one of its
-per-frame checks is switched off the moment the gameplay scene loads, and
-switched back on when you return to the menus. No frame drops, no stutter.
+Every one of the mod's per-frame checks is switched off the moment the gameplay
+scene loads, and switched back on when you return to the menus. No frame drops,
+no stutter.
+
+The note streak callout is the only part that runs during a song, and it is
+budgeted for it: with the option off it costs a single boolean check per frame,
+and with it on, reading one integer.
 
 ---
 
@@ -187,6 +206,7 @@ has a menu option except the slideshow interval and the sound volume.
 | `finished_song_sfx` | `1` | End-of-song sound on/off |
 | `finished_song_sfx_volume` | `1` | Multiplies that sound's volume |
 | `show_difficulty` | `1` | Show the `Difficulty: X` label on the song panel |
+| `show_cool_note_streak` | `1` | Show the note streak callout during a song |
 | `difficulty_last_ref` | — | Reference used on the last calculation (written by the mod) |
 
 On the 1.0.0.4080 build the slideshow interval lives under `[video]` as

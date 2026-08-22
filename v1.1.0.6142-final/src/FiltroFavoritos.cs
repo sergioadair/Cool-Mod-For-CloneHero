@@ -21,7 +21,6 @@ namespace CloneHeroMod
         // Nombres reales (ofuscados) confirmados en el volcado de Il2CppDumper.
         private const string TipoBiblioteca = "ʾʲʽʻʺʶʺʺʷʿʺ";   // SongLibrary
         private const string TipoFabricaFiltros = "ʷʹˁʼʸʽˀʺʻʸʳ";
-        private const string MetodoFabrica = "ʻʿˀʿʸʿʲʼʽʵʽ";
         private const string TipoFavoritos = "ʾʷʹʿʻʻʿʽʳʽˁ";     // FavoritesManager nativo
 
         private static MethodInfo esFavorita;       // bool (checksum)
