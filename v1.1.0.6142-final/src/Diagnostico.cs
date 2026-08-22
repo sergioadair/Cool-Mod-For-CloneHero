@@ -46,9 +46,12 @@ namespace CloneHeroMod
 
         public override void OnUpdate()
         {
-            // Durante la cancion el mod no hace absolutamente nada.
+            // Durante la cancion lo unico que puede correr es el cartel de
+            // racha de notas, y solo si esta activado: su Tick sale en la
+            // primera linea cuando no lo esta.
             if (Buscador.EnJuego)
             {
+                RachaNotas.Tick();
                 return;
             }
             // F10 lanza el calculo de dificultad de toda la biblioteca.
@@ -78,6 +81,9 @@ namespace CloneHeroMod
                 EtiquetaDificultad.Tick();
                 OrdenDificultad.Tick();
                 OpcionCalcular.Tick();
+                MenuVideo.Tick();
+                MenuAudio.Tick();
+                MenuGameplay.Tick();
                 OverlayProgreso.Refrescar();
                 SfxFinDeCancion.Tick();
                 return;
@@ -101,6 +107,7 @@ namespace CloneHeroMod
                 OrdenDificultad.InstalarParcheRefresco(HarmonyInstance);
                 MenuVideo.InstalarParches(HarmonyInstance);
                 MenuAudio.InstalarParches(HarmonyInstance);
+                MenuGameplay.InstalarParches(HarmonyInstance);
                 // Los volcados recorren los 1475 tipos del juego y leen todos
                 // sus miembros estaticos: util para investigar, pero caro y sin
                 // sentido en uso normal. Solo si se pide con un archivo.
@@ -125,6 +132,7 @@ namespace CloneHeroMod
         public override void OnSceneWasLoaded(int indice, string nombre)
         {
             Buscador.EscenaCambiada(nombre);
+            RachaNotas.EscenaCambiada(nombre, Buscador.EnJuego);
             // Los paneles del menu se destruyen al cambiar de escena; sus
             // punteros pueden reutilizarse, asi que la cache de etiquetas se
             // tira para no dar por buena una que ya no existe.

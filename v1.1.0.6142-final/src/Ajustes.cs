@@ -28,6 +28,7 @@ namespace CloneHeroMod
         public const string ClaveSlideshowSegundos = "menu_bg_slideshow_seconds";
         public const string ClaveSfxFin = "finished_song_sfx";
         public const string ClaveMostrarDificultad = "show_difficulty";
+        public const string ClaveMostrarRacha = "show_cool_note_streak";
         public const string ClaveVolumenSfx = "finished_song_sfx_volume";
 
         public const float SlideshowPorDefecto = 0f;         // 0 = apagado
@@ -37,6 +38,7 @@ namespace CloneHeroMod
 
         private static float sfxFin = 1f;
         private static float mostrarDificultad = 1f;
+        private static float mostrarRacha = 1f;
         private static float volumenSfx = 1f;
         private static float slideshow;
         private static float slideshowSegundos = SegundosPorDefecto;
@@ -95,6 +97,31 @@ namespace CloneHeroMod
             catch (Exception ex)
             {
                 MelonLogger.Warning("[Ajustes] guardar show difficulty: " + ex.Message);
+            }
+        }
+
+        // Cartel de "50 Note Streak!" durante la cancion. Se conmuta desde
+        // Settings > Video. Con esto apagado, la unica parte del mod que corre
+        // durante la cancion no hace absolutamente nada.
+        public static bool MostrarRacha
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return mostrarRacha >= 0.5f;
+            }
+        }
+
+        public static void GuardarMostrarRacha(bool activo)
+        {
+            try
+            {
+                mostrarRacha = activo ? 1f : 0f;
+                EscribirClave(RutaSettings(), Seccion, ClaveMostrarRacha, mostrarRacha);
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Ajustes] guardar note streak: " + ex.Message);
             }
         }
 
@@ -182,13 +209,15 @@ namespace CloneHeroMod
                 sfxFin = LeerOEscribir(ruta, ClaveSfxFin, 1f, 0f, 1f);
                 volumenSfx = LeerOEscribir(ruta, ClaveVolumenSfx, 1f, 0f, 1f);
                 mostrarDificultad = LeerOEscribir(ruta, ClaveMostrarDificultad, 1f, 0f, 1f);
+                mostrarRacha = LeerOEscribir(ruta, ClaveMostrarRacha, 1f, 0f, 1f);
 
                 GuardarRespaldo(referenceNps);
                 MelonLogger.Msg("[Ajustes] ReferenceNps=" + Texto(referenceNps)
                     + "  slideshow=" + (slideshow >= 0.5f ? "si" : "no")
                     + "  segundos=" + Texto(slideshowSegundos)
                     + "  sfxFin=" + (sfxFin >= 0.5f ? "si" : "no")
-                    + "  mostrarDificultad=" + (mostrarDificultad >= 0.5f ? "si" : "no"));
+                    + "  mostrarDificultad=" + (mostrarDificultad >= 0.5f ? "si" : "no")
+                    + "  racha=" + (mostrarRacha >= 0.5f ? "si" : "no"));
             }
             catch (Exception ex)
             {

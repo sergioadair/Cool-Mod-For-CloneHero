@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using MelonLoader;
-using MelonLoader.Utils;
 
 namespace CloneHeroMod
 {
