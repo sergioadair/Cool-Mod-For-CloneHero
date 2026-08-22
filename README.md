@@ -72,7 +72,7 @@ panel without touching the values already stored in your `song.ini` files.
 
 ### 🔥 Note streak callout
 
-The kind of thing other rhythm games have always had and this one never did: a
+A
 **`50 Note Streak!`** flying across the screen when you hit 50 notes without
 missing, then 100, then every 100 after that.
 
