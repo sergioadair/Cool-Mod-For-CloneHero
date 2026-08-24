@@ -33,6 +33,52 @@ namespace CloneHeroMod
         // lo unico estable si el juego reordena sus campos.
         private static PropertyInfo campoFiltros;
 
+        // El juego RECONSTRUYE sus arrays estaticos cuando reescanea la
+        // biblioteca (Settings > General > Scan Songs, o al arrancar tras
+        // anadir canciones). Eso se lleva por delante nuestra entrada, y como
+        // el criterio/filtro seleccionado sigue apuntando a ella, el juego
+        // busca un nombre que ya no esta, obtiene -1 y lo usa como indice:
+        // IndexOutOfRangeException, y el sistema de filtros queda a medias
+        // hasta reiniciar.
+        //
+        // Por eso no basta con instalar una vez. Esto se llama cada pocos
+        // segundos EN LOS MENUS y vuelve a poner la entrada si ha desaparecido.
+        // El coste es leer un array estatico y comparar una cadena.
+        public static void Verificar()
+        {
+            if (!instalado || campoFiltros == null)
+            {
+                return;
+            }
+            try
+            {
+                Il2CppStringArray actual = campoFiltros.GetValue(null) as Il2CppStringArray;
+                if (actual == null)
+                {
+                    return;
+                }
+                for (int i = 0; i < actual.Length; i++)
+                {
+                    if (actual[i] == Nombre)
+                    {
+                        return;      // sigue ahi
+                    }
+                }
+                // Se rehace de cero: el array es otro y puede tener otra
+                // longitud, asi que no vale con recordar el indice anterior.
+                instalado = false;
+                if (AnadirALaLista())
+                {
+                    instalado = true;
+                    MelonLogger.Msg("[Favoritos] la lista se reconstruyo; filtro reinstalado");
+                }
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Favoritos] verificar: " + ex.Message);
+            }
+        }
+
         public static void Instalar()
         {
             try

@@ -43,6 +43,12 @@ namespace CloneHeroMod
         private bool fondosListos;
         private float preparacion;
         private float transcurrido;
+        private int revision;
+
+        // Hay diagnostico pedido? Lo consultan otras partes del mod para
+        // registrar detalles sin ensuciar el log en uso normal.
+        private static bool detallado;
+        public static bool Detallado { get { return detallado; } }
 
         public override void OnUpdate()
         {
@@ -86,6 +92,18 @@ namespace CloneHeroMod
                 MenuGameplay.Tick();
                 OverlayProgreso.Refrescar();
                 SfxFinDeCancion.Tick();
+
+                // El juego rehace sus listas de orden y de filtro al reescanear
+                // la biblioteca, y se lleva por delante lo que anadimos. Se
+                // comprueba de vez en cuando —no en cada fotograma— y se vuelve
+                // a poner si hace falta.
+                revision++;
+                if (revision >= 180)
+                {
+                    revision = 0;
+                    FiltroFavoritos.Verificar();
+                    OrdenDificultad.Verificar();
+                }
                 return;
             }
             // Se espera un poco a que el juego termine de inicializarse: las
@@ -105,17 +123,20 @@ namespace CloneHeroMod
                 FiltroFavoritos.InstalarParche(HarmonyInstance);
                 OpcionCalcular.InstalarParches(HarmonyInstance);
                 OrdenDificultad.InstalarParcheRefresco(HarmonyInstance);
+                OrdenDificultad.InstalarParcheNombre(HarmonyInstance);
                 MenuVideo.InstalarParches(HarmonyInstance);
                 MenuAudio.InstalarParches(HarmonyInstance);
                 MenuGameplay.InstalarParches(HarmonyInstance);
                 // Los volcados recorren los 1475 tipos del juego y leen todos
                 // sus miembros estaticos: util para investigar, pero caro y sin
                 // sentido en uso normal. Solo si se pide con un archivo.
-                if (File.Exists(Path.Combine(MelonEnvironment.MelonLoaderDirectory,
-                                             "diagnostico.flag")))
+                detallado = File.Exists(Path.Combine(
+                    MelonEnvironment.MelonLoaderDirectory, "diagnostico.flag"));
+                if (detallado)
                 {
                     Volcar();
                     DiagnosticoOrden.Volcar();
+                    DiagnosticoOrden.VolcarColecciones();
                     DiagnosticoMenu.Volcar();
                 }
                 LanzarSiHayBandera();
