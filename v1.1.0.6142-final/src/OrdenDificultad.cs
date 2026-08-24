@@ -53,6 +53,53 @@ namespace CloneHeroMod
         public static bool Instalado { get { return instalado; } }
 
         // ------------------------------------------------------------ instalar
+        // Mismo problema que en FiltroFavoritos: al reescanear la biblioteca el
+        // juego reconstruye sus arrays estaticos y nuestra entrada desaparece.
+        // Aqui ademas habiamos subido el maximo del ajuste sort_filter para que
+        // se pudiera seleccionar, asi que el criterio guardado sigue apuntando
+        // a un indice que ya no existe y la lista sale vacia.
+        //
+        // Se comprueba cada pocos segundos en los menus y se reinstala si hace
+        // falta. Leer un array estatico y comparar una cadena.
+        public static void Verificar()
+        {
+            if (!instalado || fallado)
+            {
+                return;
+            }
+            try
+            {
+                Il2CppStringArray actual = ArrayNombres();
+                if (actual == null)
+                {
+                    return;
+                }
+                for (int i = 0; i < actual.Length; i++)
+                {
+                    if (actual[i] == Nombre)
+                    {
+                        return;      // sigue ahi
+                    }
+                }
+                instalado = false;
+                nuestroIndice = -1;
+                int longitudPrevia = actual.Length;
+                if (AnadirCriterio(out nuestroIndice))
+                {
+                    SubirMaximoAjuste(longitudPrevia - 1, nuestroIndice);
+                    ResolverCache();
+                    LimpiarCache();
+                    instalado = true;
+                    MelonLogger.Msg("[Orden] la lista se reconstruyo; criterio reinstalado"
+                                    + " en el indice " + nuestroIndice.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Orden] verificar: " + ex.Message);
+            }
+        }
+
         public static void Instalar()
         {
             if (instalado || fallado)
@@ -395,7 +442,7 @@ namespace CloneHeroMod
                 object bruto = LeerEstatico(campoCache);
                 if (bruto == null)
                 {
-                    return;      // la cache aun no existe
+                    return;
                 }
                 // No se puede tipar el array en tiempo de compilacion: su
                 // elemento es el tipo Seccion, que solo conocemos como Type.
@@ -437,7 +484,8 @@ namespace CloneHeroMod
                         return;
                     }
                     contadorRevision = 0;
-                    if (ContarVisibles() == visiblesUltimaConstruccion)
+                    int visibles = ContarVisibles();
+                    if (visiblesUltimaConstruccion >= 0 && visibles == visiblesUltimaConstruccion)
                     {
                         return;
                     }
@@ -490,7 +538,6 @@ namespace CloneHeroMod
         private static object funcClave;
         private static bool agrupadorFallado;
         private static object ajusteOrden;
-        private static PropertyInfo propOrdenActual;
 
         private static bool ResolverAgrupador()
         {
@@ -581,8 +628,25 @@ namespace CloneHeroMod
                 // secciones salian ordenadas alfabeticamente -"0-9", "100",
                 // "10-19"- y se mostraba la clave.)
                 metodoAgrupar.Invoke(null, new object[] { funcClave, funcCabecera, true });
+
+                // Y AHORA LOS INDICES. Cada Seccion lleva un BeginIndex sobre
+                // la lista plana (cabeceras incluidas); sin el, la pantalla no
+                // sabe donde empieza cada una y solo se pinta la que cae en un
+                // sitio valido. Normalmente los fija el propio juego al final de
+                // su rutina, pero esa rutina es justo la que aborta con nuestro
+                // criterio: la excepcion se contiene, y lo que venia despues no
+                // llega a ejecutarse. Asi que los recalculamos nosotros, igual
+                // que en el camino manual.
+                object activa = ListaSeccionesActiva();
+                if (activa != null)
+                {
+                    Indexar(activa);
+                }
                 visiblesUltimaConstruccion = ContarVisibles();
-                RegistrarResultado();
+                if (Diagnostico.Detallado)
+                {
+                    RegistrarResultado();
+                }
                 return true;
             }
             catch (Exception ex)
@@ -594,6 +658,55 @@ namespace CloneHeroMod
 
         // Deja en el log las primeras cabeceras que quedaron, para poder
         // comprobar el orden sin tener que mirar la pantalla.
+        // La lista de secciones que la pantalla esta mostrando: la propiedad
+        // estatica de tipo List<Seccion> con contenido.
+        private static PropertyInfo propListaActiva;
+
+        private static object ListaSeccionesActiva()
+        {
+            try
+            {
+                if (propListaActiva != null)
+                {
+                    return propListaActiva.GetValue(null);
+                }
+                Type t = Ofuscado.Tipo(TipoBiblioteca);
+                if (t == null || tipoSeccion == null)
+                {
+                    return null;
+                }
+                Type esperado = typeof(Il2CppSystem.Collections.Generic.List<>)
+                    .MakeGenericType(tipoSeccion);
+                PropertyInfo[] ps = t.GetProperties(BindingFlags.Public
+                    | BindingFlags.NonPublic | BindingFlags.Static);
+                for (int i = 0; i < ps.Length; i++)
+                {
+                    if (ps[i].PropertyType != esperado)
+                    {
+                        continue;
+                    }
+                    object v;
+                    try { v = ps[i].GetValue(null); }
+                    catch (Exception) { continue; }
+                    if (v == null)
+                    {
+                        continue;
+                    }
+                    PropertyInfo c = v.GetType().GetProperty("Count");
+                    if (c != null && (int)c.GetValue(v) > 0)
+                    {
+                        propListaActiva = ps[i];
+                        MelonLogger.Msg("[Orden] lista activa: " + ps[i].Name);
+                        return v;
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+            return null;
+        }
+
         private static void RegistrarResultado()
         {
             try
@@ -638,31 +751,113 @@ namespace CloneHeroMod
         // El criterio de orden seleccionado ahora mismo. En estos objetos de
         // ajuste el valor actual vive en "prop_T_0" (comprobado: valia 5 estando
         // el juego ordenado por el criterio 5, con prop_T_1=27 de maximo).
+        // Sonda: que criterio cree el juego que esta activo. Solo con
+        // diagnostico.flag, y solo escribe cuando el valor cambia.
+
+        // Por donde se sale Tick. Solo escribe cuando cambia el motivo, para
+        // no llenar el log.
+
+        // Que criterio de orden esta activo AHORA MISMO.
+        //
+        // Durante mucho tiempo esto comparaba el ajuste sort_filter con nuestro
+        // indice, y estaba mal: ese ajuste no es el criterio en uso. Se le
+        // sube el maximo para que el nuestro sea seleccionable en el menu, pero
+        // su valor se queda con lo ultimo que se guardo en settings.ini y no se
+        // mueve al cambiar de criterio. Se comprobo con una sonda: eligiendo
+        // Playlist, Artist y Difficulty seguidos, el ajuste se quedo en 5 las
+        // tres veces.
+        //
+        // El criterio en uso es una CADENA estatica de SongLibrary, con el
+        // nombre tal cual. Como el guardia nunca se abria, no se construian las
+        // secciones nunca: esa era la razon real de que ordenar por Difficulty
+        // no agrupara nada.
+        private static PropertyInfo propNombreOrden;
+        private static string ultimoNombreVisto;
+        private static bool avisadoNombreOrden;
+
         private static bool EsNuestroCriterioActivo()
         {
             try
             {
-                if (ajusteOrden == null || nuestroIndice < 0)
+                if (!instalado)
                 {
                     return false;
                 }
-                if (propOrdenActual == null)
+                if (propNombreOrden == null && !ResolverNombreOrden())
                 {
-                    propOrdenActual = ajusteOrden.GetType().GetProperty("prop_T_0",
-                        BindingFlags.Public | BindingFlags.Instance);
-                    if (propOrdenActual == null || propOrdenActual.PropertyType != typeof(int))
+                    return false;
+                }
+                string activo = propNombreOrden.GetValue(null) as string;
+                if (activo != ultimoNombreVisto)
+                {
+                    ultimoNombreVisto = activo;
+                    if (activo == Nombre)
                     {
-                        propOrdenActual = null;
-                        return false;
+                        // Acaba de seleccionarse el nuestro: hay que rehacer las
+                        // secciones YA. Esperar a la revision periodica dejaba
+                        // la lista sin agrupar unos tres segundos, que es lo que
+                        // se veia como "no pasa nada hasta que me muevo".
+                        contadorRevision = 1000;
+                        visiblesUltimaConstruccion = -1;
                     }
                 }
-                object v = propOrdenActual.GetValue(ajusteOrden);
-                return v is int n && n == nuestroIndice;
+                return activo == Nombre;
             }
             catch (Exception)
             {
                 return false;
             }
+        }
+
+        // Se busca por CONTENIDO: la propiedad string estatica cuyo valor es
+        // uno de los nombres de criterio. Los nombres de propiedad los genera
+        // Il2CppInterop y no valen para identificarla.
+        private static bool ResolverNombreOrden()
+        {
+            try
+            {
+                Type t = Ofuscado.Tipo(TipoBiblioteca);
+                Il2CppStringArray nombres = ArrayNombres();
+                if (t == null || nombres == null)
+                {
+                    return false;
+                }
+                PropertyInfo[] ps = t.GetProperties(BindingFlags.Public
+                    | BindingFlags.NonPublic | BindingFlags.Static);
+                for (int i = 0; i < ps.Length; i++)
+                {
+                    if (ps[i].PropertyType != typeof(string)
+                        || ps[i].GetIndexParameters().Length != 0)
+                    {
+                        continue;
+                    }
+                    string v;
+                    try { v = ps[i].GetValue(null) as string; }
+                    catch (Exception) { continue; }
+                    if (string.IsNullOrEmpty(v))
+                    {
+                        continue;
+                    }
+                    for (int j = 0; j < nombres.Length; j++)
+                    {
+                        if (nombres[j] == v)
+                        {
+                            propNombreOrden = ps[i];
+                            if (!avisadoNombreOrden)
+                            {
+                                avisadoNombreOrden = true;
+                                MelonLogger.Msg("[Orden] criterio activo se lee de "
+                                    + ps[i].Name + " (ahora '" + v + "')");
+                            }
+                            return true;
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+            }
+            return false;
         }
 
         // ------------------------------------------------ parche de refresco -
@@ -683,6 +878,101 @@ namespace CloneHeroMod
             "Method_Public_Static_Void_6",
             "Method_Public_Static_Void_5"
         };
+
+        // Con un filtro activo, ordenar por nuestro criterio hacia REVENTAR el
+        // juego: IndexOutOfRangeException dentro de un
+        // SongLibrary.<estatico> void(string), en bucle, y el sistema de
+        // filtros quedaba inservible hasta reiniciar.
+        //
+        // El motivo: el juego traduce cada criterio de orden a uno de sus SIETE
+        // tipos de agrupacion (Name, Artist, Album, Genre, Year, Charter,
+        // Playlist — se ven en el string[] privado de 7 "Unknown X" y en los dos
+        // Dictionary de 7 entradas). El nuestro no tiene traduccion posible, asi
+        // que la busqueda devuelve -1 y se usa como indice. Solo se llega ahi
+        // por el camino que dispara un cambio de filtro; por eso ordenar por
+        // Difficulty a secas funciona y solo revienta con un filtro puesto.
+        //
+        // El primer intento fue saltarse el metodo con un prefix. Mala idea:
+        // uno de esos tres void(string) es tambien el que APLICA el criterio,
+        // asi que se dejaba de romper pero tampoco salian las secciones.
+        //
+        // Lo que se hace es dejarlo correr y tragarse esa unica excepcion con un
+        // finalizer. La parte que falla es la traduccion, que a nosotros no nos
+        // sirve para nada —las secciones las construimos aparte—, y lo demas
+        // sigue su curso. Se filtra por el mensaje para no ocultar otros fallos.
+        //
+        // Se parchean los tres void(string) en vez de averiguar cual es: el
+        // finalizer solo actua si de verdad ha saltado ese error, asi que
+        // sobrar no molesta, y no dependemos de un nombre generado por
+        // Il2CppInterop.
+        public static void InstalarParcheNombre(HarmonyLib.Harmony harmony)
+        {
+            try
+            {
+                Type t = Ofuscado.Tipo(TipoBiblioteca);
+                if (t == null)
+                {
+                    return;
+                }
+                HarmonyLib.HarmonyMethod finalizador = new HarmonyLib.HarmonyMethod(
+                    typeof(OrdenDificultad).GetMethod("TragarDesbordamiento",
+                        BindingFlags.NonPublic | BindingFlags.Static));
+                MethodInfo[] ms = t.GetMethods(BindingFlags.Public | BindingFlags.Static);
+                int n = 0;
+                for (int i = 0; i < ms.Length; i++)
+                {
+                    if (ms[i].ReturnType != typeof(void))
+                    {
+                        continue;
+                    }
+                    ParameterInfo[] ps = ms[i].GetParameters();
+                    if (ps.Length != 1 || ps[0].ParameterType != typeof(string))
+                    {
+                        continue;
+                    }
+                    try
+                    {
+                        harmony.Patch(ms[i], null, null, null, finalizador, null);
+                        n++;
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+                MelonLogger.Msg("[Orden] red de seguridad: " + n.ToString() + " metodo(s)");
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Orden] red de seguridad: " + ex.Message);
+            }
+        }
+
+        private static bool avisadoTragado;
+
+        // Devolver null hace que Harmony descarte la excepcion.
+        private static Exception TragarDesbordamiento(Exception __exception,
+                                                      MethodBase __originalMethod)
+        {
+            if (__exception == null)
+            {
+                return null;
+            }
+            // Llega envuelta en Il2CppException, asi que se mira el mensaje.
+            string m = __exception.Message;
+            if (m == null || m.IndexOf("outside the bounds",
+                                       StringComparison.OrdinalIgnoreCase) < 0)
+            {
+                return __exception;      // otro fallo: que se vea
+            }
+            if (!avisadoTragado)
+            {
+                avisadoTragado = true;
+                MelonLogger.Msg("[Orden] desbordamiento contenido en "
+                    + (__originalMethod == null ? "?" : __originalMethod.Name)
+                    + " (el juego no sabe agrupar por '" + Nombre + "')");
+            }
+            return null;
+        }
 
         public static void InstalarParcheRefresco(HarmonyLib.Harmony harmony)
         {

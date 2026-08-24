@@ -24,6 +24,101 @@ namespace CloneHeroMod
         private const string CacheSecciones = "ʳˀʸʿʹʸʻˀʴʿʲ";
         private const string BanderaSucia = "ʴʾˀʺʷʽʳʳˀʽʲ";
 
+        // Todas las colecciones de cadenas estaticas de SongLibrary, con su
+        // contenido. Hace falta para un fallo concreto: al ordenar por nuestro
+        // criterio CON UN FILTRO ACTIVO, el juego llama a
+        // SongLibrary.ʳʸʲʿˀʶˁʽʳʸʹ(string) con el nombre del criterio y revienta
+        // con IndexOutOfRange. Eso apunta a que el nombre se busca en OTRA
+        // coleccion —distinta del string[] al que lo anadimos— que devuelve -1.
+        // Aqui se ve cual es la que tiene los otros 27 nombres y no el nuestro.
+        public static void VolcarColecciones()
+        {
+            try
+            {
+                Type t = Ofuscado.Tipo(TipoBiblioteca);
+                if (t == null)
+                {
+                    return;
+                }
+                StringBuilder sb = new StringBuilder();
+                sb.AppendLine("=== colecciones de cadenas de SongLibrary ===");
+                BindingFlags f = BindingFlags.Public | BindingFlags.NonPublic
+                                 | BindingFlags.Static;
+                MemberInfo[] ms = t.GetMembers(f);
+                for (int i = 0; i < ms.Length; i++)
+                {
+                    PropertyInfo p = ms[i] as PropertyInfo;
+                    if (p == null || p.GetIndexParameters().Length != 0)
+                    {
+                        continue;
+                    }
+                    string nt = p.PropertyType.Name;
+                    if (nt.IndexOf("String", StringComparison.Ordinal) < 0
+                        && nt.IndexOf("List", StringComparison.Ordinal) < 0
+                        && nt.IndexOf("HashSet", StringComparison.Ordinal) < 0
+                        && nt.IndexOf("Dictionary", StringComparison.Ordinal) < 0)
+                    {
+                        continue;
+                    }
+                    object v;
+                    try { v = p.GetValue(null); }
+                    catch (Exception ex) { sb.AppendLine(p.Name + " -> error " + ex.Message); continue; }
+                    sb.AppendLine();
+                    sb.AppendLine(p.Name + "   (" + p.PropertyType.FullName + ")");
+                    if (v == null)
+                    {
+                        sb.AppendLine("   (null)");
+                        continue;
+                    }
+                    Volcado(sb, v);
+                }
+                string ruta = Path.Combine(MelonEnvironment.MelonLoaderDirectory,
+                                           "colecciones-biblioteca.txt");
+                File.WriteAllText(ruta, sb.ToString(), new UTF8Encoding(false));
+                MelonLogger.Msg("[DiagOrden] colecciones volcadas en " + ruta);
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[DiagOrden] colecciones: " + ex);
+            }
+        }
+
+        // Imprime hasta 40 elementos de lo que sea que se le pase, sin
+        // conocer su tipo en tiempo de compilacion.
+        private static void Volcado(StringBuilder sb, object v)
+        {
+            try
+            {
+                Type tv = v.GetType();
+                PropertyInfo len = tv.GetProperty("Length") ?? tv.GetProperty("Count");
+                PropertyInfo idx = tv.GetProperty("Item");
+                if (len == null)
+                {
+                    sb.AppendLine("   " + v.ToString());
+                    return;
+                }
+                int n = (int)len.GetValue(v);
+                sb.AppendLine("   " + n.ToString() + " elemento(s)");
+                if (idx == null || idx.GetIndexParameters().Length != 1
+                    || idx.GetIndexParameters()[0].ParameterType != typeof(int))
+                {
+                    return;      // Dictionary/HashSet: no se puede indexar
+                }
+                for (int i = 0; i < n && i < 40; i++)
+                {
+                    object e;
+                    try { e = idx.GetValue(v, new object[] { i }); }
+                    catch (Exception) { break; }
+                    sb.AppendLine("   [" + i.ToString() + "] "
+                                  + (e == null ? "(null)" : e.ToString()));
+                }
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine("   error: " + ex.Message);
+            }
+        }
+
         public static void Volcar()
         {
             StringBuilder sb = new StringBuilder();
