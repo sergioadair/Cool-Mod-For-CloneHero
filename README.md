@@ -1,7 +1,8 @@
 # Cool Mod For Clone Hero
 
 A set of quality-of-life features I always wanted Clone Hero to have: a real
-**difficulty score** for every song, a **note streak** callout while you play,
+**difficulty score** for every song and a profile of *why* it is hard, a
+**note streak** callout while you play,
 **custom menu backgrounds**, a background **slideshow**, a **Favorites** filter
 and a **custom sound** when you finish a song.
 
@@ -24,49 +25,51 @@ Two builds are available, one per game version:
 
 ### 🎯 Difficulty — a real 0–100 score for every song
 
-Clone Hero's built-in *Intensity* is a number the charter types in by hand, so
-it means something different from one chart to the next. **Difficulty** is
-calculated from the chart itself, so it is consistent across your whole library.
+Clone Hero's built-in *Intensity* is typed in by hand by whoever made the chart,
+so it means something different from one song to the next. **Difficulty** is
+measured from the chart itself — how fast you actually have to play during its
+densest stretch — so it means the same thing across your whole library.
 
-It shows up right under the instrument icons in the song panel:
+It shows up under the instrument icons in the song panel:
 
 ```
 Difficulty: 73
 ```
 
-**How it is calculated** — difficulty is how fast you actually have to play
-during the song's densest stretch:
+**Generate it**: `Settings > General > Calculate Difficulty`. It spreads the work
+across your CPU cores, leaves one free so the game stays smooth, and skips songs
+it has already done — running it again after adding a few songs takes seconds.
 
-| Step | What happens |
-|---|---|
-| 1 | Every note time is read from the `.chart` / `.mid`, converted to real seconds (BPM changes included). **Chords count as one note** |
-| 2 | A **10-second sliding window** finds the densest stretch → peak notes per second |
-| 3 | Per instrument, the difficulties are averaged with ascending weights, so Expert dominates |
-| 4 | **25 %** the average across instruments + **75 %** the single hardest chart |
-| 5 | Scaled with **14 NPS = 100**, clamped and rounded |
+**Sort by it**: `(Hold) Sort List > Sort Options > Difficulty`, grouped in tens.
+**Hide it**: `Settings > Video > Show Difficulty`.
 
-Why the peak and not the average: a calm song with one brutal solo *does* play
-hard. Measured against `diff_guitar` over ~3600 songs, the average correlates
-0.36 and the peak 0.58.
+---
 
-On a typical library the median song lands around **42**, the top 10 % above
-**65**, and the top 1 % above **89**.
+### 📊 Difficulty profile — *how* a song is hard, not just how much
 
-**Generate it**: `Settings > General > Calculate Difficulty`. A progress panel
-shows while it runs and the value is written to each `song.ini` as
-`diff_global`. Restart or rescan afterwards so the game reloads them.
+Two charts can both score 73 and feel nothing alike. Hold the blue button on any
+song — the same **Show Scoring Info** you already use — and you get this too:
 
-The work is spread across your CPU cores (one is left free so the game stays
-smooth), and songs that are already up to date are skipped — a second run over
-the same library takes a couple of seconds. Changing
-`difficulty_reference_nps` recalculates everything, since that value rescales
-the whole scoring.
+```
+Difficulty 41                    1,033 notes
+                            3.3 avg NPS   5.9 max
 
-**Sort by it**: `(Hold) Sort List > Sort Options > Difficulty`, grouped in tens
-— `90-99 Difficulty`, `80-89 Difficulty`… and `No Difficulty` at the end.
+Chords      ▓░░░░░░░░░
+Technical   ▓▓▓▓▓▓▓░░░
+Endurance   ▓▓▓▓▓░░░░░
 
-**Hide it**: `Settings > Video > Show Difficulty` takes the label off the song
-panel without touching the values already stored in your `song.ini` files.
+Hardest stretch at 0:45
+```
+
+- **Chords** — how much of it is more than one note at a time
+- **Technical** — how much your hand has to move around the frets
+- **Endurance** — whether it is relentless all the way through, or just spiky
+
+The three bars are independent of the score on purpose: a song can be easy
+overall and still be the most technical thing in your library.
+
+And **Hardest stretch** points at the worst part of the song, so you can jump
+straight there in practice mode instead of hunting for it.
 
 ---
 
