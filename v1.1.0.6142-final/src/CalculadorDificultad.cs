@@ -279,9 +279,9 @@ namespace CloneHeroMod
                     {
                         Interlocked.Increment(ref alDia);
                     }
-                    else if (Dificultad.Calcular(t.chartPath, t.esMidi, out int valor))
+                    else if (Dificultad.Calcular(t.chartPath, t.esMidi, out Dificultad.Perfil perfil))
                     {
-                        Dificultad.EscribirIni(t.iniPath, valor);
+                        Dificultad.EscribirIni(t.iniPath, perfil);
                         Interlocked.Increment(ref escritas);
                     }
                     else
@@ -322,7 +322,8 @@ namespace CloneHeroMod
                 {
                     return false;      // el chart cambio despues del calculo
                 }
-                return Dificultad.LeerIni(t.iniPath) >= 0;
+                return Dificultad.LeerIni(t.iniPath) >= 0
+                    && Dificultad.TienePerfil(t.iniPath);
             }
             catch (Exception)
             {

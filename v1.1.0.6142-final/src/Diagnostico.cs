@@ -85,6 +85,7 @@ namespace CloneHeroMod
                 // La etiqueta primero: refresca la referencia a SongSelect que
                 // el orden consulta para saber si hay que hacer algo.
                 EtiquetaDificultad.Tick();
+                PanelPerfil.Tick();
                 OrdenDificultad.Tick();
                 OpcionCalcular.Tick();
                 MenuVideo.Tick();
@@ -158,6 +159,7 @@ namespace CloneHeroMod
             // punteros pueden reutilizarse, asi que la cache de etiquetas se
             // tira para no dar por buena una que ya no existe.
             EtiquetaDificultad.OlvidarPaneles();
+            PanelPerfil.EscenaCambiada();
         }
 
         public override void OnLateUpdate()
