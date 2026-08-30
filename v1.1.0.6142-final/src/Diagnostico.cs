@@ -75,6 +75,7 @@ namespace CloneHeroMod
                 {
                     fondosListos = true;
                     Ajustes.Cargar();
+                    RachaNotas.ResolverEstilo();
                     FondosPersonalizados.Instalar();
                 }
             }
@@ -84,6 +85,7 @@ namespace CloneHeroMod
                 // Mantiene lleno el hueco de la cache de secciones.
                 // La etiqueta primero: refresca la referencia a SongSelect que
                 // el orden consulta para saber si hay que hacer algo.
+                RachaNotas.ResolverEstilo();
                 EtiquetaDificultad.Tick();
                 PanelPerfil.Tick();
                 OrdenDificultad.Tick();

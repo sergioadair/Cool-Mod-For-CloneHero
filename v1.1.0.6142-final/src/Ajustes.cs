@@ -29,6 +29,9 @@ namespace CloneHeroMod
         public const string ClaveSfxFin = "finished_song_sfx";
         public const string ClaveMostrarDificultad = "show_difficulty";
         public const string ClaveMostrarRacha = "show_cool_note_streak";
+        public const string ClaveRachaTamano = "note_streak_size";
+        public const string ClaveRachaColor = "note_streak_color";
+        public const string ClaveRachaFuente = "note_streak_font";
         public const string ClaveVolumenSfx = "finished_song_sfx_volume";
 
         public const float SlideshowPorDefecto = 0f;         // 0 = apagado
@@ -39,6 +42,9 @@ namespace CloneHeroMod
         private static float sfxFin = 1f;
         private static float mostrarDificultad = 1f;
         private static float mostrarRacha = 1f;
+        private static float rachaTamano = RachaTamanoPorDefecto;
+        private static string rachaColor = RachaColorPorDefecto;
+        private static string rachaFuente = "";
         private static float volumenSfx = 1f;
         private static float slideshow;
         private static float slideshowSegundos = SegundosPorDefecto;
@@ -122,6 +128,41 @@ namespace CloneHeroMod
             catch (Exception ex)
             {
                 MelonLogger.Warning("[Ajustes] guardar note streak: " + ex.Message);
+            }
+        }
+
+        // Aspecto del cartel de racha. Se tocan a mano en settings.ini: son
+        // gustos, y llenar el menu de filas para esto no compensa.
+        public const float RachaTamanoPorDefecto = 72f;
+        public const float RachaTamanoMin = 20f;
+        public const float RachaTamanoMax = 200f;
+        public const string RachaColorPorDefecto = "FFD14A";
+
+        public static float RachaTamano
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return rachaTamano;
+            }
+        }
+
+        public static string RachaColor
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return rachaColor;
+            }
+        }
+
+        // Vacio = la del juego.
+        public static string RachaFuente
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return rachaFuente;
             }
         }
 
@@ -210,6 +251,10 @@ namespace CloneHeroMod
                 volumenSfx = LeerOEscribir(ruta, ClaveVolumenSfx, 1f, 0f, 1f);
                 mostrarDificultad = LeerOEscribir(ruta, ClaveMostrarDificultad, 1f, 0f, 1f);
                 mostrarRacha = LeerOEscribir(ruta, ClaveMostrarRacha, 1f, 0f, 1f);
+                rachaTamano = LeerOEscribir(ruta, ClaveRachaTamano, RachaTamanoPorDefecto,
+                                            RachaTamanoMin, RachaTamanoMax);
+                rachaColor = TextoOEscribir(ruta, ClaveRachaColor, RachaColorPorDefecto);
+                rachaFuente = TextoOEscribir(ruta, ClaveRachaFuente, "");
 
                 GuardarRespaldo(referenceNps);
                 MelonLogger.Msg("[Ajustes] ReferenceNps=" + Texto(referenceNps)
@@ -223,6 +268,19 @@ namespace CloneHeroMod
             {
                 MelonLogger.Error("[Ajustes] " + ex);
             }
+        }
+
+        // Igual que LeerOEscribir pero para texto: hasta ahora todos los
+        // ajustes del mod eran numeros.
+        private static string TextoOEscribir(string ruta, string clave, string porDefecto)
+        {
+            string leido = LeerTexto(ruta, Seccion, clave);
+            if (leido == null)
+            {
+                EscribirTexto(ruta, Seccion, clave, porDefecto);
+                return porDefecto;
+            }
+            return leido;
         }
 
         // Lee una clave de [mods]; si no esta, la escribe con el valor por
@@ -342,6 +400,41 @@ namespace CloneHeroMod
         }
 
         // ------------------------------------------------------------- INI --
+        // Devuelve null si la clave no esta; "" es un valor valido y distinto.
+        private static string LeerTexto(string ruta, string seccion, string clave)
+        {
+            if (!File.Exists(ruta))
+            {
+                return null;
+            }
+            string[] lineas = File.ReadAllLines(ruta);
+            string actual = null;
+            for (int i = 0; i < lineas.Length; i++)
+            {
+                string l = lineas[i].Trim();
+                if (l.Length == 0 || l[0] == ';' || l[0] == '#')
+                {
+                    continue;
+                }
+                if (l[0] == '[' && l[l.Length - 1] == ']')
+                {
+                    actual = l.Substring(1, l.Length - 2).Trim();
+                    continue;
+                }
+                if (!string.Equals(actual, seccion, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+                int eq = l.IndexOf('=');
+                if (eq > 0 && string.Equals(l.Substring(0, eq).Trim(), clave,
+                                            StringComparison.OrdinalIgnoreCase))
+                {
+                    return l.Substring(eq + 1).Trim();
+                }
+            }
+            return null;
+        }
+
         private static float? LeerClave(string ruta, string seccion, string clave)
         {
             if (!File.Exists(ruta))
@@ -384,14 +477,19 @@ namespace CloneHeroMod
             return null;
         }
 
-        // Inserta o actualiza la clave conservando el resto del archivo intacto.
         private static void EscribirClave(string ruta, string seccion, string clave, float valor)
+        {
+            EscribirTexto(ruta, seccion, clave, Texto(valor));
+        }
+
+        // Inserta o actualiza la clave conservando el resto del archivo intacto.
+        private static void EscribirTexto(string ruta, string seccion, string clave, string valor)
         {
             List<string> lineas = File.Exists(ruta)
                 ? new List<string>(File.ReadAllLines(ruta))
                 : new List<string>();
 
-            string nueva = clave + " = " + Texto(valor);
+            string nueva = clave + " = " + valor;
             int inicioSeccion = -1;
             int finSeccion = -1;
             string actual = null;

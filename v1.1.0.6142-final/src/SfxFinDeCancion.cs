@@ -22,6 +22,7 @@ namespace CloneHeroMod
         private static PropertyInfo propCanvas;
         private static bool visibleAntes;
         private static bool avisadoSinArchivo;
+        private static bool avisadoFallo;
         private static readonly Buscador.Intento intento = new Buscador.Intento(13);
 
         public static void Tick()
@@ -37,7 +38,17 @@ namespace CloneHeroMod
 
                 if (visible && !visibleAntes)
                 {
-                    if (!SonidosPersonalizados.Reproducir(NombreSonido) && !avisadoSinArchivo)
+                    if (Fallada())
+                    {
+                        // Al fallar, el juego ya suena lo suyo
+                        // (gh3_sudden_death). Felicitar ahi encima sobraria.
+                        if (!avisadoFallo)
+                        {
+                            avisadoFallo = true;
+                            MelonLogger.Msg("[SfxFin] cancion fallada: no se felicita");
+                        }
+                    }
+                    else if (!SonidosPersonalizados.Reproducir(NombreSonido) && !avisadoSinArchivo)
                     {
                         avisadoSinArchivo = true;
                         MelonLogger.Msg("[SfxFin] no se pudo reproducir '" + NombreSonido
@@ -48,6 +59,27 @@ namespace CloneHeroMod
             }
             catch (Exception)
             {
+            }
+        }
+
+        // Si la cancion termino por fallar.
+        //
+        // GlobalVariables esta sin ofuscar y ademas es un singleton con
+        // instance publico, asi que no hay que buscar el objeto ni tirar de
+        // reflexion: sale comprobado en compilacion.
+        //
+        // Ante cualquier duda se devuelve false, o sea que suene: es peor
+        // callar un sonido que el jugador espera que colarlo de mas.
+        private static bool Fallada()
+        {
+            try
+            {
+                Il2Cpp.GlobalVariables g = Il2Cpp.GlobalVariables.instance;
+                return g != null && g.failed;
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
 
