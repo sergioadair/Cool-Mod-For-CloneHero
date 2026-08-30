@@ -64,7 +64,14 @@ namespace CloneHeroMod
         private static int idColorBorde;
         private static bool registrar;
 
-        private static readonly Color Dorado = new Color(1f, 0.82f, 0.29f, 1f);
+        // Aspecto configurable desde settings.ini. Se resuelve una vez por
+        // sesion, no por cancion: son ajustes que no cambian mientras se juega
+        // y localizar una fuente cuesta recorrer objetos.
+        private static Color color = new Color(1f, 0.82f, 0.29f, 1f);
+        private static Il2CppTMPro.TMP_FontAsset fuente;
+        private static bool estiloResuelto;
+        private static int intentosEstilo;
+        private static readonly Buscador.Intento intentoEstilo = new Buscador.Intento(23);
 
         // ------------------------------------------------------------ escena -
         public static void EscenaCambiada(string nombre, bool enJuego)
@@ -312,7 +319,7 @@ namespace CloneHeroMod
             float avance = t / Duracion;
             rtTexto.localScale = new Vector3(escala, escala, 1f);
             rtTexto.anchoredPosition = new Vector2(0f, AlturaBase + Deriva * avance * avance);
-            texto.color = new Color(Dorado.r, Dorado.g, Dorado.b, alfa);
+            texto.color = new Color(color.r, color.g, color.b, alfa);
 
             // El borde se desvanece aparte: en el shader de TextMeshPro el
             // color de vertice tine la CARA de la letra, no el contorno, asi
@@ -349,6 +356,146 @@ namespace CloneHeroMod
             }
         }
 
+        // Color, tamano y fuente. Se llama desde los menus, antes de que
+        // empiece ninguna cancion: buscar una fuente recorre objetos cargados y
+        // eso no puede pasar durante el gameplay.
+        public static void ResolverEstilo()
+        {
+            if (estiloResuelto || !intentoEstilo.Toca())
+            {
+                return;
+            }
+            try
+            {
+                string hex = Ajustes.RachaColor;
+                if (!string.IsNullOrEmpty(hex))
+                {
+                    if (hex[0] != '#')
+                    {
+                        hex = "#" + hex;
+                    }
+                    if (ColorUtility.TryParseHtmlString(hex, out Color c))
+                    {
+                        color = c;
+                    }
+                    else
+                    {
+                        MelonLogger.Warning("[Racha] color '" + Ajustes.RachaColor
+                            + "' no se entiende; se usa el de siempre. Formato: RRGGBB");
+                    }
+                }
+                string nombre = Ajustes.RachaFuente;
+                if (string.IsNullOrEmpty(nombre))
+                {
+                    estiloResuelto = true;      // la del juego, nada que buscar
+                    return;
+                }
+
+                // Se reintenta mientras no haya textos que mirar. Al arrancar,
+                // el juego todavia esta cargando y la busqueda no encuentra
+                // ninguno: rendirse en el primer intento dejaba la lista de
+                // fuentes vacia y al jugador sin saber que escribir.
+                intentosEstilo++;
+                bool ultimo = intentosEstilo >= 12;
+                fuente = BuscarFuente(nombre, ultimo, out bool huboTextos);
+                if (fuente != null || huboTextos || ultimo)
+                {
+                    estiloResuelto = true;
+                }
+                else
+                {
+                    intentoEstilo.Fallo();
+                }
+            }
+            catch (Exception ex)
+            {
+                estiloResuelto = true;
+                MelonLogger.Warning("[Racha] estilo: " + ex.Message);
+            }
+        }
+
+        // Solo entre las fuentes que el juego ya tiene cargadas.
+        //
+        // SE INTENTO usar fuentes instaladas en Windows, con
+        // Font.CreateDynamicFontFromOSFont, y NO SE PUEDE: el juego responde
+        // "Method unstripping failed". Unity recorta en compilacion el codigo
+        // que el juego no usa, y como Clone Hero nunca carga fuentes del
+        // sistema, ese metodo no existe en el binario. No es algo que se pueda
+        // arreglar desde fuera, asi que no merece la pena reintentarlo.
+        //
+        // El intento se conserva porque en otra version del juego podria estar
+        // disponible, pero con su propio try: si revienta, lo importante es
+        // seguir hasta la lista de fuentes disponibles, que es lo unico que le
+        // sirve a quien configura esto.
+        private static Il2CppTMPro.TMP_FontAsset BuscarFuente(string nombre, bool avisar,
+                                                              out bool huboTextos)
+        {
+            huboTextos = false;
+            try
+            {
+                // Las fuentes se sacan de los textos que hay en pantalla, no
+                // con Resources.FindObjectsOfTypeAll<TMP_FontAsset>: ese
+                // generico tambien esta recortado del juego y revienta con
+                // "Method unstripping failed". FindObjectsOfType sobre los TMP
+                // si funciona — es lo que ya usamos para clonar la fuente del
+                // cartel.
+                var textos = UnityEngine.Object.FindObjectsOfType<Il2CppTMPro.TextMeshProUGUI>();
+                huboTextos = textos.Length > 0;
+                System.Text.StringBuilder disponibles = new System.Text.StringBuilder();
+                for (int i = 0; i < textos.Length; i++)
+                {
+                    if (textos[i] == null || textos[i].font == null)
+                    {
+                        continue;
+                    }
+                    string n = textos[i].font.name;
+                    if (n.IndexOf(nombre, StringComparison.OrdinalIgnoreCase) >= 0)
+                    {
+                        MelonLogger.Msg("[Racha] fuente del juego: " + n);
+                        return textos[i].font;
+                    }
+                    // Sin repetir: el mismo asset lo comparten muchos textos.
+                    if (disponibles.ToString().IndexOf(n, StringComparison.Ordinal) < 0)
+                    {
+                        disponibles.Append(n).Append(", ");
+                    }
+                }
+
+                try
+                {
+                    Font sistema = Font.CreateDynamicFontFromOSFont(nombre, 64);
+                    if (sistema != null)
+                    {
+                        var creada = Il2CppTMPro.TMP_FontAsset.CreateFontAsset(sistema);
+                        if (creada != null)
+                        {
+                            MelonLogger.Msg("[Racha] fuente del sistema: " + nombre);
+                            return creada;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    if (avisar || huboTextos)
+                    {
+                        MelonLogger.Msg("[Racha] las fuentes de Windows no estan"
+                            + " disponibles en este juego (" + ex.Message + ")");
+                    }
+                }
+
+                if (avisar || huboTextos)
+                {
+                    MelonLogger.Warning("[Racha] no hay ninguna fuente que se llame '"
+                        + nombre + "'. Las del juego son: " + disponibles.ToString());
+                }
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Racha] fuente '" + nombre + "': " + ex.Message);
+            }
+            return null;
+        }
+
         private static void Preparar()
         {
             try
@@ -379,10 +526,10 @@ namespace CloneHeroMod
                 GameObject go = new GameObject("Text");
                 go.transform.SetParent(raiz.transform, false);
                 texto = go.AddComponent<Il2CppTMPro.TextMeshProUGUI>();
-                texto.font = plantilla.font;
-                texto.fontSize = 72f;
+                texto.font = fuente != null ? fuente : plantilla.font;
+                texto.fontSize = Ajustes.RachaTamano;
                 texto.fontStyle = Il2CppTMPro.FontStyles.Bold;
-                texto.color = Dorado;
+                texto.color = color;
                 texto.alignment = Il2CppTMPro.TextAlignmentOptions.Center;
                 texto.raycastTarget = false;
                 texto.text = "";

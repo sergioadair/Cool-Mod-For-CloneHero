@@ -82,7 +82,20 @@ missing, then 100, then every 100 after that.
 It animates in, holds, and fades out — gold with a black outline so it stays
 readable over bright backgrounds. Miss a note and the count starts over.
 
-Toggle it at `Settings > Gameplay > Show Cool Note Streak`.
+Toggle it at `Settings > Gameplay > Show Cool Note Streak`, and restyle it in
+`settings.ini` if you want:
+
+```ini
+note_streak_size = 72        ; 20 to 200
+note_streak_color = FFD14A   ; RRGGBB
+note_streak_font =           ; empty = the game's own
+```
+
+The font has to be one the game ships — Windows fonts are not reachable from a
+mod here. Partial names work, so any of these will do:
+
+`Lato-Heavy` (the default) · `Lato-Bold` · `Lato-Regular` · `Lato-Light` ·
+`LiberationSans`
 
 > It reads the streak counter the game already draws under your score, so
 > nothing about scoring is reimplemented or altered. With the option off, the
@@ -111,8 +124,10 @@ existing favorites just work.
 
 ### 🔊 Custom sound when you finish a song
 
-Plays the classic **"You Rock"** sound from GH3 when the results screen appears.
-Replace the file to use your own — `.opus`, `.ogg`, `.mp3` and `.wav` all work.
+Plays the classic **"You Rock"** sound from GH3 when the results screen appears
+— unless you failed the song, in which case the game's own failure sound gets
+the last word. Replace the file to use your own: `.opus`, `.ogg`, `.mp3` and
+`.wav` all work.
 
 Toggle it at `Settings > Audio > Finished Song SFX`.
 
@@ -210,6 +225,9 @@ has a menu option except the slideshow interval and the sound volume.
 | `finished_song_sfx_volume` | `1` | Multiplies that sound's volume |
 | `show_difficulty` | `1` | Show the `Difficulty: X` label on the song panel |
 | `show_cool_note_streak` | `1` | Show the note streak callout during a song |
+| `note_streak_size` | `72` | Size of the note streak text |
+| `note_streak_color` | `FFD14A` | Its colour, `RRGGBB` |
+| `note_streak_font` | — | One of the game's fonts; empty uses the default |
 | `difficulty_last_ref` | — | Reference used on the last calculation (written by the mod) |
 
 On the 1.0.0.4080 build the slideshow interval lives under `[video]` as

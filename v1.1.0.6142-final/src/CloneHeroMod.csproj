@@ -84,6 +84,18 @@
       <HintPath>$(Il2CppDir)\UnityEngine.ImageConversionModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- Font y GlyphRenderMode: para intentar construir una TMP_FontAsset a
+         partir de una fuente de Windows. El juego tiene ese metodo recortado,
+         asi que el intento falla en ejecucion, pero sin estas referencias no
+         compila. -->
+    <Reference Include="UnityEngine.TextRenderingModule">
+      <HintPath>$(Il2CppDir)\UnityEngine.TextRenderingModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.TextCoreFontEngineModule">
+      <HintPath>$(Il2CppDir)\UnityEngine.TextCoreFontEngineModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
     <Reference Include="Unity.TextMeshPro">
       <HintPath>$(Il2CppDir)\Unity.TextMeshPro.dll</HintPath>
       <Private>false</Private>
