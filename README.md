@@ -16,7 +16,7 @@ Two builds are available, one per game version:
 | **1.1.0.6142-final** | [`v1.1.0.6142-final/`](v1.1.0.6142-final/) | MelonLoader mod (`.dll` you drop in) |
 | **1.0.0.4080-final** | [`v1.0.0.4080-final/`](v1.0.0.4080-final/) | patched `Assembly-CSharp.dll` |
 
-> Check your version in the bottom corner of the main menu. Pick the folder that
+> Check your version in the upper corner of the main menu. Pick the folder that
 > matches — they are **not** interchangeable.
 
 ---
