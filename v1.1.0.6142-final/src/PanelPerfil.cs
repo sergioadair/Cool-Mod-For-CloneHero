@@ -280,8 +280,13 @@ namespace CloneHeroMod
                 // y + Alto/2: -268 + 95 = -173.
                 Centrar(rf, new Vector2(0f, -289f), new Vector2(Ancho, Alto));
 
-                titulo = Texto(fondoGo, plantilla, 30f, Il2CppTMPro.TextAlignmentOptions.TopLeft);
-                Colocar(titulo, new Vector2(MargenX, -10f), new Vector2(200f, 40f));
+                titulo = Texto(fondoGo, plantilla, 26f, Il2CppTMPro.TextAlignmentOptions.TopLeft);
+                Colocar(titulo, new Vector2(MargenX, -10f), new Vector2(230f, 40f));
+                // Sin salto de linea: con 100 no cabia "Difficulty 100" y el
+                // numero se iba al renglon de abajo, encima del subtitulo. El
+                // hueco a la derecha esta libre —el bloque de cifras va alineado
+                // al otro lado— asi que es mejor que se salga a que baje.
+                titulo.enableWordWrapping = false;
                 titulo.color = Dorado;
                 titulo.fontStyle = Il2CppTMPro.FontStyles.Bold;
 
