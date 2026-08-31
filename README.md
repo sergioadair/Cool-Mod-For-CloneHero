@@ -51,14 +51,14 @@ Two charts can both score 73 and feel nothing alike. Hold the blue button on any
 song — the same **Show Scoring Info** you already use — and you get this too:
 
 ```
-Difficulty 41                    1,033 notes
-                            3.3 avg NPS   5.9 max
+Difficulty 36                      336 notes
+Expert Keys                 1.3 avg NPS   5.4 max
 
 Chords      ▓░░░░░░░░░
 Technical   ▓▓▓▓▓▓▓░░░
 Endurance   ▓▓▓▓▓░░░░░
-
-Hardest stretch at 0:45
+Guitar 39   Bass 33   Keys 34   Drums 37
+Hardest stretch at 4:44
 ```
 
 - **Chords** — how much of it is more than one note at a time
@@ -68,7 +68,15 @@ Hardest stretch at 0:45
 The three bars are independent of the score on purpose: a song can be easy
 overall and still be the most technical thing in your library.
 
-And **Hardest stretch** points at the worst part of the song, so you can jump
+**It describes the chart you are about to play.** Switch instrument or
+difficulty and the numbers follow — the line under the score says which chart
+they belong to. Pick something the song does not have and it says so, the way
+the game says *No Part*.
+
+The row above it scores every instrument the song does have, so you can see at a
+glance that the drums are the hard part and the bass is a warm-up.
+
+And **Hardest stretch** points at the worst part of that chart, so you can jump
 straight there in practice mode instead of hunting for it.
 
 ---
@@ -140,6 +148,11 @@ this repo and installs it. The row tells you how it went — `up to date`,
 There is no version number to keep track of: the mod compares what it downloads
 with what you have installed, byte for byte. Restart the game to load the new
 build.
+
+You do not have to remember to check, either. On startup the mod looks for a
+newer build, and if there is one the game's version label in the top right
+corner turns into **Update CoolMod now!** until you take it. Set
+`check_for_updates = 0` in `settings.ini` if you would rather it stayed quiet.
 
 ### ⚡ Stays out of the way while you play
 
@@ -228,6 +241,7 @@ has a menu option except the slideshow interval and the sound volume.
 | `note_streak_size` | `72` | Size of the note streak text |
 | `note_streak_color` | `FFD14A` | Its colour, `RRGGBB` |
 | `note_streak_font` | — | One of the game's fonts; empty uses the default |
+| `check_for_updates` | `1` | Look for a newer build on startup |
 | `difficulty_last_ref` | — | Reference used on the last calculation (written by the mod) |
 
 On the 1.0.0.4080 build the slideshow interval lives under `[video]` as
