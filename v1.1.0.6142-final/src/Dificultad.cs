@@ -49,7 +49,53 @@ namespace CloneHeroMod
         // Version del perfil. Si se toca cualquier formula hay que subirla:
         // una cancion cuyo song.ini traiga otra version no cuenta como
         // calculada, asi que se rehace sola en la siguiente pasada.
-        public const int PerfilVersion = 2;
+        public const int PerfilVersion = 3;
+
+        // Los ocho instrumentos que el juego puede traer, con el nombre que
+        // usan los charts, la clave del song.ini y el que se ve en pantalla.
+        //
+        // Merece la pena guardarlos aparte: la nota global mezcla todos los
+        // instrumentos, y al jugador le importa la dificultad de LO QUE VA A
+        // TOCAR. Una cancion con guitarra brutal y bateria simple no es lo
+        // mismo segun con que la cojas.
+        public static readonly string[] InstrumentosChart =
+        {
+            "Single", "DoubleBass", "DoubleRhythm", "DoubleGuitar",
+            "Keyboard", "Drums", "GHLGuitar", "GHLBass"
+        };
+
+        public static readonly string[] InstrumentosClave =
+        {
+            "guitar", "bass", "rhythm", "coop",
+            "keys", "drums", "ghl_guitar", "ghl_bass"
+        };
+
+        public static readonly string[] InstrumentosNombre =
+        {
+            "Guitar", "Bass", "Rhythm", "Co-op",
+            "Keys", "Drums", "GHL Guitar", "GHL Bass"
+        };
+
+        private static readonly string[] NombresDificultad =
+        { "Easy", "Medium", "Hard", "Expert" };
+
+        public static string NombreDificultad(int i)
+        {
+            return i >= 0 && i < NombresDificultad.Length ? NombresDificultad[i] : "?";
+        }
+
+        // De nombre de pista del chart al que se ensena.
+        public static string NombrePista(string pista)
+        {
+            for (int i = 0; i < InstrumentosChart.Length; i++)
+            {
+                if (InstrumentosChart[i] == pista)
+                {
+                    return InstrumentosNombre[i];
+                }
+            }
+            return pista;
+        }
 
         // Todo lo que el mod escribe en song.ini. Se listan juntas porque al
         // reescribir hay que quitar las que ya estuvieran, y porque asi se ve
@@ -59,7 +105,10 @@ namespace CloneHeroMod
             IniKey,
             "diff_speed", "diff_chords", "diff_tech", "diff_endurance",
             "diff_notes", "diff_nps_avg", "diff_nps_max", "diff_peak_at",
-            "diff_prof_v"
+            "diff_prof_v",
+            "diff_global_guitar", "diff_global_bass", "diff_global_rhythm",
+            "diff_global_coop", "diff_global_keys", "diff_global_drums",
+            "diff_global_ghl_guitar", "diff_global_ghl_bass"
         };
 
         // ------------------------------------------------------------ datos --
@@ -574,6 +623,10 @@ namespace CloneHeroMod
             List<double> instNps = new List<double>();
             double npsMax = 0.0;
 
+            // El pico de la dificultad mas alta presente de cada instrumento:
+            // es lo que de verdad se va a tocar.
+            Dictionary<string, double> porInstrumento = new Dictionary<string, double>();
+
             // El chart mas dificil de toda la cancion: es el que manda en la
             // nota global y del que se saca el perfil. No tiene sentido
             // perfilar la media de Easy y Expert.
@@ -628,6 +681,7 @@ namespace CloneHeroMod
                     den += w;
                 }
                 instNps.Add(num / den);
+                porInstrumento[inst.Key] = ordered[ordered.Count - 1];
             }
 
             if (instNps.Count == 0)
@@ -644,8 +698,59 @@ namespace CloneHeroMod
 
             perfil = new Perfil();
             perfil.global = Escalar(npsGlobal);
+            for (int i = 0; i < InstrumentosChart.Length; i++)
+            {
+                if (porInstrumento.TryGetValue(InstrumentosChart[i], out double v))
+                {
+                    perfil.porInstrumento[i] = Escalar(v);
+                }
+            }
             Perfilar(perfil, tiemposDuros, mascarasDuras);
             return true;
+        }
+
+        // El perfil de UN chart concreto: el instrumento y la dificultad que el
+        // jugador tiene elegidos, no el mas dificil de la cancion.
+        //
+        // No se guarda en song.ini: serian hasta 32 perfiles por cancion. Se
+        // calcula cuando hace falta, y como esto no toca nada del juego —solo
+        // archivos y cadenas— puede correr en un hilo aparte.
+        //
+        // El global se queda en -1: ese sigue viniendo del song.ini, porque es
+        // una medida de la cancion entera y no de un chart.
+        public static bool CalcularChart(string chartPath, bool esMidi, string pista,
+                                         int dificultad, out Perfil perfil)
+        {
+            perfil = null;
+            try
+            {
+                ChartInfo info = esMidi ? ParseMidi(chartPath) : ParseChart(chartPath);
+                if (info == null
+                    || !info.tracks.TryGetValue(pista, out Dictionary<int, Dictionary<long, int>> byDiff)
+                    || !byDiff.TryGetValue(dificultad, out Dictionary<long, int> notas)
+                    || notas.Count < 2)
+                {
+                    return false;
+                }
+                TimeMap map = new TimeMap(info);
+                List<long> ticks = new List<long>(notas.Keys);
+                ticks.Sort();
+                double[] times = new double[ticks.Count];
+                int[] mascaras = new int[ticks.Count];
+                for (int i = 0; i < ticks.Count; i++)
+                {
+                    times[i] = map.ToSeconds(ticks[i]);
+                    mascaras[i] = notas[ticks[i]];
+                }
+                perfil = new Perfil();
+                perfil.global = -1;
+                Perfilar(perfil, times, mascaras);
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         // Todo lo que sabemos de una cancion. El global se calcula como
@@ -661,6 +766,10 @@ namespace CloneHeroMod
             public double npsMedio;
             public double npsMax;
             public int picoSegundo;    // donde empieza el tramo mas denso
+
+            // Uno por instrumento, en el orden de InstrumentosChart. -1 si la
+            // cancion no trae ese chart.
+            public int[] porInstrumento = { -1, -1, -1, -1, -1, -1, -1, -1 };
         }
 
         // 0..100 sobre la misma referencia que la nota global.
@@ -860,6 +969,14 @@ namespace CloneHeroMod
             Anadir(kept, "diff_nps_max", Texto(perfil.npsMax));
             Anadir(kept, "diff_peak_at", perfil.picoSegundo);
             Anadir(kept, "diff_prof_v", PerfilVersion);
+            for (int i = 0; i < InstrumentosClave.Length; i++)
+            {
+                if (perfil.porInstrumento[i] >= 0)
+                {
+                    Anadir(kept, "diff_global_" + InstrumentosClave[i],
+                           perfil.porInstrumento[i]);
+                }
+            }
 
             byte[] sep = crlf ? new byte[] { 13, 10 } : new byte[] { 10 };
             using (MemoryStream ms = new MemoryStream())
@@ -942,6 +1059,7 @@ namespace CloneHeroMod
                         case "diff_peak_at": p.picoSegundo = Entero(valor); break;
                         case "diff_nps_avg": p.npsMedio = Decimal(valor); break;
                         case "diff_nps_max": p.npsMax = Decimal(valor); break;
+                        default: PorInstrumento(p, clave, valor); break;
                     }
                 }
                 return alguna ? p : null;
@@ -949,6 +1067,23 @@ namespace CloneHeroMod
             catch (Exception)
             {
                 return null;
+            }
+        }
+
+        private static void PorInstrumento(Perfil p, string clave, string valor)
+        {
+            if (!clave.StartsWith("diff_global_", StringComparison.Ordinal))
+            {
+                return;
+            }
+            string sufijo = clave.Substring("diff_global_".Length);
+            for (int i = 0; i < InstrumentosClave.Length; i++)
+            {
+                if (sufijo == InstrumentosClave[i])
+                {
+                    p.porInstrumento[i] = Entero(valor);
+                    return;
+                }
             }
         }
 

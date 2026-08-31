@@ -32,6 +32,7 @@ namespace CloneHeroMod
         public const string ClaveRachaTamano = "note_streak_size";
         public const string ClaveRachaColor = "note_streak_color";
         public const string ClaveRachaFuente = "note_streak_font";
+        public const string ClaveComprobar = "check_for_updates";
         public const string ClaveVolumenSfx = "finished_song_sfx_volume";
 
         public const float SlideshowPorDefecto = 0f;         // 0 = apagado
@@ -45,6 +46,7 @@ namespace CloneHeroMod
         private static float rachaTamano = RachaTamanoPorDefecto;
         private static string rachaColor = RachaColorPorDefecto;
         private static string rachaFuente = "";
+        private static float comprobar = 1f;
         private static float volumenSfx = 1f;
         private static float slideshow;
         private static float slideshowSegundos = SegundosPorDefecto;
@@ -166,6 +168,18 @@ namespace CloneHeroMod
             }
         }
 
+        // Mirar al arrancar si hay version nueva del mod. Descarga el .dll
+        // publicado (unos 100 KB) para compararlo con el instalado. Quien no
+        // quiera trafico al arrancar lo apaga aqui.
+        public static bool ComprobarActualizaciones
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return comprobar >= 0.5f;
+            }
+        }
+
         public static bool SlideshowActivo
         {
             get
@@ -255,6 +269,7 @@ namespace CloneHeroMod
                                             RachaTamanoMin, RachaTamanoMax);
                 rachaColor = TextoOEscribir(ruta, ClaveRachaColor, RachaColorPorDefecto);
                 rachaFuente = TextoOEscribir(ruta, ClaveRachaFuente, "");
+                comprobar = LeerOEscribir(ruta, ClaveComprobar, 1f, 0f, 1f);
 
                 GuardarRespaldo(referenceNps);
                 MelonLogger.Msg("[Ajustes] ReferenceNps=" + Texto(referenceNps)

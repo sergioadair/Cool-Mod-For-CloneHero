@@ -37,6 +37,19 @@ namespace CloneHeroMod
         // volatile: los escribe el hilo de descarga y los lee el principal.
         private static volatile int estado = (int)Estado.Reposo;
         private static volatile bool hayNoticia;
+        private static volatile bool hayNueva;
+
+        // Lo descargado en la comprobacion del arranque. Si el jugador acaba
+        // pulsando Update, no hace falta bajarlo otra vez.
+        private static byte[] descargado;
+        private static readonly object candado = new object();
+
+        // Hay una version distinta a la instalada. Lo consulta AvisoVersion
+        // para pintar el aviso en la esquina.
+        public static bool HayNueva
+        {
+            get { return hayNueva && estado != (int)Estado.Instalado; }
+        }
 
         public static bool Ocupado
         {
@@ -80,6 +93,52 @@ namespace CloneHeroMod
             }
         }
 
+        // Comprobacion silenciosa al arrancar: se mira si lo publicado es
+        // distinto a lo instalado, SIN tocar nada. Solo enciende el aviso de la
+        // esquina; instalar sigue siendo cosa del jugador.
+        public static void Comprobar()
+        {
+            if (!Ajustes.ComprobarActualizaciones || Ocupado)
+            {
+                return;
+            }
+            Thread hilo = new Thread(TrabajoComprobar);
+            hilo.IsBackground = true;
+            hilo.Name = "CoolModCheck";
+            hilo.Start();
+        }
+
+        private static void TrabajoComprobar()
+        {
+            try
+            {
+                byte[] datos = Descargar();
+                if (datos == null || datos.Length < 4096
+                    || datos[0] != (byte)'M' || datos[1] != (byte)'Z')
+                {
+                    return;      // sin red o respuesta rara: no se molesta al jugador
+                }
+                string destino = RutaDll();
+                if (destino == null || !File.Exists(destino))
+                {
+                    return;
+                }
+                bool distinta = !Iguales(File.ReadAllBytes(destino), datos);
+                lock (candado)
+                {
+                    descargado = datos;
+                }
+                hayNueva = distinta;
+                MelonLogger.Msg(distinta
+                    ? "[Update] hay una version nueva publicada"
+                    : "[Update] el mod esta al dia");
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Msg("[Update] no se pudo comprobar: " + ex.Message);
+            }
+        }
+
         public static void Lanzar()
         {
             if (Ocupado || estado == (int)Estado.Instalado)
@@ -105,7 +164,15 @@ namespace CloneHeroMod
         {
             try
             {
-                byte[] datos = Descargar();
+                byte[] datos;
+                lock (candado)
+                {
+                    datos = descargado;
+                }
+                if (datos == null)
+                {
+                    datos = Descargar();
+                }
                 if (datos == null)
                 {
                     return;      // Descargar ya dejo el motivo
@@ -126,6 +193,7 @@ namespace CloneHeroMod
                 }
                 if (File.Exists(destino) && Iguales(File.ReadAllBytes(destino), datos))
                 {
+                    hayNueva = false;
                     Fijar(Estado.AlDia);
                     MelonLogger.Msg("[Update] ya esta en la ultima version");
                     return;

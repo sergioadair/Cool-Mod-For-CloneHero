@@ -67,6 +67,12 @@ namespace CloneHeroMod
             {
                 CalculadorDificultad.Lanzar();
             }
+            // F9 vuelca el estado del jugador, para localizar instrumento y
+            // dificultad. Solo con diagnostico.flag.
+            if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.F9))
+            {
+                DiagnosticoJugador.Volcar();
+            }
 
             if (!fondosListos)
             {
@@ -86,6 +92,7 @@ namespace CloneHeroMod
                 // La etiqueta primero: refresca la referencia a SongSelect que
                 // el orden consulta para saber si hay que hacer algo.
                 RachaNotas.ResolverEstilo();
+                AvisoVersion.Tick();
                 EtiquetaDificultad.Tick();
                 PanelPerfil.Tick();
                 OrdenDificultad.Tick();
@@ -130,6 +137,7 @@ namespace CloneHeroMod
                 MenuVideo.InstalarParches(HarmonyInstance);
                 MenuAudio.InstalarParches(HarmonyInstance);
                 MenuGameplay.InstalarParches(HarmonyInstance);
+                Actualizador.Comprobar();
                 // Los volcados recorren los 1475 tipos del juego y leen todos
                 // sus miembros estaticos: util para investigar, pero caro y sin
                 // sentido en uso normal. Solo si se pide con un archivo.
@@ -162,6 +170,7 @@ namespace CloneHeroMod
             // tira para no dar por buena una que ya no existe.
             EtiquetaDificultad.OlvidarPaneles();
             PanelPerfil.EscenaCambiada();
+            AvisoVersion.EscenaCambiada();
         }
 
         public override void OnLateUpdate()

@@ -31,7 +31,7 @@ namespace CloneHeroMod
         // derecha de las barras, asi que el bloque de cifras se pega a ellas en
         // vez de al borde.
         private const float Ancho = 460f;
-        private const float Alto = 190f;
+        private const float Alto = 232f;
         private const float AltoBarra = 14f;
         private const float AnchoBarra = 300f;
         private const float MargenX = 18f;
@@ -48,6 +48,8 @@ namespace CloneHeroMod
         private static Il2CppTMPro.TextMeshProUGUI titulo;
         private static Il2CppTMPro.TextMeshProUGUI cifras;
         private static Il2CppTMPro.TextMeshProUGUI pie;
+        private static Il2CppTMPro.TextMeshProUGUI instrumentos;
+        private static Il2CppTMPro.TextMeshProUGUI subtitulo;
         private static Il2CppTMPro.TextMeshProUGUI[] etiquetas;
         private static RectTransform[] rellenos;
         private static bool falloCreacion;
@@ -100,7 +102,9 @@ namespace CloneHeroMod
                     // cerrarlo, asi que se comprueba cual es.
                     if (visible)
                     {
-                        Rellenar(false);
+                        // forzar: el perfil del chart se calcula en otro hilo y
+                        // puede llegar despues de abrirse el panel.
+                        Rellenar(true);
                     }
                     return;
                 }
@@ -149,11 +153,48 @@ namespace CloneHeroMod
             }
             raiz.SetActive(true);
 
+            // La nota grande es de la CANCION y sale del song.ini: es la idea
+            // rapida de con que te vas a encontrar, y no depende de con que la
+            // cojas. Todo lo demas describe UN chart concreto.
             titulo.text = "Difficulty " + p.global.ToString();
-            cifras.text = Miles(p.notas) + " notes\n"
-                + p.npsMedio.ToString("0.0") + " avg NPS   " + p.npsMax.ToString("0.0") + " max";
 
-            int[] valores = { p.acordes, p.tecnica, p.resistencia };
+            // Y ese chart es, si se puede, el que el jugador tiene elegido. Lo
+            // de antes describia siempre el chart mas dificil de la cancion, lo
+            // cual enganaba: si el mas duro era la guitarra y tocabas bateria,
+            // las barras hablaban de otra cosa.
+            Dificultad.Perfil detalle = null;
+            string cual = "Hardest chart";
+            if (SeleccionJugador.Leer(out string pista, out int dificultad)
+                && EtiquetaDificultad.ChartActual(out string chart, out bool esMidi))
+            {
+                Dificultad.Perfil c = PerfilChart.Pedir(chart, esMidi, pista, dificultad,
+                                                        out bool listo);
+                if (c != null)
+                {
+                    detalle = c;
+                    cual = Dificultad.NombreDificultad(dificultad) + " "
+                         + Dificultad.NombrePista(pista);
+                }
+                else if (listo)
+                {
+                    // La cancion no trae ese instrumento. El juego dice
+                    // "No Part" en su panel; aqui se dice igual de claro, y se
+                    // avisa de que lo que se ve debajo es de otro chart.
+                    cual = "No " + Dificultad.NombrePista(pista)
+                         + " - showing hardest";
+                }
+            }
+            if (detalle == null)
+            {
+                detalle = p;      // lo del song.ini mientras tanto
+            }
+            subtitulo.text = cual;
+
+            cifras.text = Miles(detalle.notas) + " notes\n"
+                + detalle.npsMedio.ToString("0.0") + " avg NPS   "
+                + detalle.npsMax.ToString("0.0") + " max";
+
+            int[] valores = { detalle.acordes, detalle.tecnica, detalle.resistencia };
             for (int i = 0; i < rellenos.Length; i++)
             {
                 float v = valores[i] / 100f;
@@ -162,9 +203,32 @@ namespace CloneHeroMod
                 rellenos[i].sizeDelta = new Vector2(AnchoBarra * v, AltoBarra);
                 etiquetas[i].text = Nombres[i];
             }
-            pie.text = p.picoSegundo > 0
-                ? "Hardest stretch at " + Reloj(p.picoSegundo)
+            pie.text = detalle.picoSegundo > 0
+                ? "Hardest stretch at " + Reloj(detalle.picoSegundo)
                 : "";
+            instrumentos.text = PorInstrumento(p);
+        }
+
+        // La nota global mezcla todos los instrumentos; esto dice la de cada
+        // uno, que es lo que de verdad importa segun con que se coja la
+        // cancion. Solo salen los que la cancion trae.
+        private static string PorInstrumento(Dificultad.Perfil p)
+        {
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            for (int i = 0; i < p.porInstrumento.Length; i++)
+            {
+                if (p.porInstrumento[i] < 0)
+                {
+                    continue;
+                }
+                if (sb.Length > 0)
+                {
+                    sb.Append("   ");
+                }
+                sb.Append(Dificultad.InstrumentosNombre[i]).Append(' ')
+                  .Append(p.porInstrumento[i].ToString());
+            }
+            return sb.ToString();
         }
 
         private static string Miles(int n)
@@ -214,7 +278,7 @@ namespace CloneHeroMod
                 // Casi pegado al panel del juego, que termina en y = -170.
                 // Como este va anclado por su centro, el borde de arriba cae en
                 // y + Alto/2: -268 + 95 = -173.
-                Centrar(rf, new Vector2(0f, -268f), new Vector2(Ancho, Alto));
+                Centrar(rf, new Vector2(0f, -289f), new Vector2(Ancho, Alto));
 
                 titulo = Texto(fondoGo, plantilla, 30f, Il2CppTMPro.TextAlignmentOptions.TopLeft);
                 Colocar(titulo, new Vector2(MargenX, -10f), new Vector2(200f, 40f));
@@ -224,11 +288,16 @@ namespace CloneHeroMod
                 cifras = Texto(fondoGo, plantilla, 19f, Il2CppTMPro.TextAlignmentOptions.TopRight);
                 Colocar(cifras, new Vector2(Ancho - MargenX - 240f, -12f), new Vector2(240f, 46f));
 
+                subtitulo = Texto(fondoGo, plantilla, 18f,
+                                  Il2CppTMPro.TextAlignmentOptions.TopLeft);
+                Colocar(subtitulo, new Vector2(MargenX, -46f), new Vector2(280f, 24f));
+                subtitulo.color = new Color(0.72f, 0.72f, 0.76f, 1f);
+
                 etiquetas = new Il2CppTMPro.TextMeshProUGUI[3];
                 rellenos = new RectTransform[3];
                 for (int i = 0; i < 3; i++)
                 {
-                    float y = -62f - i * SaltoFila;
+                    float y = -78f - i * SaltoFila;
                     etiquetas[i] = Texto(fondoGo, plantilla, 20f,
                                          Il2CppTMPro.TextAlignmentOptions.MidlineLeft);
                     Colocar(etiquetas[i], new Vector2(MargenX, y),
@@ -246,8 +315,14 @@ namespace CloneHeroMod
                             new Vector2(AnchoBarra, AltoBarra));
                 }
 
+                instrumentos = Texto(fondoGo, plantilla, 18f,
+                                     Il2CppTMPro.TextAlignmentOptions.TopLeft);
+                Colocar(instrumentos, new Vector2(MargenX, -170f),
+                        new Vector2(Ancho - MargenX * 2f, 26f));
+                instrumentos.color = new Color(0.88f, 0.88f, 0.9f, 1f);
+
                 pie = Texto(fondoGo, plantilla, 19f, Il2CppTMPro.TextAlignmentOptions.TopLeft);
-                Colocar(pie, new Vector2(MargenX, -152f), new Vector2(Ancho - MargenX * 2f, 26f));
+                Colocar(pie, new Vector2(MargenX, -196f), new Vector2(Ancho - MargenX * 2f, 26f));
                 pie.color = new Color(0.75f, 0.75f, 0.78f, 1f);
 
                 MelonLogger.Msg("[Perfil] panel creado");
