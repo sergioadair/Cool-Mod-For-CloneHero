@@ -82,14 +82,6 @@ namespace CloneHeroMod
             return null;
         }
 
-        public static void Olvidar()
-        {
-            lock (candado)
-            {
-                cache.Clear();
-            }
-        }
-
         private static void Trabajar()
         {
             while (true)
