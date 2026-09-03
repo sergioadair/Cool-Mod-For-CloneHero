@@ -34,8 +34,7 @@ writes the Hard, Medium and Easy that were never charted, for every instrument
 the song has.
 
 They are not random. The rules come from measuring **3,175 official charts** —
-Guitar Hero 1 through Warriors of Rock, World Tour, Live, Rock Band, The
-Beatles — to see what real charters actually do when they write an easier
+Guitar Hero 1 through Warriors of Rock, World Tour, Live, Rock Band — to see what real charters actually do when they write an easier
 version of a song:
 
 - they **keep the notes on the strong beats** and drop the ones in between
