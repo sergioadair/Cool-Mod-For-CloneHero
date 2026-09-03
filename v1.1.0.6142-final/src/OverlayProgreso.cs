@@ -23,7 +23,14 @@ namespace CloneHeroMod
         {
             try
             {
-                if (!CalculadorDificultad.Corriendo)
+                // Tres cosas distintas comparten el mismo cartel: el
+                // calculo de dificultad, la generacion de charts y los avisos
+                // sueltos. Se miran en ese orden porque el calculo es el unico
+                // que puede tardar un minuto.
+                bool calculando = CalculadorDificultad.Corriendo;
+                bool generando = GeneradorCharts.Corriendo;
+                bool avisando = Aviso.Activo;
+                if (!calculando && !generando && !avisando)
                 {
                     Ocultar();
                     return;
@@ -34,6 +41,12 @@ namespace CloneHeroMod
                 }
                 if (texto == null)
                 {
+                    return;
+                }
+
+                if (!calculando)
+                {
+                    texto.text = generando ? TextoGenerando() : Aviso.Texto;
                     return;
                 }
 
@@ -55,6 +68,18 @@ namespace CloneHeroMod
                 falloCreacion = true;
                 MelonLogger.Error("[Overlay] " + ex);
             }
+        }
+
+        private static string TextoGenerando()
+        {
+            int t = GeneradorCharts.Total;
+            int p = GeneradorCharts.Paso;
+            string salto = "\n\n";
+            string cuenta = t > 0
+                ? salto + p.ToString() + " / " + t.ToString()
+                : "";
+            return "Generating Missing Difficulties" + cuenta + salto
+                + (GeneradorCharts.Mensaje ?? "") + salto + "Please wait...";
         }
 
         private static void Crear()

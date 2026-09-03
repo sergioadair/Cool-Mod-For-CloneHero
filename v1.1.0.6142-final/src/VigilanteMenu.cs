@@ -106,6 +106,26 @@ namespace CloneHeroMod
             return p.PropertyType == typeof(string) && p.GetIndexParameters().Length == 0;
         }
 
+        // Valor actual de la propiedad vigilada. Solo para el log de sondeo.
+        public string Actual(object menu)
+        {
+            if (menu == null)
+            {
+                return null;
+            }
+            for (int i = 0; i < candidatas.Count; i++)
+            {
+                string v;
+                try { v = candidatas[i].GetValue(menu) as string; }
+                catch (Exception) { continue; }
+                if (!string.IsNullOrEmpty(v))
+                {
+                    return v;
+                }
+            }
+            return null;
+        }
+
         // Devuelve el prefijo de la fila que ACABA de abrirse, o null. Se llama
         // en cada fotograma de menu.
         public string RecienAbierta(object menu)
