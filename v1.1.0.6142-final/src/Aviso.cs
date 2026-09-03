@@ -14,7 +14,7 @@ namespace CloneHeroMod
     {
         // Cortos a proposito. Un cartel que se queda mucho rato en pantalla
         // parece que algo ha ido mal, aunque diga que todo fue bien.
-        private const double Segundos = 4.5;
+        private const double Segundos = 2.75;
 
         private static volatile string titulo;
         private static volatile string cuerpo;

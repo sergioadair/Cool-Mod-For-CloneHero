@@ -52,7 +52,7 @@ namespace CloneHeroMod
             if (string.IsNullOrEmpty(chart) || !File.Exists(chart))
             {
                 Aviso.Mostrar("Generate Missing Difficulties",
-                    "This song's chart file could not be found.");
+                    "Chart file not found.");
                 return;
             }
             corriendo = true;
@@ -98,7 +98,7 @@ namespace CloneHeroMod
             {
                 MelonLogger.Error("[Generar] " + ex);
                 Aviso.Mostrar("Generate Missing Difficulties",
-                    "Something went wrong. Nothing was changed.\n" + ex.Message);
+                    "Failed. Nothing was changed.\n" + ex.Message);
             }
             finally
             {
@@ -129,7 +129,7 @@ namespace CloneHeroMod
             if (chart == null)
             {
                 Aviso.Mostrar("Generate Missing Difficulties",
-                    "This .sng has no chart inside it.");
+                    "No chart inside this .sng.");
                 return;
             }
 
@@ -165,9 +165,7 @@ namespace CloneHeroMod
                     Anotar(ruta);
                     MelonLogger.Msg("[Generar] .sng en espera: el juego lo tiene abierto");
                     Aviso.Mostrar("Generate Missing Difficulties",
-                        hechos.Count.ToString() + " difficulty level(s) generated.\n\n"
-                        + "The game has this .sng open, so it will be swapped in\n"
-                        + "next time you start Clone Hero.");
+                        Cuantas(hechos.Count) + " added.\n\nRestart the game to apply.");
                     return;
                 }
                 MelonLogger.Msg("[Generar] .sng reescrito");
@@ -234,7 +232,7 @@ namespace CloneHeroMod
             if (pendientes.Count == 0)
             {
                 Aviso.Mostrar("Generate Missing Difficulties",
-                    "This song already has every difficulty level.");
+                    "Nothing to do - this song has them all.");
                 return;
             }
 
@@ -319,7 +317,7 @@ namespace CloneHeroMod
             if (pendientes.Count == 0)
             {
                 Aviso.Mostrar("Generate Missing Difficulties",
-                    "This song already has every difficulty level.");
+                    "Nothing to do - this song has them all.");
                 return;
             }
 
@@ -358,6 +356,13 @@ namespace CloneHeroMod
             Terminado(hechos);
         }
 
+        // "1 difficulty level" / "3 difficulty levels". El "(s)" que habia
+        // antes se lee peor de lo que ahorra.
+        private static string Cuantas(int n)
+        {
+            return n.ToString() + (n == 1 ? " difficulty level" : " difficulty levels");
+        }
+
         private static void Terminado(List<Trabajito> hechos)
         {
             string lista = "";
@@ -368,9 +373,7 @@ namespace CloneHeroMod
             }
             MelonLogger.Msg("[Generar] " + hechos.Count.ToString() + " dificultad(es)");
             Aviso.Mostrar("Generate Missing Difficulties",
-                hechos.Count.ToString() + " difficulty level(s) generated.\n\n"
-                + "Scan Songs to play them.\n"
-                + "The original chart was backed up.");
+                Cuantas(hechos.Count) + " added.\n\nScan Songs to play them.");
         }
 
         // ------------------------------------------------------ en espera --
@@ -471,8 +474,8 @@ namespace CloneHeroMod
                 if (!File.Exists(copia))
                 {
                     Aviso.Mostrar("Restore Song Chart",
-                        "There is no backup for this song.\n"
-                        + "Its difficulty levels have never been generated.");
+                        "No backup for this song.\n"
+                        + "Nothing was ever generated here.");
                     return;
                 }
                 if (ArchivoSng.EsSng(chart))
@@ -483,15 +486,14 @@ namespace CloneHeroMod
                     if (dentro == null)
                     {
                         Aviso.Mostrar("Restore Song Chart",
-                            "This .sng has no chart inside it.");
+                            "No chart inside this .sng.");
                         return;
                     }
                     if (!s.Escribir(chart, dentro.nombre, File.ReadAllBytes(copia)))
                     {
                         Anotar(chart);
                         Aviso.Mostrar("Restore Song Chart",
-                            "The game has this .sng open, so the original will\n"
-                            + "be put back next time you start Clone Hero.");
+                            "Restart the game to apply.");
                         return;
                     }
                 }
@@ -501,8 +503,8 @@ namespace CloneHeroMod
                 }
                 MelonLogger.Msg("[Generar] restaurado desde la copia");
                 Aviso.Mostrar("Restore Song Chart",
-                    "The original chart is back.\n\n"
-                    + "Scan Songs to pick up the change.");
+                    "Original chart restored.\n\n"
+                    + "Scan Songs to apply.");
             }
             catch (Exception ex)
             {
