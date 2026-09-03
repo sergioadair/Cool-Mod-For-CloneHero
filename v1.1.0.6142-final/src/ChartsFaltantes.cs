@@ -265,7 +265,7 @@ namespace CloneHeroMod
             if (!EtiquetaDificultad.ArchivoActual(out ruta, out esMidi, out esSng))
             {
                 Aviso.Mostrar(fila ?? Fila,
-                    "This song is encrypted, so its chart cannot be edited.");
+                    "Encrypted song - its chart cannot be edited.");
                 return;
             }
             if (fila != null && fila.StartsWith(FilaRestaurar, StringComparison.Ordinal))
