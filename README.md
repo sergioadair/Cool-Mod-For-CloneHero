@@ -1,10 +1,11 @@
 # Cool Mod For Clone Hero
 
-A set of quality-of-life features I always wanted Clone Hero to have: a real
-**difficulty score** for every song and a profile of *why* it is hard, a
-**note streak** callout while you play,
-**custom menu backgrounds**, a background **slideshow**, a **Favorites** filter
-and a **custom sound** when you finish a song.
+A set of quality-of-life features I always wanted Clone Hero to have. It
+**fills in the difficulties a song is missing** so you can play that
+Expert-only chart on Medium, gives every song a real **difficulty score** and a
+profile of *why* it is hard, throws a **note streak** callout while you play,
+and adds **custom menu backgrounds**, a background **slideshow**, a
+**Favorites** filter and a **custom sound** when you finish a song.
 
 The 1.1.0.6142 build also **updates itself** from this repo with one menu
 option, and is built to stay out of the way while you are playing.
@@ -22,6 +23,41 @@ Two builds are available, one per game version:
 ---
 
 ## ✨ Features
+
+### 🎸 Generate missing difficulties
+
+Half the charts out there are Expert only. If you are not an Expert player,
+that is half your library you cannot touch.
+
+Press `Select` on any song and pick **`Generate Missing Difficulties`**. The mod
+writes the Hard, Medium and Easy that were never charted, for every instrument
+the song has.
+
+They are not random. The rules come from measuring **3,175 official charts** —
+Guitar Hero 1 through Warriors of Rock, World Tour, Live, Rock Band, The
+Beatles — to see what real charters actually do when they write an easier
+version of a song:
+
+- they **keep the notes on the strong beats** and drop the ones in between
+- they **thin it out** to about three quarters of the notes, then two thirds again
+- they **shrink chords** — three notes on Expert, two on Hard and Medium, single
+  notes on Easy
+- they **use fewer frets** — all five on Hard, four on Medium, three on Easy
+
+Which is exactly what the mod does. Checked against the real thing, the
+generated Hard puts a note in the same place as the human charter **85% of the
+time**.
+
+**Your original is safe.** It gets backed up next to the song before anything is
+written, and **`Restore Song Chart`** puts it back whenever you want. Works with
+plain song folders and with `.sng` files. Run `Scan Songs` afterwards to see the
+new difficulties.
+
+> Only downwards, and only for instruments the song already has. Easy cannot be
+> turned into Expert — those notes do not exist anywhere — and a song with no
+> bass does not get one invented.
+
+---
 
 ### 🎯 Difficulty — a real 0–100 score for every song
 

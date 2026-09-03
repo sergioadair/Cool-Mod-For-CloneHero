@@ -50,6 +50,14 @@ namespace CloneHeroMod
         private static bool detallado;
         public static bool Detallado { get { return detallado; } }
 
+        // Lo primero de todo, antes de que el juego cargue nada: colocar los
+        // .sng que quedaron a medias porque el juego los tenia abiertos. Aqui
+        // todavia no hay biblioteca cargada, asi que no los tiene nadie.
+        public override void OnInitializeMelon()
+        {
+            GeneradorCharts.AplicarPendientes();
+        }
+
         public override void OnUpdate()
         {
             // Durante la cancion lo unico que puede correr es el cartel de
@@ -100,6 +108,7 @@ namespace CloneHeroMod
                 MenuVideo.Tick();
                 MenuAudio.Tick();
                 MenuGameplay.Tick();
+                ChartsFaltantes.Tick();
                 OverlayProgreso.Refrescar();
                 SfxFinDeCancion.Tick();
 
@@ -137,6 +146,7 @@ namespace CloneHeroMod
                 MenuVideo.InstalarParches(HarmonyInstance);
                 MenuAudio.InstalarParches(HarmonyInstance);
                 MenuGameplay.InstalarParches(HarmonyInstance);
+                ChartsFaltantes.InstalarParches(HarmonyInstance);
                 Actualizador.Comprobar();
                 // Los volcados recorren los 1475 tipos del juego y leen todos
                 // sus miembros estaticos: util para investigar, pero caro y sin
