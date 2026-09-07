@@ -46,6 +46,16 @@ namespace CloneHeroMod
         // todavia no esta calculado, o ya se calculo y la cancion NO TRAE ese
         // chart. El panel lo dice de forma distinta, porque a un jugador con
         // Keys elegido le importa saber que esta cancion no tiene Keys.
+        // Tras generar o restaurar en lote, lo perfilado ya no describe los
+        // charts que hay en disco.
+        public static void Vaciar()
+        {
+            lock (candado)
+            {
+                cache.Clear();
+            }
+        }
+
         public static Dificultad.Perfil Pedir(string chart, bool esMidi, string pista,
                                               int dificultad, out bool listo)
         {

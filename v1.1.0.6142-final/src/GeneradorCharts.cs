@@ -27,6 +27,10 @@ namespace CloneHeroMod
     {
         public const string Sufijo = ".coolmod.bak";
 
+        // En lote no se avisa por cancion ni se toca el contador de progreso:
+        // de eso se encarga GeneradorLote, que lleva su propia cuenta.
+        private static bool lote;
+
         private static volatile bool corriendo;
         private static volatile string mensaje;
         private static volatile int paso;
@@ -42,6 +46,23 @@ namespace CloneHeroMod
             return chart + Sufijo;
         }
 
+        // La copia de seguridad, justo antes de escribir y nunca antes. Si ya
+        // hay una NO se toca: la primera es la de los charts originales y es la
+        // que vale.
+        //
+        // Se hace aqui, pegada a la escritura, porque hacerla al empezar dejaba
+        // un .coolmod.bak al lado de TODAS las canciones —tambien las que no
+        // habia que tocar—, y en un barrido de la biblioteca entera eso son
+        // miles de archivos de basura.
+        private static void Respaldar(string chart)
+        {
+            string copia = RutaCopia(chart);
+            if (!File.Exists(copia))
+            {
+                File.Copy(chart, copia);
+            }
+        }
+
         // ------------------------------------------------------------------
         public static void Lanzar(string chart, bool esMidi, bool esSng)
         {
@@ -51,7 +72,7 @@ namespace CloneHeroMod
             }
             if (string.IsNullOrEmpty(chart) || !File.Exists(chart))
             {
-                Aviso.Mostrar("Generate Missing Difficulties",
+                Aviso.Mostrar("Generate Song Difficulties",
                     "Chart file not found.");
                 return;
             }
@@ -75,15 +96,6 @@ namespace CloneHeroMod
                     return;
                 }
 
-                // 1. copia de seguridad. Si ya hay una NO se toca: la primera
-                //    es la de los charts originales y es la que vale.
-                string copia = RutaCopia(chart);
-                if (!File.Exists(copia))
-                {
-                    File.Copy(chart, copia);
-                    MelonLogger.Msg("[Generar] copia de seguridad creada");
-                }
-
                 List<Trabajito> faltan;
                 if (esMidi)
                 {
@@ -97,13 +109,41 @@ namespace CloneHeroMod
             catch (Exception ex)
             {
                 MelonLogger.Error("[Generar] " + ex);
-                Aviso.Mostrar("Generate Missing Difficulties",
+                Aviso.Mostrar("Generate Song Difficulties",
                     "Failed. Nothing was changed.\n" + ex.Message);
             }
             finally
             {
                 corriendo = false;
             }
+        }
+
+        // Una cancion dentro de un barrido: sin avisos, sin tocar el contador
+        // de progreso, y devolviendo cuantas dificultades salieron. Todo lo
+        // demas —la copia de seguridad, que solo se genera hacia abajo, el
+        // .sng— es exactamente igual que cuando se hace de una en una.
+        public static int UnaEnLote(string ruta, bool esMidi, bool esSng)
+        {
+            if (esSng)
+            {
+                return TrabajoSng(ruta);
+            }
+            List<Trabajito> hechos;
+            if (esMidi)
+            {
+                HacerMidi(ruta, out hechos);
+            }
+            else
+            {
+                HacerChart(ruta, out hechos);
+            }
+            return hechos.Count;
+        }
+
+        public static bool Lote
+        {
+            get { return lote; }
+            set { lote = value; }
         }
 
         private struct Trabajito
@@ -121,25 +161,22 @@ namespace CloneHeroMod
         // un .sng son diez o doscientos megas de audio por cancion para guardar
         // cuarenta kilobytes de notas. Con el chart original basta: restaurar es
         // volver a meterlo.
-        private static void TrabajoSng(string ruta)
+        private static int TrabajoSng(string ruta)
         {
             ArchivoSng s = ArchivoSng.Leer(ruta);
             bool esMidi;
             ArchivoSng.Entrada chart = s.BuscarChart(out esMidi);
             if (chart == null)
             {
-                Aviso.Mostrar("Generate Missing Difficulties",
-                    "No chart inside this .sng.");
-                return;
+                if (!lote)
+                {
+                    Aviso.Mostrar("Generate Song Difficulties",
+                        "No chart inside this .sng.");
+                }
+                return 0;
             }
 
             byte[] original = s.LeerArchivo(chart);
-            string copia = RutaCopia(ruta);
-            if (!File.Exists(copia))
-            {
-                File.WriteAllBytes(copia, original);
-                MelonLogger.Msg("[Generar] copia del chart del .sng creada");
-            }
 
             string temporal = Path.Combine(Path.GetTempPath(),
                 "coolmod_" + Guid.NewGuid().ToString("N") + Path.GetExtension(chart.nombre));
@@ -157,22 +194,34 @@ namespace CloneHeroMod
                 }
                 if (hechos.Count == 0)
                 {
-                    return;      // el aviso ya lo puso quien corresponda
+                    return 0;    // el aviso ya lo puso quien corresponda
                 }
-                mensaje = "Repacking .sng...";
+                string copia = RutaCopia(ruta);
+                if (!File.Exists(copia))
+                {
+                    File.WriteAllBytes(copia, original);
+                }
+                if (!lote) mensaje = "Repacking .sng...";
                 if (!s.Escribir(ruta, chart.nombre, File.ReadAllBytes(temporal)))
                 {
                     Anotar(ruta);
                     MelonLogger.Msg("[Generar] .sng en espera: el juego lo tiene abierto");
-                    Aviso.Mostrar("Generate Missing Difficulties",
-                        Cuantas(hechos.Count) + " added.\n\nRestart the game to apply.");
-                    return;
+                    if (!lote)
+                    {
+                        Aviso.Mostrar("Generate Song Difficulties",
+                            Cuantas(hechos.Count) + " added.\n\nRestart the game to apply.");
+                    }
+                    return hechos.Count;
                 }
                 MelonLogger.Msg("[Generar] .sng reescrito");
+                return hechos.Count;
             }
             finally
             {
+                // Tambien el .coolmod.bak que HacerChart deja al lado del
+                // temporal: la copia buena del .sng es la de arriba.
                 try { File.Delete(temporal); } catch (Exception) { }
+                try { File.Delete(RutaCopia(temporal)); } catch (Exception) { }
             }
         }
 
@@ -231,17 +280,26 @@ namespace CloneHeroMod
 
             if (pendientes.Count == 0)
             {
-                Aviso.Mostrar("Generate Missing Difficulties",
-                    "Nothing to do - this song has them all.");
+                if (!lote)
+                {
+                    Aviso.Mostrar("Generate Song Difficulties",
+                        "Nothing to do - this song has them all.");
+                }
                 return;
             }
 
-            total = pendientes.Count;
+            if (!lote)
+            {
+                total = pendientes.Count;
+            }
             for (int i = 0; i < pendientes.Count; i++)
             {
                 Trabajito t = pendientes[i];
-                paso = i + 1;
-                mensaje = Dificultad.NombrePista(t.instrumento) + " - "
+                if (!lote)
+                {
+                    paso = i + 1;
+                }
+                if (!lote) mensaje = Dificultad.NombrePista(t.instrumento) + " - "
                     + Dificultad.NombreDificultad(t.dificultad);
 
                 ArchivoChart.Seccion arriba = a.Buscar(
@@ -257,19 +315,35 @@ namespace CloneHeroMod
                 {
                     continue;
                 }
+                // Las frases de Star Power y las marcas de solo se heredan de
+                // la dificultad de origen: sin ellas la generada se queda sin
+                // medidor de poder, que es lo primero que se echa en falta.
                 a.PonerNotas(Dificultad.NombreDificultad(t.dificultad) + t.instrumento,
-                             nuevas, t.instrumento);
+                             nuevas,
+                             ReduccionChart.AjustarFases(ArchivoChart.Fases(arriba), nuevas),
+                             ArchivoChart.EventosLocales(arriba),
+                             t.instrumento);
                 hechos.Add(t);
             }
 
             if (hechos.Count == 0)
             {
-                Aviso.Mostrar("Generate Missing Difficulties",
-                    "Nothing could be generated.");
+                if (!lote)
+                {
+                    if (!lote)
+                    {
+                        Aviso.Mostrar("Generate Song Difficulties",
+                            "Nothing could be generated.");
+                    }
+                }
                 return;
             }
+            Respaldar(ruta);
             a.Escribir(ruta);
-            Terminado(hechos);
+            if (!lote)
+            {
+                Terminado(hechos);
+            }
         }
 
         // ----------------------------------------------------------- .mid --
@@ -316,17 +390,23 @@ namespace CloneHeroMod
 
             if (pendientes.Count == 0)
             {
-                Aviso.Mostrar("Generate Missing Difficulties",
+                Aviso.Mostrar("Generate Song Difficulties",
                     "Nothing to do - this song has them all.");
                 return;
             }
 
-            total = pendientes.Count;
+            if (!lote)
+            {
+                total = pendientes.Count;
+            }
             for (int i = 0; i < pendientes.Count; i++)
             {
                 Trabajito t = pendientes[i];
-                paso = i + 1;
-                mensaje = t.instrumento + " - "
+                if (!lote)
+                {
+                    paso = i + 1;
+                }
+                if (!lote) mensaje = t.instrumento + " - "
                     + Dificultad.NombreDificultad(t.dificultad);
 
                 ArchivoMidi.Pista p = m.BuscarPista(t.instrumento);
@@ -348,12 +428,16 @@ namespace CloneHeroMod
 
             if (hechos.Count == 0)
             {
-                Aviso.Mostrar("Generate Missing Difficulties",
+                Aviso.Mostrar("Generate Song Difficulties",
                     "Nothing could be generated.");
                 return;
             }
+            Respaldar(ruta);
             m.Escribir(ruta);
-            Terminado(hechos);
+            if (!lote)
+            {
+                Terminado(hechos);
+            }
         }
 
         // "1 difficulty level" / "3 difficulty levels". El "(s)" que habia
@@ -372,7 +456,7 @@ namespace CloneHeroMod
                     + Dificultad.NombreDificultad(hechos[i].dificultad);
             }
             MelonLogger.Msg("[Generar] " + hechos.Count.ToString() + " dificultad(es)");
-            Aviso.Mostrar("Generate Missing Difficulties",
+            Aviso.Mostrar("Generate Song Difficulties",
                 Cuantas(hechos.Count) + " added.\n\nScan Songs to play them.");
         }
 
@@ -388,11 +472,22 @@ namespace CloneHeroMod
                                 "coolmod_sng_pendientes.txt");
         }
 
+        public static void AnotarPendiente(string sng)
+        {
+            Anotar(sng);
+        }
+
+        private static readonly object candadoRegistro = new object();
+
         private static void Anotar(string sng)
         {
             try
             {
-                File.AppendAllText(Registro(), sng + Environment.NewLine);
+                // En un barrido esto lo llaman varios hilos a la vez.
+                lock (candadoRegistro)
+                {
+                    File.AppendAllText(Registro(), sng + Environment.NewLine);
+                }
             }
             catch (Exception ex)
             {

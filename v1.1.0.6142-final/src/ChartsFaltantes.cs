@@ -6,9 +6,14 @@ using MelonLoader;
 
 namespace CloneHeroMod
 {
-    // Las dos filas del mod al final de Song Options —la lista que sale al
+    // Las cuatro filas del mod al final de Song Options —la lista que sale al
     // pulsar Select sobre una cancion, debajo de "Toggle Favorite"—: generar
-    // las dificultades que falten y devolver el chart original.
+    // y restaurar, para esta cancion y para toda la biblioteca.
+    //
+    // Las dos de lote empezaron en Settings > General, que parecia su sitio
+    // natural, y no cabian: ese menu tiene el contenedor de alto fijo para 27
+    // filas y con 25 opciones del juego solo entran DOS nuestras. Aqui no hay
+    // ese problema, ver el punto 1.
     //
     // Aqui solo esta el enganche con el menu; el trabajo lo hace
     // GeneradorCharts, y el algoritmo ReduccionChart.
@@ -91,7 +96,7 @@ namespace CloneHeroMod
     // Lo que haga por dentro deja de ser asunto nuestro.
     public static class ChartsFaltantes
     {
-        public const string Fila = "Generate Missing Difficulties";
+        public const string Fila = "Generate Song Difficulties";
         public const string FilaRestaurar = "Restore Song Chart";
 
         private static bool parcheado;
@@ -99,7 +104,8 @@ namespace CloneHeroMod
         private static bool accionada;
         private static string pulsada;
         private static readonly VigilanteMenu resaltado =
-            new VigilanteMenu("Charts", Fila, FilaRestaurar);
+            new VigilanteMenu("Charts", Fila, FilaRestaurar,
+                              GeneradorLote.NombreGenerar, GeneradorLote.NombreRestaurar);
 
         public static void InstalarParches(HarmonyLib.Harmony harmony)
         {
@@ -187,13 +193,24 @@ namespace CloneHeroMod
                 }
             }
 
-            Il2CppStringArray nuevas = new Il2CppStringArray(filas.Length + 2);
+            // Las cuatro: las dos de esta cancion y las dos de toda la
+            // biblioteca. Aqui caben porque el panel no estira nada — desplaza
+            // una ventana de siete filas sobre la lista—, al reves que los
+            // menus de ajustes, donde el contenedor tiene un alto fijo.
+            string[] mias =
+            {
+                Fila, FilaRestaurar,
+                GeneradorLote.NombreGenerar, GeneradorLote.NombreRestaurar
+            };
+            Il2CppStringArray nuevas = new Il2CppStringArray(filas.Length + mias.Length);
             for (int i = 0; i < filas.Length; i++)
             {
                 nuevas[i] = filas[i];
             }
-            nuevas[filas.Length] = Fila;
-            nuevas[filas.Length + 1] = FilaRestaurar;
+            for (int i = 0; i < mias.Length; i++)
+            {
+                nuevas[filas.Length + i] = mias[i];
+            }
             o.mainOptions = nuevas;
             MelonLogger.Msg("[Charts] filas anadidas a mainOptions ("
                 + filas.Length.ToString() + " -> " + nuevas.Length.ToString() + ")");
@@ -216,7 +233,9 @@ namespace CloneHeroMod
                     return;
                 }
                 if (sobre.StartsWith(Fila, StringComparison.Ordinal)
-                    || sobre.StartsWith(FilaRestaurar, StringComparison.Ordinal))
+                    || sobre.StartsWith(FilaRestaurar, StringComparison.Ordinal)
+                    || sobre.StartsWith(GeneradorLote.NombreGenerar, StringComparison.Ordinal)
+                    || sobre.StartsWith(GeneradorLote.NombreRestaurar, StringComparison.Ordinal))
                 {
                     pulsada = sobre;
                     accionada = true;
@@ -266,6 +285,18 @@ namespace CloneHeroMod
             {
                 Aviso.Mostrar(fila ?? Fila,
                     "Encrypted song - its chart cannot be edited.");
+                return;
+            }
+            if (fila != null
+                && fila.StartsWith(GeneradorLote.NombreGenerar, StringComparison.Ordinal))
+            {
+                GeneradorLote.Lanzar(false);
+                return;
+            }
+            if (fila != null
+                && fila.StartsWith(GeneradorLote.NombreRestaurar, StringComparison.Ordinal))
+            {
+                GeneradorLote.Lanzar(true);
                 return;
             }
             if (fila != null && fila.StartsWith(FilaRestaurar, StringComparison.Ordinal))

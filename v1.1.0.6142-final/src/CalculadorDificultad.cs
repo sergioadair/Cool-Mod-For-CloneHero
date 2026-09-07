@@ -154,6 +154,14 @@ namespace CloneHeroMod
             return tareas;
         }
 
+        // La misma lista, para quien la necesite desde fuera (GeneradorLote).
+        // Hay que llamarla desde el hilo principal: son objetos del juego.
+        public static Il2CppSystem.Collections.Generic.List<Il2Cpp.SongEntry>
+            ListaCancionesPublica()
+        {
+            return ListaCanciones();
+        }
+
         // La biblioteca tiene varias List<SongEntry> estaticas (filtradas,
         // visibles, etc.). Nos quedamos con la mas larga, que es la completa.
         private static Il2CppSystem.Collections.Generic.List<Il2Cpp.SongEntry> ListaCanciones()

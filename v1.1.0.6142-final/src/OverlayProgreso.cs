@@ -29,8 +29,9 @@ namespace CloneHeroMod
                 // que puede tardar un minuto.
                 bool calculando = CalculadorDificultad.Corriendo;
                 bool generando = GeneradorCharts.Corriendo;
+                bool enLote = GeneradorLote.Corriendo;
                 bool avisando = Aviso.Activo;
-                if (!calculando && !generando && !avisando)
+                if (!calculando && !generando && !enLote && !avisando)
                 {
                     Ocultar();
                     return;
@@ -46,7 +47,8 @@ namespace CloneHeroMod
 
                 if (!calculando)
                 {
-                    texto.text = generando ? TextoGenerando() : Aviso.Texto;
+                    texto.text = enLote ? TextoLote()
+                        : generando ? TextoGenerando() : Aviso.Texto;
                     return;
                 }
 
@@ -70,6 +72,22 @@ namespace CloneHeroMod
             }
         }
 
+        private static string TextoLote()
+        {
+            string salto = "\n\n";
+            int t = GeneradorLote.Total;
+            int h = GeneradorLote.Hechas;
+            int pct = t > 0 ? h * 100 / t : 0;
+            return (GeneradorLote.Restaurando
+                       ? "Restoring All Song Charts" : "Generating All Difficulties")
+                + salto + h.ToString() + " / " + t.ToString()
+                + "   (" + pct.ToString() + "%)" + salto
+                + "Songs changed: " + GeneradorLote.Cambiadas.ToString()
+                + "    Added: " + GeneradorLote.Dificultades.ToString()
+                + "    Failed: " + GeneradorLote.Fallidas.ToString()
+                + salto + "Please wait...";
+        }
+
         private static string TextoGenerando()
         {
             int t = GeneradorCharts.Total;
@@ -78,7 +96,7 @@ namespace CloneHeroMod
             string cuenta = t > 0
                 ? salto + p.ToString() + " / " + t.ToString()
                 : "";
-            return "Generating Missing Difficulties" + cuenta + salto
+            return "Generating Song Difficulties" + cuenta + salto
                 + (GeneradorCharts.Mensaje ?? "") + salto + "Please wait...";
         }
 

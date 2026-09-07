@@ -169,6 +169,82 @@ namespace CloneHeroMod
             return salida;
         }
 
+        // Las frases de Star Power de una seccion: lineas "tick = S 2 largo".
+        // El tipo 2 es el unico que aparece en los charts oficiales; los otros
+        // (0 y 1) son restos de la separacion de jugadores del Guitar Hero
+        // viejo y no los usa Clone Hero.
+        public static List<ReduccionChart.Fase> Fases(Seccion s)
+        {
+            List<ReduccionChart.Fase> salida = new List<ReduccionChart.Fase>();
+            if (s == null)
+            {
+                return salida;
+            }
+            for (int i = 0; i < s.lineas.Count; i++)
+            {
+                long tick;
+                string[] p;
+                if (!Partir(s.lineas[i], out tick, out p) || p.Length < 3 || p[0] != "S")
+                {
+                    continue;
+                }
+                long largo;
+                if (p[1] != "2" || !long.TryParse(p[2], NumberStyles.Integer,
+                        CultureInfo.InvariantCulture, out largo))
+                {
+                    continue;
+                }
+                ReduccionChart.Fase f = new ReduccionChart.Fase();
+                f.tick = tick;
+                f.largo = largo;
+                salida.Add(f);
+            }
+            salida.Sort(delegate (ReduccionChart.Fase a, ReduccionChart.Fase b)
+            {
+                return a.tick.CompareTo(b.tick);
+            });
+            return salida;
+        }
+
+        // Los eventos locales de la seccion ("E solo", "E soloend"). Se copian
+        // tal cual: son marcas de sitio, y las notas de la generada son un
+        // subconjunto de las de origen, asi que siguen delimitando lo mismo.
+        public static List<string[]> EventosLocales(Seccion s)
+        {
+            List<string[]> salida = new List<string[]>();
+            if (s == null)
+            {
+                return salida;
+            }
+            for (int i = 0; i < s.lineas.Count; i++)
+            {
+                long tick;
+                string[] p;
+                if (!Partir(s.lineas[i], out tick, out p) || p.Length < 2 || p[0] != "E")
+                {
+                    continue;
+                }
+                string resto = string.Join(" ", p, 1, p.Length - 1);
+                salida.Add(new[] { tick.ToString(CultureInfo.InvariantCulture), resto });
+            }
+            return salida;
+        }
+
+        private static bool Partir(string linea, out long tick, out string[] partes)
+        {
+            tick = 0;
+            partes = null;
+            int eq = linea.IndexOf('=');
+            if (eq <= 0 || !long.TryParse(linea.Substring(0, eq).Trim(),
+                    NumberStyles.Integer, CultureInfo.InvariantCulture, out tick))
+            {
+                return false;
+            }
+            partes = linea.Substring(eq + 1).Trim()
+                .Split(new[] { ' ', '	' }, StringSplitOptions.RemoveEmptyEntries);
+            return partes.Length > 0;
+        }
+
         // "  768 = N 0 0"
         private static bool LeerNota(string linea, out long tick, out int traste,
                                      out long largo)
@@ -201,7 +277,8 @@ namespace CloneHeroMod
         // Anade (o reemplaza) una seccion de notas. Se coloca justo detras de
         // la ultima del mismo instrumento para que el archivo siga legible.
         public void PonerNotas(string nombre, List<ReduccionChart.Nota> notas,
-                               string instrumento)
+                               List<ReduccionChart.Fase> fases,
+                               List<string[]> eventos, string instrumento)
         {
             Seccion s = Buscar(nombre);
             if (s == null)
@@ -218,18 +295,54 @@ namespace CloneHeroMod
                 }
                 secciones.Insert(donde, s);
             }
-            s.lineas.Clear();
+            // Todo junto y ordenado por tiempo, que es como el juego escribe
+            // sus secciones. Con el tiempo empatado van primero los eventos y
+            // las frases y luego las notas, igual que en los charts oficiales.
+            List<long[]> orden = new List<long[]>();
+            List<string> texto = new List<string>();
+            for (int i = 0; i < eventos.Count; i++)
+            {
+                long t = long.Parse(eventos[i][0], CultureInfo.InvariantCulture);
+                orden.Add(new[] { t, 0L, (long)texto.Count });
+                texto.Add(eventos[i][0] + " = E " + eventos[i][1]);
+            }
+            for (int i = 0; i < fases.Count; i++)
+            {
+                orden.Add(new[] { fases[i].tick, 1L, (long)texto.Count });
+                texto.Add(fases[i].tick.ToString(CultureInfo.InvariantCulture)
+                    + " = S 2 " + fases[i].largo.ToString(CultureInfo.InvariantCulture));
+            }
             for (int i = 0; i < notas.Count; i++)
             {
                 for (int t = 0; t < 5; t++)
                 {
-                    if ((notas[i].trastes & (1 << t)) != 0)
+                    if ((notas[i].trastes & (1 << t)) == 0)
                     {
-                        s.lineas.Add(notas[i].tick.ToString(CultureInfo.InvariantCulture)
-                            + " = N " + t.ToString(CultureInfo.InvariantCulture) + " "
-                            + notas[i].sostenido.ToString(CultureInfo.InvariantCulture));
+                        continue;
                     }
+                    orden.Add(new[] { notas[i].tick, 2L, (long)texto.Count });
+                    texto.Add(notas[i].tick.ToString(CultureInfo.InvariantCulture)
+                        + " = N " + t.ToString(CultureInfo.InvariantCulture) + " "
+                        + notas[i].sostenido.ToString(CultureInfo.InvariantCulture));
                 }
+            }
+            orden.Sort(delegate (long[] a, long[] b)
+            {
+                if (a[0] != b[0])
+                {
+                    return a[0].CompareTo(b[0]);
+                }
+                if (a[1] != b[1])
+                {
+                    return a[1].CompareTo(b[1]);
+                }
+                return a[2].CompareTo(b[2]);
+            });
+
+            s.lineas.Clear();
+            for (int i = 0; i < orden.Count; i++)
+            {
+                s.lineas.Add(texto[(int)orden[i][2]]);
             }
         }
 

@@ -128,6 +128,10 @@ namespace CloneHeroMod
                 ultimoMenu = general;
                 Resolver(general.GetType());
                 AnadirFila(general);
+                // Unos fotogramas despues, cuando el juego ya ha dibujado, se
+                // comprueba que cada fila diga lo que le toca. Ver
+                // FilasMenu.Comprobar.
+                revisar = 6;
                 // El resultado de la ultima comprobacion no se arrastra entre
                 // visitas al menu (salvo el aviso de reiniciar).
                 Actualizador.OlvidarResultado();
@@ -186,8 +190,19 @@ namespace CloneHeroMod
         // La descarga corre en otro hilo y ahi no se puede tocar Unity: cuando
         // termina deja aviso y la fila se reescribe desde el hilo principal.
         // Fuera de ese momento esto es una comparacion de un bool.
+        private static int revisar;
+
         public static void Tick()
         {
+            if (revisar > 0 && ultimoMenu != null)
+            {
+                revisar--;
+                if (revisar == 0)
+                {
+                    FilasMenu.Comprobar(ultimoMenu, "General",
+                        new[] { Nombre, Actualizador.Etiqueta });
+                }
+            }
             if (!Actualizador.Consumir() || ultimoMenu == null)
             {
                 return;
@@ -306,6 +321,9 @@ namespace CloneHeroMod
                 return;
             }
             ResolverOpcionActual(menu, filas);
+            // SOLO DOS. En este menu no caben mas: ver el comentario de
+            // FilasMenu sobre el alto de main_container. Las de lote estan en
+            // Song Options.
             FilasMenu.Anadir(menu, Nombre, Nombre);
             FilasMenu.Anadir(menu, Actualizador.Texto(), Actualizador.Etiqueta);
         }

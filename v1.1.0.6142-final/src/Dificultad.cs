@@ -49,7 +49,7 @@ namespace CloneHeroMod
         // Version del perfil. Si se toca cualquier formula hay que subirla:
         // una cancion cuyo song.ini traiga otra version no cuenta como
         // calculada, asi que se rehace sola en la siguiente pasada.
-        public const int PerfilVersion = 3;
+        public const int PerfilVersion = 4;
 
         // Los ocho instrumentos que el juego puede traer, con el nombre que
         // usan los charts, la clave del song.ini y el que se ve en pantalla.
@@ -858,7 +858,7 @@ namespace CloneHeroMod
             for (int i = 0; i < mascaras.Length; i++)
             {
                 int cuantas = Bits(mascaras[i]);
-                total += cuantas;
+                total += 1;                  // UN golpe, aunque sea un acorde
                 extra += cuantas - 1;
 
                 double centro = Centro(mascaras[i]);
@@ -868,6 +868,20 @@ namespace CloneHeroMod
                 }
                 centroAnterior = centro;
             }
+            // GOLPES, no trastes pulsados. Antes se sumaban los bits de cada
+            // acorde y la cifra salia un 43,9% mas alta que lo que cuenta el
+            // juego. Lo canto un usuario: toco una cancion sin fallar una sola
+            // nota, el resumen final dijo 86 y el panel decia 87. Buscando en
+            // la biblioteca aparecio exactamente un chart con 86 golpes y 87
+            // trastes —un unico acorde de dos— y ahi estaba la diferencia.
+            //
+            // Para el juego un acorde es UNA nota: la racha sube de uno en uno
+            // aunque pulses tres trastes. Y para nosotros tambien debe serlo,
+            // porque este numero se ensena al lado del resumen del juego.
+            //
+            // El NPS y la nota de dificultad no cambian: PeakNps ya trabajaba
+            // sobre los tiempos, uno por golpe. Lo unico que contaba trastes
+            // era esta linea. Los acordes siguen midiendose aparte, en "extra".
             perfil.notas = (int)total;
 
             // ACORDES: notas de mas por golpe. Todo notas sueltas da 0; todo

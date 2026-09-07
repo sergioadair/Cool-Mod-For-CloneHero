@@ -108,6 +108,79 @@ namespace CloneHeroMod
             return true;
         }
 
+        // Detector: que nuestras filas ensenen de verdad su texto.
+        //
+        // Nacio de un fallo que al principio no se pudo repetir: al entrar a
+        // Settings > General nada mas cargar el juego, tres de nuestras filas
+        // mostraban el texto de otra opcion y no se podia bajar hasta ellas. El
+        // detector lo cazo a la primera:
+        //
+        //     fila 25: deberia decir 'Calculate Difficulty'
+        //              y dice 'Remote Player Righty Flip'
+        //
+        // La causa esta explicada en Anadir. Se deja puesto porque es barato
+        // —corre una vez por apertura de menu— y porque avisa en el log en vez
+        // de dejar al jugador con un menu roto sin saber por que.
+        //
+        // SOLO se miran NUESTRAS filas. Las del juego no valen para esto: a
+        // algunas les ensena un texto distinto del que tiene en menuStrings
+        // ("Analytics Privacy Dialog" se ve como "ANALYTICS CONSENT DIALOG"),
+        // asi que compararlas daba avisos falsos.
+        public static void Comprobar(object menu, string etiqueta, string[] nuestras)
+        {
+            try
+            {
+                Il2CppStringArray filas = Opciones(menu);
+                PropertyInfo p = Prop(menu.GetType(), "textObjects");
+                object arr = p != null ? p.GetValue(menu) : null;
+                if (filas == null || arr == null || nuestras == null)
+                {
+                    return;
+                }
+                PropertyInfo len = arr.GetType().GetProperty("Length");
+                PropertyInfo idx = arr.GetType().GetProperty("Item");
+                int n = (int)len.GetValue(arr);
+                if (n < filas.Length)
+                {
+                    MelonLogger.Warning("[Filas] " + etiqueta + ": " + filas.Length.ToString()
+                        + " textos pero solo " + n.ToString() + " filas fisicas");
+                }
+                for (int i = 0; i < n && i < filas.Length; i++)
+                {
+                    string esperado = filas[i];
+                    if (string.IsNullOrEmpty(esperado) || !Nuestra(esperado, nuestras))
+                    {
+                        continue;
+                    }
+                    var t = idx.GetValue(arr, new object[] { i }) as Il2CppTMPro.TextMeshProUGUI;
+                    string visto = t != null ? (t.text ?? "") : "(sin etiqueta)";
+                    if (!string.Equals(esperado.Trim(), visto.Trim(),
+                            StringComparison.OrdinalIgnoreCase))
+                    {
+                        MelonLogger.Warning("[Filas] " + etiqueta + " fila " + i.ToString()
+                            + ": deberia decir '" + esperado + "' y dice '" + visto + "'");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Filas] comprobar: " + ex.Message);
+            }
+        }
+
+        private static bool Nuestra(string texto, string[] nuestras)
+        {
+            for (int i = 0; i < nuestras.Length; i++)
+            {
+                if (nuestras[i] != null
+                    && texto.StartsWith(nuestras[i], StringComparison.Ordinal))
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
         public static PropertyInfo Prop(Type t, string nombre)
         {
             BindingFlags f = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
@@ -221,6 +294,24 @@ namespace CloneHeroMod
                     }
                 }
 
+                // PRIMERO LA FILA FISICA Y SOLO DESPUES EL TEXTO. Al reves
+                // se rompe, y costo encontrarlo porque solo pasa si entras a
+                // Settings nada mas cargar el juego: en ese momento el menu
+                // todavia no tiene sus etiquetas montadas, Clonar se salia por
+                // uno de sus return sin decir nada, y menuStrings crecia igual.
+                // Resultado: 29 textos sobre 25 filas, tres opciones ensenando
+                // el texto de otra y sin poder bajar hasta ellas.
+                //
+                // Si no se puede clonar, no se anade nada y se reintenta en la
+                // siguiente apertura del menu, que es cuando ya esta montado.
+                Etiquetas(menu, filas.Length);
+                if (!Clonar(menu, filas.Length + 1, texto))
+                {
+                    MelonLogger.Warning("[Filas] '" + texto + "' no se anade todavia:"
+                        + " el menu aun no tiene filas que clonar");
+                    return false;
+                }
+
                 Il2CppStringArray nuevas = new Il2CppStringArray(filas.Length + 1);
                 for (int i = 0; i < filas.Length; i++)
                 {
@@ -229,7 +320,6 @@ namespace CloneHeroMod
                 nuevas[filas.Length] = texto;
                 propOpciones.SetValue(menu, nuevas);
 
-                Clonar(menu, nuevas.Length, texto);
                 MelonLogger.Msg("[Filas] '" + texto + "' anadida ("
                     + filas.Length.ToString() + " -> " + nuevas.Length.ToString() + ")");
                 return true;
@@ -241,36 +331,117 @@ namespace CloneHeroMod
             }
         }
 
-        // Crea la fila fisica que falta, si falta.
-        private static void Clonar(object menu, int filasNecesarias, string texto)
+        // Cuantas etiquetas fisicas hay frente a cuantos textos. Se deja una vez
+        // por menu: es el numero que explicaba por que unas veces se clonaba y
+        // otras no.
+        private static readonly List<string> contadas = new List<string>();
+
+        private static void Etiquetas(object menu, int textos)
+        {
+            try
+            {
+                string clave = menu.GetType().Name;
+                if (contadas.Contains(clave))
+                {
+                    return;
+                }
+                contadas.Add(clave);
+                PropertyInfo p = Prop(menu.GetType(), "textObjects");
+                object arr = p != null ? p.GetValue(menu) : null;
+                int n = arr != null
+                    ? (int)arr.GetType().GetProperty("Length").GetValue(arr) : -1;
+                MelonLogger.Msg("[Filas] " + clave + ": " + textos.ToString()
+                    + " textos, " + n.ToString() + " etiquetas fisicas");
+                if (arr != null && n > 0)
+                {
+                    PropertyInfo idx = arr.GetType().GetProperty("Item");
+                    Jerarquia(idx.GetValue(arr, new object[] { 0 })
+                        as Il2CppTMPro.TextMeshProUGUI, "primera");
+                    Jerarquia(idx.GetValue(arr, new object[] { n - 1 })
+                        as Il2CppTMPro.TextMeshProUGUI, "ultima");
+                }
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        // De donde cuelga una etiqueta, con tamanos y componentes. Es la misma
+        // sonda que resolvio el panel de Song Options: mirar la jerarquia de
+        // verdad en vez de deducirla.
+        private static void Jerarquia(Il2CppTMPro.TextMeshProUGUI t, string cual)
+        {
+            try
+            {
+                if (t == null)
+                {
+                    MelonLogger.Msg("[Filas]   " + cual + ": no hay etiqueta");
+                    return;
+                }
+                Transform tr = t.transform;
+                for (int nivel = 0; nivel < 4 && tr != null; nivel++)
+                {
+                    RectTransform r = tr.TryCast<RectTransform>();
+                    string tam = r != null
+                        ? r.rect.width.ToString("0") + "x" + r.rect.height.ToString("0")
+                        : "-";
+                    string comps = "";
+                    var cs = tr.gameObject.GetComponents<Component>();
+                    for (int i = 0; i < cs.Length; i++)
+                    {
+                        if (cs[i] != null)
+                        {
+                            comps += cs[i].GetIl2CppType().Name + " ";
+                        }
+                    }
+                    MelonLogger.Msg("[Filas]   " + cual + " " + nivel.ToString() + " "
+                        + tr.name + " [" + tam + "] hermano="
+                        + tr.GetSiblingIndex().ToString() + " " + comps);
+                    tr = tr.parent;
+                }
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Filas] jerarquia: " + ex.Message);
+            }
+        }
+
+        // Crea la fila fisica que falta, si falta. Devuelve si al terminar hay
+        // al menos filasNecesarias: quien llama NO debe tocar menuStrings si
+        // sale false.
+        private static bool Clonar(object menu, int filasNecesarias, string texto)
         {
             PropertyInfo propTextos = Prop(menu.GetType(), "textObjects");
             PropertyInfo propFondos = Prop(menu.GetType(), "backgroundObjects");
             if (propTextos == null)
             {
-                return;
+                return false;
             }
             object arr = propTextos.GetValue(menu);
             if (arr == null)
             {
-                return;
+                return false;
             }
             PropertyInfo len = arr.GetType().GetProperty("Length");
             PropertyInfo idx = arr.GetType().GetProperty("Item");
             if (len == null || idx == null)
             {
-                return;
+                return false;
             }
             int n = (int)len.GetValue(arr);
-            if (n < 1 || n >= filasNecesarias)
+            if (n >= filasNecesarias)
             {
-                return;      // ya hay filas fisicas de sobra
+                return true;      // ya hay filas fisicas de sobra
+            }
+            if (n < 1)
+            {
+                return false;     // el menu no tiene ni una fila que copiar
             }
 
             var ultimo = idx.GetValue(arr, new object[] { n - 1 }) as Il2CppTMPro.TextMeshProUGUI;
             if (ultimo == null)
             {
-                return;
+                return false;     // las etiquetas aun no estan montadas
             }
 
             // Una fila del menu NO es la etiqueta: es un contenedor de 1260x80
@@ -289,9 +460,29 @@ namespace CloneHeroMod
             {
                 ClonarContenedor(menu, propTextos, propFondos, arr, n,
                                  ultimo, contenedor, layout, texto);
-                return;
+                return Suficientes(propTextos, menu, filasNecesarias);
             }
             ClonarSuelta(menu, propTextos, propFondos, arr, n, ultimo);
+            return Suficientes(propTextos, menu, filasNecesarias);
+        }
+
+        // Se vuelve a leer el array en vez de fiarse: los clonadores tienen sus
+        // propios caminos de error y lo unico que importa es el resultado.
+        private static bool Suficientes(PropertyInfo propTextos, object menu, int hacen)
+        {
+            try
+            {
+                object arr = propTextos.GetValue(menu);
+                if (arr == null)
+                {
+                    return false;
+                }
+                return (int)arr.GetType().GetProperty("Length").GetValue(arr) >= hacen;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         // Anade un contenedor de fila al final del layout, como hermano de los
@@ -371,6 +562,24 @@ namespace CloneHeroMod
                 MelonLogger.Error("[Filas] clonar contenedor: " + ex);
             }
         }
+
+        // NO SE TOCA EL ALTO DE main_container. Se intento —otra vez— y volvio
+        // a romper el menu, igual que las tres veces anteriores que ya avisaba
+        // el comentario de mas abajo. La sonda de jerarquia explico por fin por
+        // que hay un limite real de filas en los menus de ajustes:
+        //
+        //     main_container [1280x2160]  VerticalLayoutGroup UnrollChildMenuitems
+        //     Options        [1280x720]   Mask
+        //     General Settings Menu       ScrollRect
+        //
+        // 2160 son 27 filas de 80 clavadas, y main_container NO lleva
+        // ContentSizeFitter: no crece solo. General trae 25 opciones, asi que
+        // caben DOS nuestras y ni una mas. Con dos funciono siempre; a la
+        // tercera el menu se queda corto de scroll y a la cuarta se deforma.
+        //
+        // De ahi que las opciones de lote se hayan movido a Song Options, que
+        // no estira nada: desplaza una ventana de siete filas sobre la lista y
+        // le da igual cuantas haya.
 
         // Crece el contenido del scroll la altura de una fila.
         private static void Estirar(Transform layout, Transform contenedor)

@@ -67,6 +67,13 @@ namespace CloneHeroMod
             new[] { 0, 1, 2, 3, 4 }       // Expert
         };
 
+        // Una frase de Star Power: donde empieza y cuanto dura.
+        public struct Fase
+        {
+            public long tick;
+            public long largo;
+        }
+
         public struct Nota
         {
             public long tick;
@@ -181,6 +188,61 @@ namespace CloneHeroMod
                 d.trastes = mascara;
                 d.sostenido = o.sostenido;
                 salida.Add(d);
+            }
+            return salida;
+        }
+
+        // Lleva las frases de Star Power de la dificultad de origen a la
+        // generada.
+        //
+        // En un .chart las frases van POR DIFICULTAD (lineas "S 2"), asi que si
+        // no se copian, la dificultad generada se queda sin medidor de poder.
+        // En un .mid no hace falta: alli el Star Power es la nota 116 y vale
+        // para toda la pista.
+        //
+        // Comparando las cuatro dificultades de los charts oficiales, las
+        // frases son LAS MISMAS, con los ticks corridos para caer sobre las
+        // notas de cada dificultad. Eso es justo lo que se hace: se conserva el
+        // final de la frase —que es donde esta su sentido musical— y se mueve
+        // el principio a la primera nota que haya sobrevivido dentro.
+        //
+        // Una frase cuyas notas se hayan caido todas se descarta: una frase
+        // vacia no se puede completar y dejaria el medidor sin llenarse nunca.
+        public static List<Fase> AjustarFases(List<Fase> fuente, List<Nota> notas)
+        {
+            List<Fase> salida = new List<Fase>();
+            if (fuente == null || notas == null || notas.Count == 0)
+            {
+                return salida;
+            }
+            for (int i = 0; i < fuente.Count; i++)
+            {
+                long ini = fuente[i].tick;
+                long fin = fuente[i].tick + fuente[i].largo;
+                long primera = -1;
+                for (int j = 0; j < notas.Count; j++)
+                {
+                    if (notas[j].tick >= fin)
+                    {
+                        break;
+                    }
+                    if (notas[j].tick >= ini)
+                    {
+                        primera = notas[j].tick;
+                        break;
+                    }
+                }
+                if (primera < 0)
+                {
+                    continue;      // no quedo ninguna nota dentro
+                }
+                Fase f = new Fase();
+                f.tick = primera;
+                f.largo = fin - primera;
+                if (f.largo > 0)
+                {
+                    salida.Add(f);
+                }
             }
             return salida;
         }
