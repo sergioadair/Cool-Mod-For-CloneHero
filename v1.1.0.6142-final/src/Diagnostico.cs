@@ -175,6 +175,7 @@ namespace CloneHeroMod
         {
             Buscador.EscenaCambiada(nombre);
             RachaNotas.EscenaCambiada(nombre, Buscador.EnJuego);
+            SfxFinDeCancion.EscenaCambiada(nombre);
             // Los paneles del menu se destruyen al cambiar de escena; sus
             // punteros pueden reutilizarse, asi que la cache de etiquetas se
             // tira para no dar por buena una que ya no existe.
