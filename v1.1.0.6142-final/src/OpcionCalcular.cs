@@ -173,6 +173,16 @@ namespace CloneHeroMod
                     CalculadorDificultad.Lanzar();
                     return;
                 }
+                if (actual == GeneradorLote.NombreGenerar)
+                {
+                    GeneradorLote.Lanzar(false);
+                    return;
+                }
+                if (actual == GeneradorLote.NombreRestaurar)
+                {
+                    GeneradorLote.Lanzar(true);
+                    return;
+                }
                 // El texto de esta fila cambia segun como vaya la descarga, asi
                 // que se compara por el principio.
                 if (actual != null
@@ -199,8 +209,11 @@ namespace CloneHeroMod
                 revisar--;
                 if (revisar == 0)
                 {
-                    FilasMenu.Comprobar(ultimoMenu, "General",
-                        new[] { Nombre, Actualizador.Etiqueta });
+                    FilasMenu.Comprobar(ultimoMenu, "General", new[]
+                    {
+                        Nombre, GeneradorLote.NombreGenerar,
+                        GeneradorLote.NombreRestaurar, Actualizador.Etiqueta
+                    });
                 }
             }
             if (!Actualizador.Consumir() || ultimoMenu == null)
@@ -321,10 +334,18 @@ namespace CloneHeroMod
                 return;
             }
             ResolverOpcionActual(menu, filas);
-            // SOLO DOS. En este menu no caben mas: ver el comentario de
-            // FilasMenu sobre el alto de main_container. Las de lote estan en
-            // Song Options.
+            // Cuatro filas. Antes solo cabian dos —el contenedor venia medido
+            // para las opciones del juego y las de mas quedaban fuera del
+            // scroll—, hasta que el volcado ISIL enseno la formula que usa el
+            // propio juego y FilasMenu paso a repetirla. Ver AjustarAlto.
+            //
+            // Las dos de lote estan TAMBIEN en Song Options: son la misma
+            // accion y se busca en los dos sitios.
             FilasMenu.Anadir(menu, Nombre, Nombre);
+            FilasMenu.Anadir(menu, GeneradorLote.NombreGenerar,
+                                   GeneradorLote.NombreGenerar);
+            FilasMenu.Anadir(menu, GeneradorLote.NombreRestaurar,
+                                   GeneradorLote.NombreRestaurar);
             FilasMenu.Anadir(menu, Actualizador.Texto(), Actualizador.Etiqueta);
         }
     }

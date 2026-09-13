@@ -305,6 +305,7 @@ namespace CloneHeroMod
                 // Si no se puede clonar, no se anade nada y se reintenta en la
                 // siguiente apertura del menu, que es cuando ya esta montado.
                 Etiquetas(menu, filas.Length);
+                MedirCaja(menu, filas.Length);
                 if (!Clonar(menu, filas.Length + 1, texto))
                 {
                     MelonLogger.Warning("[Filas] '" + texto + "' no se anade todavia:"
@@ -320,6 +321,7 @@ namespace CloneHeroMod
                 nuevas[filas.Length] = texto;
                 propOpciones.SetValue(menu, nuevas);
 
+                AjustarAlto(menu, nuevas.Length);
                 MelonLogger.Msg("[Filas] '" + texto + "' anadida ("
                     + filas.Length.ToString() + " -> " + nuevas.Length.ToString() + ")");
                 return true;
@@ -563,23 +565,144 @@ namespace CloneHeroMod
             }
         }
 
-        // NO SE TOCA EL ALTO DE main_container. Se intento —otra vez— y volvio
-        // a romper el menu, igual que las tres veces anteriores que ya avisaba
-        // el comentario de mas abajo. La sonda de jerarquia explico por fin por
-        // que hay un limite real de filas en los menus de ajustes:
+        // El alto del contenedor de scroll, con LA FORMULA DEL JUEGO.
         //
-        //     main_container [1280x2160]  VerticalLayoutGroup UnrollChildMenuitems
-        //     Options        [1280x720]   Mask
-        //     General Settings Menu       ScrollRect
+        // Durante mucho tiempo se creyo que los menus de ajustes tenian un tope
+        // duro de filas: General admitia dos nuestras y a la tercera el scroll
+        // se quedaba corto y a la cuarta el menu se deformaba. Se intento
+        // estirar el contenedor tres veces y siempre salio mal, asi que se dio
+        // por imposible.
         //
-        // 2160 son 27 filas de 80 clavadas, y main_container NO lleva
-        // ContentSizeFitter: no crece solo. General trae 25 opciones, asi que
-        // caben DOS nuestras y ni una mas. Con dos funciono siempre; a la
-        // tercera el menu se queda corto de scroll y a la cuarta se deforma.
+        // El volcado ISIL del juego (Tools\isil-v1.1.0.6142) lo desmonto.
+        // BaseSettingMenu.Awake() hace esto:
         //
-        // De ahi que las opciones de lote se hayan movido a Song Options, que
-        // no estira nada: desplaza una ventana de siete filas sobre la lista y
-        // le da igual cuantas haya.
+        //     060 Move rax, [rdx+24]                  <- cuantas opciones hay
+        //     062 Add rax, rax, 2                     <- + 2 de holgura
+        //     066 Multiply xmm2, xmm2, [0x183065AD8]  <- x alto de fila
+        //     067 Call RectTransform.SetSizeWithCurrentAnchors
+        //
+        // O sea (opciones + 2) * altoFila. Y cuadra al milimetro: General trae
+        // 25 opciones y su contenedor mide 2160 = (25 + 2) * 80.
+        //
+        // Lo que fallaba no era estirar, era estirar MAL: se aplicaba una
+        // formula inventada (relleno + filas*alto + separaciones) a un
+        // RectTransform deducido subiendo desde la primera etiqueta, que no
+        // siempre es el bueno. Aqui se repite la cuenta del juego sobre el
+        // contenedor que el propio juego midio.
+        //
+        // COMO SE LOCALIZA. Por su valor, no por la jerarquia: la primera vez
+        // que se toca un menu se anota cuantas opciones traia y cuanto medida
+        // su contenedor, y de ahi sale el alto de fila. Si ese alto no sale
+        // creible no se toca nada y se avisa.
+        // ...Y SOLO SE TOCA CUANDO HACE FALTA. El "+2" de la formula es
+        // holgura: el juego mide la caja para DOS filas mas de las que tiene,
+        // asi que las dos primeras nuestras entran sin estirar nada. Por eso
+        // esto funciono durante meses sin ajustar ningun alto.
+        //
+        // Estirar de mas rompio el menu de Audio, que esta montado distinto:
+        //
+        //     Video/General/Gameplay        Audio
+        //       0 dropdown_label              0 dropdown_label  hermano=39
+        //       1 graphicsapi   <- fila       1 main_container  <- directo
+        //       2 main_container
+        //
+        // En los demas cada opcion tiene su caja y el layout coloca cajas; en
+        // Audio las etiquetas cuelgan del contenedor mezcladas con los demas
+        // widgets, asi que agrandarlo redistribuye todo y lo deforma. Como solo
+        // le anadimos una fila, nunca hacia falta tocarlo.
+        private class Medida
+        {
+            public RectTransform caja;
+            public float altoFila;
+            public int capacidad;      // filas que caben sin estirar
+        }
+
+        private static readonly Dictionary<string, Medida> medidas =
+            new Dictionary<string, Medida>();
+
+        private static Medida MedirCaja(object menu, int opciones)
+        {
+            string clave;
+            try { clave = menu.GetType().Name; }
+            catch (Exception) { clave = "?"; }
+
+            Medida m;
+            if (medidas.TryGetValue(clave, out m))
+            {
+                return m;
+            }
+
+            m = new Medida();
+            medidas[clave] = m;      // aunque salga vacia: no se reintenta en bucle
+            try
+            {
+                UnityEngine.Component c = menu as UnityEngine.Component;
+                if (c == null)
+                {
+                    return m;
+                }
+                var grupos = c.GetComponentsInChildren<
+                    UnityEngine.UI.VerticalLayoutGroup>(true);
+                for (int i = 0; i < grupos.Length; i++)
+                {
+                    RectTransform r = grupos[i] != null
+                        ? grupos[i].transform.TryCast<RectTransform>() : null;
+                    if (r == null || r.rect.height <= 0f)
+                    {
+                        continue;
+                    }
+                    float alto = r.rect.height / (opciones + 2);
+                    if (alto < 20f || alto > 200f)
+                    {
+                        continue;      // no cuadra con la formula: no es esta
+                    }
+                    m.caja = r;
+                    m.altoFila = alto;
+                    m.capacidad = opciones + 2;
+                    MelonLogger.Msg("[Filas] " + clave + ": caja " + r.name + " mide "
+                        + r.rect.height.ToString("0") + " para " + opciones.ToString()
+                        + " opciones -> fila de " + alto.ToString("0"));
+                    return m;
+                }
+                MelonLogger.Warning("[Filas] " + clave + ": no se localizo el contenedor"
+                    + " de scroll; las filas de mas podrian no alcanzarse");
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Filas] medir: " + ex.Message);
+            }
+            return m;
+        }
+
+        private static void AjustarAlto(object menu, int filas)
+        {
+            try
+            {
+                string clave = menu.GetType().Name;
+                Medida m;
+                if (!medidas.TryGetValue(clave, out m) || m.caja == null)
+                {
+                    return;
+                }
+                if (filas <= m.capacidad)
+                {
+                    return;      // entra en la holgura que el juego ya dejo
+                }
+                float hacen = (filas + 2) * m.altoFila;
+                if (m.caja.rect.height >= hacen - 1f)
+                {
+                    return;
+                }
+                m.caja.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, hacen);
+                UnityEngine.UI.LayoutRebuilder.MarkLayoutForRebuild(m.caja);
+                MelonLogger.Msg("[Filas] " + clave + ": caja a "
+                    + hacen.ToString("0") + " para " + filas.ToString() + " filas");
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Filas] alto: " + ex.Message);
+            }
+        }
 
         // Crece el contenido del scroll la altura de una fila.
         private static void Estirar(Transform layout, Transform contenedor)
