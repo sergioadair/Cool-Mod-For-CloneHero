@@ -29,9 +29,14 @@ Two builds are available, one per game version:
 Half the charts out there are Expert only. If you are not an Expert player,
 that is half your library you cannot touch.
 
-Press `Select` on any song and pick **`Generate Missing Difficulties`**. The mod
+Press `Select` on any song and pick **`Generate Song Difficulties`**. The mod
 writes the Hard, Medium and Easy that were never charted, for every instrument
 the song has.
+
+Or do the whole library in one go: `Settings > General >`
+**`Generate All Missing Difficulties`**. It skips every song that already has
+them all, so it is mostly just a scan — a few thousand songs take under a
+minute.
 
 They are not random. The rules come from measuring **3,175 official charts** —
 Guitar Hero 1 through Warriors of Rock, World Tour, Live, Rock Band — to see what real charters actually do when they write an easier
@@ -48,9 +53,10 @@ generated Hard puts a note in the same place as the human charter **85% of the
 time**.
 
 **Your original is safe.** It gets backed up next to the song before anything is
-written, and **`Restore Song Chart`** puts it back whenever you want. Works with
-plain song folders and with `.sng` files. Run `Scan Songs` afterwards to see the
-new difficulties.
+written, and you can always put it back — **`Restore Song Chart`** for the one
+you are on, **`Restore All Song Charts`** in `Settings > General` for everything
+at once. Works with plain song folders and with `.sng` files. Run `Scan Songs`
+afterwards to see the new difficulties.
 
 > Only downwards, and only for instruments the song already has. Easy cannot be
 > turned into Expert — those notes do not exist anywhere — and a song with no
