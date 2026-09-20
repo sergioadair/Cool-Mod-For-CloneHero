@@ -183,6 +183,11 @@ namespace CloneHeroMod
                     GeneradorLote.Lanzar(true);
                     return;
                 }
+                if (actual == GeneradorAudio.Nombre)
+                {
+                    GeneradorAudio.Lanzar();
+                    return;
+                }
                 // El texto de esta fila cambia segun como vaya la descarga, asi
                 // que se compara por el principio.
                 if (actual != null
@@ -211,7 +216,7 @@ namespace CloneHeroMod
                 {
                     FilasMenu.Comprobar(ultimoMenu, "General", new[]
                     {
-                        Nombre, GeneradorLote.NombreGenerar,
+                        Nombre, GeneradorLote.NombreGenerar, GeneradorAudio.Nombre,
                         GeneradorLote.NombreRestaurar, Actualizador.Etiqueta
                     });
                 }
@@ -334,16 +339,17 @@ namespace CloneHeroMod
                 return;
             }
             ResolverOpcionActual(menu, filas);
-            // Cuatro filas. Antes solo cabian dos —el contenedor venia medido
+            // Cinco filas. Antes solo cabian dos —el contenedor venia medido
             // para las opciones del juego y las de mas quedaban fuera del
             // scroll—, hasta que el volcado ISIL enseno la formula que usa el
             // propio juego y FilasMenu paso a repetirla. Ver AjustarAlto.
             //
-            // Las dos de lote estan TAMBIEN en Song Options: son la misma
-            // accion y se busca en los dos sitios.
+            // Cada fila nueva vuelve a poner a prueba ese ajuste, asi que si
+            // algun menu de ajustes se ve deformado, mirar ahi primero.
             FilasMenu.Anadir(menu, Nombre, Nombre);
             FilasMenu.Anadir(menu, GeneradorLote.NombreGenerar,
                                    GeneradorLote.NombreGenerar);
+            FilasMenu.Anadir(menu, GeneradorAudio.Nombre, GeneradorAudio.Nombre);
             FilasMenu.Anadir(menu, GeneradorLote.NombreRestaurar,
                                    GeneradorLote.NombreRestaurar);
             FilasMenu.Anadir(menu, Actualizador.Texto(), Actualizador.Etiqueta);

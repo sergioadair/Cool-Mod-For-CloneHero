@@ -17,6 +17,7 @@ namespace CloneHeroMod
     {
         private static GameObject raiz;
         private static Il2CppTMPro.TextMeshProUGUI texto;
+        private static RectTransform recuadro;
         private static bool falloCreacion;
 
         public static void Refrescar()
@@ -30,8 +31,9 @@ namespace CloneHeroMod
                 bool calculando = CalculadorDificultad.Corriendo;
                 bool generando = GeneradorCharts.Corriendo;
                 bool enLote = GeneradorLote.Corriendo;
+                bool desdeAudio = GeneradorAudio.Corriendo;
                 bool avisando = Aviso.Activo;
-                if (!calculando && !generando && !enLote && !avisando)
+                if (!calculando && !generando && !enLote && !desdeAudio && !avisando)
                 {
                     Ocultar();
                     return;
@@ -47,7 +49,8 @@ namespace CloneHeroMod
 
                 if (!calculando)
                 {
-                    texto.text = enLote ? TextoLote()
+                    texto.text = desdeAudio ? TextoAudio()
+                        : enLote ? TextoLote()
                         : generando ? TextoGenerando() : Aviso.Texto;
                     return;
                 }
@@ -70,6 +73,31 @@ namespace CloneHeroMod
                 falloCreacion = true;
                 MelonLogger.Error("[Overlay] " + ex);
             }
+            Ajustar();
+        }
+
+        // Aqui la cuenta importa mas que el porcentaje: son pocas carpetas
+        // y cada una tarda un par de segundos, asi que se dice cual va.
+        private static string TextoAudio()
+        {
+            string salto = "\n\n";
+            int t = GeneradorAudio.Total;
+            int h = GeneradorAudio.Hechas;
+            return "Generating Charts From Audio" + salto
+                + h.ToString() + " / " + t.ToString() + salto
+                + Recortar(GeneradorAudio.Actual, 40) + salto
+                + "Created: " + GeneradorAudio.Generadas.ToString()
+                + "    Skipped: " + GeneradorAudio.Saltadas.ToString()
+                + "    Failed: " + GeneradorAudio.Fallidas.ToString()
+                + salto + "Please wait...";
+        }
+
+        // Un nombre de carpeta largo partia en varias lineas y volvia a
+        // desbordar el cartel por mucho que este crezca.
+        private static string Recortar(string t, int tope)
+        {
+            if (string.IsNullOrEmpty(t)) return "";
+            return t.Length <= tope ? t : t.Substring(0, tope - 1) + "...";
         }
 
         private static string TextoLote()
@@ -128,27 +156,91 @@ namespace CloneHeroMod
             Image fondo = fondoGo.AddComponent<Image>();
             fondo.color = new Color(0f, 0f, 0f, 0.9f);
             RectTransform rtFondo = fondoGo.GetComponent<RectTransform>();
+            recuadro = rtFondo;
             rtFondo.anchorMin = new Vector2(0.5f, 0.5f);
             rtFondo.anchorMax = new Vector2(0.5f, 0.5f);
             rtFondo.pivot = new Vector2(0.5f, 0.5f);
             rtFondo.anchoredPosition = Vector2.zero;
-            rtFondo.sizeDelta = new Vector2(760f, 300f);
+            rtFondo.sizeDelta = new Vector2(AnchoCartel, AltoMinimo);
 
             GameObject textoGo = new GameObject("Text");
             textoGo.transform.SetParent(fondoGo.transform, false);
             texto = textoGo.AddComponent<Il2CppTMPro.TextMeshProUGUI>();
             texto.font = plantilla.font;
-            texto.fontSize = 32f;
+            texto.fontSize = Tipo;
             texto.color = Color.white;
             texto.alignment = Il2CppTMPro.TextAlignmentOptions.Center;
             texto.text = "Calculating Difficulty";
             RectTransform rtTexto = textoGo.GetComponent<RectTransform>();
             rtTexto.anchorMin = Vector2.zero;
             rtTexto.anchorMax = Vector2.one;
-            rtTexto.offsetMin = new Vector2(24f, 24f);
-            rtTexto.offsetMax = new Vector2(-24f, -24f);
+            rtTexto.offsetMin = new Vector2(Margen, Margen);
+            rtTexto.offsetMax = new Vector2(-Margen, -Margen);
 
             MelonLogger.Msg("[Overlay] cartel de progreso creado");
+        }
+
+        // El recuadro crece con el texto, CONTANDO LINEAS.
+        //
+        // El primer intento le preguntaba a TMP su alto preferido con
+        // GetPreferredValues. No funciono: el cartel salio mas pequeño que
+        // antes y el texto seguia saliendose, asi que la llamada devolvia algo
+        // inservible —o fallaba en silencio— y se quedaba en el minimo.
+        //
+        // Contar lineas a mano es predecible: el texto lo componemos nosotros
+        // y sabemos cuantos saltos lleva. Lo unico estimado es cuantas veces
+        // parte una linea larga, y para eso basta un ancho medio de letra.
+        public const float AnchoCartel = 760f;
+        public const float Margen = 24f;
+        public const float Tipo = 32f;           // el mismo fontSize del texto
+        // Estos dos numeros se quedaron cortos dos veces seguidas: el cartel
+        // crecia, pero no lo bastante, y el texto seguia saliendose. Asi que
+        // se dejan claramente holgados. Que sobre un dedo de negro no lo ve
+        // nadie; que falte, si.
+        public const float AltoLinea = 1.70f;    // interlineado, con margen
+        public const float AnchoLetra = 0.55f;   // ancho medio de letra, en tipos
+        public const float Holgura = 2f;         // lineas de propina
+        public const float AltoMinimo = 440f;
+        public const float AltoMaximo = 860f;
+
+        private static void Ajustar()
+        {
+            if (recuadro == null || texto == null)
+            {
+                return;
+            }
+            try
+            {
+                string t = texto.text;
+                if (string.IsNullOrEmpty(t))
+                {
+                    return;
+                }
+                int porLinea = (int)((AnchoCartel - Margen * 2f) / (Tipo * AnchoLetra));
+                if (porLinea < 8)
+                {
+                    porLinea = 8;
+                }
+                int lineas = 0;
+                foreach (string linea in t.Split('\n'))
+                {
+                    lineas += 1 + linea.Length / porLinea;   // una vacia tambien ocupa
+                }
+                float alto = (lineas + Holgura) * Tipo * AltoLinea + Margen * 2f;
+                if (alto < AltoMinimo) alto = AltoMinimo;
+                if (alto > AltoMaximo) alto = AltoMaximo;
+                if (Mathf.Abs(recuadro.sizeDelta.y - alto) > 1f)
+                {
+                    recuadro.sizeDelta = new Vector2(AnchoCartel, alto);
+                    // una linea por cambio de tamano, no por fotograma: si
+                    // vuelve a quedarse corto, el log dice con que cuentas
+                    MelonLogger.Msg("[Overlay] cartel a " + alto.ToString("0")
+                        + " px para " + lineas.ToString() + " lineas");
+                }
+            }
+            catch (Exception)
+            {
+            }
         }
 
         private static void Ocultar()

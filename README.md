@@ -1,9 +1,10 @@
 # Cool Mod For Clone Hero
 
 A set of quality-of-life features I always wanted Clone Hero to have. It
-**fills in the difficulties a song is missing** so you can play that
-Expert-only chart on Medium, gives every song a real **difficulty score** and a
-profile of *why* it is hard, throws a **note streak** callout while you play, puts a **song clock** on
+**turns any audio or video into a playable song**, **fills in the difficulties
+a song is missing** so you can play that Expert-only chart on Medium, gives
+every song a real **difficulty score** and a profile of *why* it is hard,
+throws a **note streak** callout while you play, puts a **song clock** on
 screen, lets you **replace any texture in the game** with your own, and adds
 **custom menu backgrounds**, a background **slideshow**, a **Favorites** filter
 and a **custom sound** when you finish a song.
@@ -24,6 +25,36 @@ Two builds are available, one per game version:
 ---
 
 ## ✨ Features
+
+### 🎤 Make a song out of any audio or video
+
+Got a song with no chart? A meme, a TikTok, a clip from a show? Drop it in and
+play it.
+
+**How to use it**
+
+1. Make a folder inside your **Songs** folder, named `Artist - Song`.
+2. Put the audio in it — `.ogg`, `.mp3`, `.opus`, `.wav` or `.flac`. The file
+   can be called anything.
+3. Go to `Settings > General >` **`Generate Charts From Audio`**.
+4. Rescan your songs. It is there, ready to play.
+
+That is it. You get **all four difficulties**, a difficulty score, and the song
+shows up like any other.
+
+**It works with video too.** Leave an `.mp4` (or `.webm`, `.mov`, `.avi`) in
+the folder instead and the mod pulls the audio out of it — and the video plays
+as the background while you play. If you drop both an audio
+file and a video, it uses the audio and keeps the video as the background.
+
+A three-minute song takes about six seconds.
+
+> It reads what it can actually hear, so the chart follows the song: the
+> drums, the singing, the guitar, whatever stands out. On a meme it follows
+> the talking. It will not match a chart someone spent a week on by hand — but
+> it means nothing has to stay unplayable.
+>
+> Folders that already have a chart are never touched.
 
 ### 🎸 Generate missing difficulties
 

@@ -226,6 +226,81 @@ namespace CloneHeroMod
             return null;
         }
 
+        // ----------------------------------------------------------- tempo -
+        // Para poner una nota donde suena hay que saber a que segundo
+        // corresponde cada tick, y eso no es una regla de tres: el tempo
+        // cambia a lo largo de la cancion. Los cambios son eventos meta
+        // 0xFF 0x51 con tres bytes, los microsegundos que dura una negra, y
+        // pueden estar en cualquier pista.
+        public class Tempo
+        {
+            public long tick;
+            public double segundo;
+            public int microsegundos;
+        }
+
+        public List<Tempo> MapaTempo()
+        {
+            List<Tempo> crudos = new List<Tempo>();
+            for (int i = 0; i < pistas.Count; i++)
+            {
+                List<Evento> ev = pistas[i].eventos;
+                for (int j = 0; j < ev.Count; j++)
+                {
+                    byte[] d = ev[j].datos;
+                    if (d == null || d.Length < 6) continue;
+                    if (d[0] != 0xFF || d[1] != 0x51 || d[2] != 3) continue;
+                    Tempo t = new Tempo();
+                    t.tick = ev[j].tick;
+                    t.microsegundos = (d[3] << 16) | (d[4] << 8) | d[5];
+                    crudos.Add(t);
+                }
+            }
+            crudos.Sort(delegate (Tempo a, Tempo b) { return a.tick.CompareTo(b.tick); });
+
+            List<Tempo> salida = new List<Tempo>();
+            if (crudos.Count == 0 || crudos[0].tick > 0)
+            {
+                Tempo inicial = new Tempo();
+                inicial.tick = 0;
+                inicial.segundo = 0.0;
+                inicial.microsegundos = 500000;      // 120 bpm, el de serie
+                salida.Add(inicial);
+            }
+            for (int i = 0; i < crudos.Count; i++)
+            {
+                Tempo t = crudos[i];
+                if (salida.Count > 0)
+                {
+                    Tempo ant = salida[salida.Count - 1];
+                    if (t.tick == ant.tick)
+                    {
+                        ant.microsegundos = t.microsegundos;   // gana el ultimo
+                        continue;
+                    }
+                    t.segundo = ant.segundo
+                        + (double)(t.tick - ant.tick) / division * (ant.microsegundos / 1e6);
+                }
+                salida.Add(t);
+            }
+            return salida;
+        }
+
+        public static double Segundos(List<Tempo> mapa, int division, long tick)
+        {
+            if (mapa == null || mapa.Count == 0 || division <= 0)
+            {
+                return 0.0;
+            }
+            int i = 0;
+            while (i + 1 < mapa.Count && mapa[i + 1].tick <= tick)
+            {
+                i++;
+            }
+            Tempo t = mapa[i];
+            return t.segundo + (double)(tick - t.tick) / division * (t.microsegundos / 1e6);
+        }
+
         public static List<ReduccionChart.Nota> Notas(Pista p, int dificultad)
         {
             List<ReduccionChart.Nota> salida = new List<ReduccionChart.Nota>();
