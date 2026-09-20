@@ -67,6 +67,10 @@ namespace CloneHeroMod
             {
                 RachaNotas.Tick();
                 TiempoCancion.Tick();
+                // Excepcion a la regla de no gastar nada durante la cancion: el
+                // atlas de trastes solo esta cargado aqui. Son unos pocos
+                // intentos al principio y despues no vuelve a mirar.
+                TexturasPersonalizadas.TickEnJuego();
                 return;
             }
             // F10 lanza el calculo de dificultad de toda la biblioteca.
@@ -82,6 +86,13 @@ namespace CloneHeroMod
             {
                 DiagnosticoJugador.Volcar();
             }
+
+            // Las texturas propias van FUERA de las dos esperas de abajo. Antes
+            // colgaban del bloque de yaVolcado, que no corre hasta los 12 s de
+            // juego, y por eso se veia la textura original un buen rato antes
+            // del cambiazo. No dependen de que el juego termine de arrancar:
+            // en cuanto la textura esta cargada, se puede pintar.
+            TexturasPersonalizadas.Tick();
 
             if (!fondosListos)
             {
@@ -178,6 +189,7 @@ namespace CloneHeroMod
             Buscador.EscenaCambiada(nombre);
             RachaNotas.EscenaCambiada(nombre, Buscador.EnJuego);
             TiempoCancion.EscenaCambiada(nombre, Buscador.EnJuego);
+            TexturasPersonalizadas.EscenaCambiada(nombre, Buscador.EnJuego);
             SfxFinDeCancion.EscenaCambiada(nombre);
             // Los paneles del menu se destruyen al cambiar de escena; sus
             // punteros pueden reutilizarse, asi que la cache de etiquetas se

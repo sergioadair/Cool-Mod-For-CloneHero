@@ -4,8 +4,9 @@ A set of quality-of-life features I always wanted Clone Hero to have. It
 **fills in the difficulties a song is missing** so you can play that
 Expert-only chart on Medium, gives every song a real **difficulty score** and a
 profile of *why* it is hard, throws a **note streak** callout while you play, puts a **song clock** on
-screen, and adds **custom menu backgrounds**, a background **slideshow**, a
-**Favorites** filter and a **custom sound** when you finish a song.
+screen, lets you **replace any texture in the game** with your own, and adds
+**custom menu backgrounds**, a background **slideshow**, a **Favorites** filter
+and a **custom sound** when you finish a song.
 
 The 1.1.0.6142 build also **updates itself** from this repo with one menu
 option, and is built to stay out of the way while you are playing.
@@ -172,6 +173,32 @@ time_display_font =          ; empty = the game's own
 > second changes — every other frame is a couple of integer comparisons.
 
 ---
+
+### 🎨 Replace any texture in the game
+
+Frets, notes, the logo, menu icons — swap any of the game's artwork for your
+own. Drop a `.png` into your **Textures** folder, named after the texture it
+replaces, and it is there the moment the game draws it. The mod creates
+the folder for you inside `Custom\` the first time it runs.
+
+```
+Custom\Textures\fiveFretAtlas.png
+```
+
+The usual way to do this is to open `resources.assets` with UABEA, replace the
+texture and save. **This does not touch a single game file.** No backups to
+keep, nothing to redo after a game update, and undoing a change is deleting the
+`.png`.
+
+Name it after the full texture name or any piece of it, so `fiveFretAtlas.png`
+is enough. Files exported by asset tools work exactly as they come out
+(`Logo_transparent-resources.assets-976.png`), so you can drop a whole folder in
+at once. Subfolders are fine — use them to stay organised. If a name matches
+more than one texture, nothing is touched and the log tells you which ones it
+found, so you can be more specific.
+
+> One thing worth knowing: a `.png` goes in uncompressed, so a big one costs
+> memory. The 4K fret atlas adds about 64 MB. Icons and logos are free.
 
 ### 🖼️ Custom menu backgrounds
 
