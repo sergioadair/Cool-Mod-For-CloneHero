@@ -427,6 +427,16 @@ namespace CloneHeroMod
         // disponible, pero con su propio try: si revienta, lo importante es
         // seguir hasta la lista de fuentes disponibles, que es lo unico que le
         // sirve a quien configura esto.
+        // La misma busqueda, para el reloj de la cancion: las fuentes son las
+        // que el juego trae cargadas y no tiene sentido tener dos copias de
+        // esto. Devuelve null si no la encuentra, y entonces se usa la del
+        // juego.
+        public static Il2CppTMPro.TMP_FontAsset BuscarFuentePublica(string nombre)
+        {
+            bool huboTextos;
+            return BuscarFuente(nombre, false, out huboTextos);
+        }
+
         private static Il2CppTMPro.TMP_FontAsset BuscarFuente(string nombre, bool avisar,
                                                               out bool huboTextos)
         {

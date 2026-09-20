@@ -3,8 +3,8 @@
 A set of quality-of-life features I always wanted Clone Hero to have. It
 **fills in the difficulties a song is missing** so you can play that
 Expert-only chart on Medium, gives every song a real **difficulty score** and a
-profile of *why* it is hard, throws a **note streak** callout while you play,
-and adds **custom menu backgrounds**, a background **slideshow**, a
+profile of *why* it is hard, throws a **note streak** callout while you play, puts a **song clock** on
+screen, and adds **custom menu backgrounds**, a background **slideshow**, a
 **Favorites** filter and a **custom sound** when you finish a song.
 
 The 1.1.0.6142 build also **updates itself** from this repo with one menu
@@ -150,6 +150,29 @@ mod here. Partial names work, so any of these will do:
 > nothing about scoring is reimplemented or altered. With the option off, the
 > code does not run at all — see below.
 
+### ⏱️ Song clock
+
+**`1:25 / 2:30`** in the top right corner while you play, so you know where you
+are in the song.
+
+It is what makes **Hardest stretch** useful: knowing the worst part is at 3:42
+does not help much if you cannot tell when 3:42 is.
+
+Toggle it at `Settings > Video > Show Time Display`, and restyle it in
+`settings.ini` the same way as the streak:
+
+```ini
+time_display_size = 28       ; 10 to 120
+time_display_color = FFFFFF  ; RRGGBB
+time_display_font =          ; empty = the game's own
+```
+
+> The time comes from the audio engine's own playback position, so it stays
+> honest with song speed and practice mode. The text is only rebuilt when the
+> second changes — every other frame is a couple of integer comparisons.
+
+---
+
 ### 🖼️ Custom menu backgrounds
 
 Drop any `.png` / `.jpg` / `.jpeg` into your **Menu Backgrounds** folder and
@@ -282,6 +305,10 @@ has a menu option except the slideshow interval and the sound volume.
 | `note_streak_size` | `72` | Size of the note streak text |
 | `note_streak_color` | `FFD14A` | Its colour, `RRGGBB` |
 | `note_streak_font` | — | One of the game's fonts; empty uses the default |
+| `show_time_display` | `1` | Show the song clock while you play |
+| `time_display_size` | `28` | Size of the song clock text |
+| `time_display_color` | `FFFFFF` | Its colour, `RRGGBB` |
+| `time_display_font` | — | One of the game's fonts; empty uses the default |
 | `check_for_updates` | `1` | Look for a newer build on startup |
 | `difficulty_last_ref` | — | Reference used on the last calculation (written by the mod) |
 

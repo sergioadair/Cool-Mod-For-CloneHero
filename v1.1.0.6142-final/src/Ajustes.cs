@@ -32,6 +32,10 @@ namespace CloneHeroMod
         public const string ClaveRachaTamano = "note_streak_size";
         public const string ClaveRachaColor = "note_streak_color";
         public const string ClaveRachaFuente = "note_streak_font";
+        public const string ClaveMostrarTiempo = "show_time_display";
+        public const string ClaveTiempoTamano = "time_display_size";
+        public const string ClaveTiempoColor = "time_display_color";
+        public const string ClaveTiempoFuente = "time_display_font";
         public const string ClaveComprobar = "check_for_updates";
         public const string ClaveVolumenSfx = "finished_song_sfx_volume";
 
@@ -46,6 +50,10 @@ namespace CloneHeroMod
         private static float rachaTamano = RachaTamanoPorDefecto;
         private static string rachaColor = RachaColorPorDefecto;
         private static string rachaFuente = "";
+        private static float mostrarTiempo = 1f;
+        private static float tiempoTamano = TiempoTamanoPorDefecto;
+        private static string tiempoColor = TiempoColorPorDefecto;
+        private static string tiempoFuente = "";
         private static float comprobar = 1f;
         private static float volumenSfx = 1f;
         private static float slideshow;
@@ -168,6 +176,62 @@ namespace CloneHeroMod
             }
         }
 
+        // Reloj de la cancion ("1:25 / 2:30"), y su aspecto. Mismo trato que el
+        // cartel de racha: el encendido va en el menu y los gustos en el .ini.
+        public const float TiempoTamanoPorDefecto = 28f;
+        public const float TiempoTamanoMin = 10f;
+        public const float TiempoTamanoMax = 120f;
+        public const string TiempoColorPorDefecto = "FFFFFF";
+
+        public static bool MostrarTiempo
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return mostrarTiempo >= 0.5f;
+            }
+        }
+
+        public static void GuardarMostrarTiempo(bool activo)
+        {
+            try
+            {
+                mostrarTiempo = activo ? 1f : 0f;
+                EscribirClave(RutaSettings(), Seccion, ClaveMostrarTiempo, mostrarTiempo);
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        public static float TiempoTamano
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return tiempoTamano;
+            }
+        }
+
+        public static string TiempoColor
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return tiempoColor;
+            }
+        }
+
+        // Vacio = la del juego.
+        public static string TiempoFuente
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return tiempoFuente;
+            }
+        }
+
         // Mirar al arrancar si hay version nueva del mod. Descarga el .dll
         // publicado (unos 100 KB) para compararlo con el instalado. Quien no
         // quiera trafico al arrancar lo apaga aqui.
@@ -269,6 +333,11 @@ namespace CloneHeroMod
                                             RachaTamanoMin, RachaTamanoMax);
                 rachaColor = TextoOEscribir(ruta, ClaveRachaColor, RachaColorPorDefecto);
                 rachaFuente = TextoOEscribir(ruta, ClaveRachaFuente, "");
+                mostrarTiempo = LeerOEscribir(ruta, ClaveMostrarTiempo, 1f, 0f, 1f);
+                tiempoTamano = LeerOEscribir(ruta, ClaveTiempoTamano, TiempoTamanoPorDefecto,
+                                             TiempoTamanoMin, TiempoTamanoMax);
+                tiempoColor = TextoOEscribir(ruta, ClaveTiempoColor, TiempoColorPorDefecto);
+                tiempoFuente = TextoOEscribir(ruta, ClaveTiempoFuente, "");
                 comprobar = LeerOEscribir(ruta, ClaveComprobar, 1f, 0f, 1f);
 
                 GuardarRespaldo(referenceNps);

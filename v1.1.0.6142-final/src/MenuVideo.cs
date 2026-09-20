@@ -36,6 +36,7 @@ namespace CloneHeroMod
     {
         public const string PrefijoSlideshow = "Menu BG Slideshow";
         public const string PrefijoMostrarDificultad = "Show Difficulty";
+        public const string PrefijoMostrarTiempo = "Show Time Display";
 
         // Nombres de los 14 fondos de serie. Sirven para localizar el widget de
         // valor de la fila "Menu Backgrounds": es el unico que muestra uno de
@@ -140,6 +141,7 @@ namespace CloneHeroMod
                 // visible pero inalcanzable.
                 FilasMenu.Anadir(v, TextoSlideshow(), PrefijoSlideshow);
                 FilasMenu.Anadir(v, TextoMostrarDificultad(), PrefijoMostrarDificultad);
+                FilasMenu.Anadir(v, TextoMostrarTiempo(), PrefijoMostrarTiempo);
                 vigilante.Preparar(v);
             }
             catch (Exception ex)
@@ -176,10 +178,21 @@ namespace CloneHeroMod
             return PrefijoMostrarDificultad + ": " + (Ajustes.MostrarDificultad ? "Yes" : "No");
         }
 
+        private static string TextoMostrarTiempo()
+        {
+            return PrefijoMostrarTiempo + ": " + (Ajustes.MostrarTiempo ? "Yes" : "No");
+        }
+
         // El texto que le toca a cada una de nuestras filas segun su ajuste.
         private static string TextoDe(string prefijo)
         {
-            return prefijo == PrefijoSlideshow ? TextoSlideshow() : TextoMostrarDificultad();
+            if (prefijo == PrefijoSlideshow)
+            {
+                return TextoSlideshow();
+            }
+            return prefijo == PrefijoMostrarTiempo
+                ? TextoMostrarTiempo()
+                : TextoMostrarDificultad();
         }
 
         // Tras refrescar etiquetas: pone el nombre del archivo si el fondo
@@ -332,7 +345,8 @@ namespace CloneHeroMod
         }
 
         private static readonly VigilanteMenu vigilante = new VigilanteMenu(
-            "MenuVideo", PrefijoSlideshow, PrefijoMostrarDificultad);
+            "MenuVideo", PrefijoSlideshow, PrefijoMostrarDificultad,
+            PrefijoMostrarTiempo);
 
         public static void Tick()
         {
@@ -348,6 +362,10 @@ namespace CloneHeroMod
             if (prefijo == PrefijoSlideshow)
             {
                 Ajustes.GuardarSlideshow(!Ajustes.SlideshowActivo);
+            }
+            else if (prefijo == PrefijoMostrarTiempo)
+            {
+                Ajustes.GuardarMostrarTiempo(!Ajustes.MostrarTiempo);
             }
             else
             {

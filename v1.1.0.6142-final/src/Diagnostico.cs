@@ -66,6 +66,7 @@ namespace CloneHeroMod
             if (Buscador.EnJuego)
             {
                 RachaNotas.Tick();
+                TiempoCancion.Tick();
                 return;
             }
             // F10 lanza el calculo de dificultad de toda la biblioteca.
@@ -100,6 +101,7 @@ namespace CloneHeroMod
                 // La etiqueta primero: refresca la referencia a SongSelect que
                 // el orden consulta para saber si hay que hacer algo.
                 RachaNotas.ResolverEstilo();
+                TiempoCancion.ResolverEstilo();
                 AvisoVersion.Tick();
                 EtiquetaDificultad.Tick();
                 PanelPerfil.Tick();
@@ -175,6 +177,7 @@ namespace CloneHeroMod
         {
             Buscador.EscenaCambiada(nombre);
             RachaNotas.EscenaCambiada(nombre, Buscador.EnJuego);
+            TiempoCancion.EscenaCambiada(nombre, Buscador.EnJuego);
             SfxFinDeCancion.EscenaCambiada(nombre);
             // Los paneles del menu se destruyen al cambiar de escena; sus
             // punteros pueden reutilizarse, asi que la cache de etiquetas se
