@@ -557,8 +557,22 @@ namespace CloneHeroMod
             sb.AppendLine("album = Generated from audio");
             sb.AppendLine("genre = Generated");
             sb.AppendLine("diff_guitar = -1");
-            sb.AppendLine("song_length = " + ((int)(r.duracion * 1000)).ToString());
-            sb.AppendLine("delay = 0");
+            sb.AppendLine("song_length = "
+                + ((int)((r.duracion + ChartDesdeAudio.Entradilla) * 1000)).ToString());
+            // Los dos segundos de entradilla, para el audio y para el video.
+            //
+            // delay solo mueve el audio: la clase que lleva el video no
+            // consulta ni una vez el reloj del audio, lo coloca al empezar y
+            // lo deja correr. Sin video_start_time el video iria dos segundos
+            // por delante de su propio sonido, que en una cancion sacada de un
+            // video se nota en seguida.
+            //
+            // Los dos campos son de uso corriente: en la biblioteca de prueba
+            // hay 1618 canciones con video_start_time, nueve de ellas
+            // justamente en -2000. Ver ChartDesdeAudio.Entradilla para el signo.
+            int entradillaMs = (int)(-ChartDesdeAudio.Entradilla * 1000);
+            sb.AppendLine("delay = " + entradillaMs.ToString());
+            sb.AppendLine("video_start_time = " + entradillaMs.ToString());
             File.WriteAllText(ruta, sb.ToString(), new UTF8Encoding(false));
         }
 

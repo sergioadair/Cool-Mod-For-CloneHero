@@ -65,6 +65,35 @@ namespace CloneHeroMod
         public const double SostenidoMinimo = 0.25;     // segundos para que valga la pena
         public const int VentanaTono = 2048;            // ~93 ms para estimar el tono
 
+        // ENTRADILLA. Dos segundos en blanco antes de que empiece nada, para
+        // que al darle a jugar no te caiga una nota encima de inmediato.
+        //
+        // Las notas se corren dos segundos hacia delante y el song.ini lleva
+        // delay = -2000 para compensar, que es lo que mantiene el audio en su
+        // sitio. El signo no es un adivinanza: medido sobre las canciones de
+        // la biblioteca que usan delay, sumarlo a los tiempos del chart deja
+        // las notas humanas encima de los ataques del audio el 90-99% de las
+        // veces, contra un 67-70% restandolo. Y negativos los hay en circulacion
+        // —seis canciones de la biblioteca, la menor en -2305 ms—, asi que el
+        // juego los admite.
+        public const double Entradilla = 2.0;
+
+        // STAR POWER. Repartido como lo reparten los humanos, medido sobre 595
+        // canciones del corpus oficial (el 99% llevan):
+        //
+        //     frases por minuto          2,68
+        //     notas dentro de cada una   8
+        //     lo que dura una frase      2,1 s
+        //     hueco entre frases         17 s
+        //     notas cubiertas            10%
+        //
+        // Donde se ponen: en los tramos mas fuertes, que es donde un charter
+        // las pone —el estribillo, el riff gordo— y ademas lo unico que
+        // podemos reconocer sin entender la cancion.
+        public const double FrasesPorMinuto = 2.68;
+        public const int NotasPorFrase = 8;
+        public const double HuecoEntreFrases = 15.0;
+
         public class Resultado
         {
             public List<ReduccionChart.Nota> notas = new List<ReduccionChart.Nota>();
@@ -116,7 +145,7 @@ namespace CloneHeroMod
             }
 
             AsignarTrastes(x, elegidos, r, rejilla);
-            r.fases = ReduccionChart.AjustarFases(new List<ReduccionChart.Fase>(), r.notas);
+            r.fases = Frases(elegidos, r.notas, r.duracion);
             return r;
         }
 
@@ -296,10 +325,89 @@ namespace CloneHeroMod
             }
         }
 
+        // Las frases de Star Power. Se eligen las ventanas de notas seguidas
+        // que mas fuerza acumulan, con la condicion de no pisarse ni caer
+        // demasiado juntas.
+        //
+        // Antes esto llamaba a AjustarFases con una lista vacia, o sea que
+        // adaptaba fielmente a las notas nuevas... un conjunto vacio de
+        // frases. Los charts generados salian sin Star Power ninguno.
+        private static List<ReduccionChart.Fase> Frases(List<AnalisisAudio.Ataque> elegidos,
+                                                        List<ReduccionChart.Nota> notas,
+                                                        double duracion)
+        {
+            List<ReduccionChart.Fase> salida = new List<ReduccionChart.Fase>();
+            int n = Math.Min(elegidos.Count, notas.Count);
+            if (n < NotasPorFrase * 2 || duracion < 30)
+            {
+                return salida;      // muy corta para que el Star Power aporte algo
+            }
+
+            int objetivo = (int)Math.Round(duracion / 60.0 * FrasesPorMinuto);
+            if (objetivo < 1) objetivo = 1;
+            if (objetivo > n / NotasPorFrase) objetivo = n / NotasPorFrase;
+
+            // fuerza acumulada de cada ventana de NotasPorFrase notas seguidas
+            int ventanas = n - NotasPorFrase + 1;
+            double[] puntos = new double[ventanas];
+            for (int i = 0; i < ventanas; i++)
+            {
+                double suma = 0;
+                for (int k = 0; k < NotasPorFrase; k++)
+                {
+                    suma += elegidos[i + k].fuerza;
+                }
+                puntos[i] = suma;
+            }
+
+            List<int> orden = new List<int>();
+            for (int i = 0; i < ventanas; i++) orden.Add(i);
+            orden.Sort(delegate (int a, int b) { return puntos[b].CompareTo(puntos[a]); });
+
+            List<int> elegidas = new List<int>();
+            for (int k = 0; k < orden.Count && elegidas.Count < objetivo; k++)
+            {
+                int i = orden[k];
+                double cuando = elegidos[i].segundo;
+                bool choca = false;
+                for (int j = 0; j < elegidas.Count; j++)
+                {
+                    double otra = elegidos[elegidas[j]].segundo;
+                    if (Math.Abs(cuando - otra) < HuecoEntreFrases)
+                    {
+                        choca = true;
+                        break;
+                    }
+                }
+                if (!choca)
+                {
+                    elegidas.Add(i);
+                }
+            }
+            elegidas.Sort();
+
+            for (int j = 0; j < elegidas.Count; j++)
+            {
+                int i = elegidas[j];
+                int ultimo = i + NotasPorFrase - 1;
+                ReduccionChart.Fase f;
+                f.tick = notas[i].tick;
+                // la frase tiene que tapar la ultima nota entera, sostenido
+                // incluido, o esa nota se queda fuera y no puntua
+                long fin = notas[ultimo].tick + Math.Max(notas[ultimo].sostenido, 1);
+                f.largo = fin - f.tick;
+                if (f.largo > 0)
+                {
+                    salida.Add(f);
+                }
+            }
+            return salida;
+        }
+
         private static long ATick(double segundo, double bpm, double[] rejilla)
         {
             double porNegra = 60.0 / bpm;
-            double negras = segundo / porNegra;
+            double negras = (segundo + Entradilla) / porNegra;
             if (rejilla != null)
             {
                 // con rejilla de fiar se redondea a la semicorchea mas cercana,

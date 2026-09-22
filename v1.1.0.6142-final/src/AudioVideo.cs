@@ -39,6 +39,25 @@ namespace CloneHeroMod
         public static readonly string[] Extensiones =
             { ".mp4", ".m4a", ".mov", ".avi", ".wmv", ".mkv", ".webm", ".m4v" };
 
+        // NORMALIZAR EL VOLUMEN. Un video descargado puede venir bajisimo o
+        // pegado al techo, y la cancion generada desentona con el resto de la
+        // biblioteca.
+        //
+        // Los numeros no son de catalogo: salen de medir 70 canciones de una
+        // biblioteca real con volumedetect. Volumen medio mediano -14,1 dB
+        // (p10 -17,9 / p90 -12,0) y pico mediano -1,1 dB. Asi que se apunta a
+        // -14 dB de media con el pico sin pasar de -1, que ademas coincide con
+        // lo que usan las plataformas de musica.
+        //
+        // Se ajusta por volumen MEDIO, no por pico. Normalizar por pico no
+        // sirve de nada aqui: un solo golpe fuerte —un portazo, un grito— deja
+        // el resto igual de bajo que estaba. El limite de pico esta solo para
+        // no recortar la onda al subir.
+        public const double MediaObjetivo = 0.1995;      // -14 dB
+        public const double PicoMaximo = 0.891;          // -1 dB
+        public const double GananciaMaxima = 32.0;       // +30 dB y no mas
+        public const double CodoLimitador = 0.6;         // donde empieza a frenar
+
         private const uint VersionMf = 0x00020070;
         private const uint PrimeraPistaAudio = 0xFFFFFFFD;
         private const uint FinDeFlujo = 0x00000002;
@@ -111,7 +130,9 @@ namespace CloneHeroMod
                 {
                     f.WriteByte(0);      // sitio para la cabecera
                 }
-                long datos = Copiar(lector, f);
+                double sumaCuadrados;
+                int pico;
+                long datos = Copiar(lector, f, out sumaCuadrados, out pico);
                 if (datos <= 0)
                 {
                     return false;
@@ -119,9 +140,20 @@ namespace CloneHeroMod
                 f.Seek(0, SeekOrigin.Begin);
                 Cabecera(f, canales, frecuencia, datos);
                 f.Flush();
+                f.Dispose();
+                f = null;
+
+                double ganancia = Ganancia(sumaCuadrados, pico, datos / 2);
+                if (ganancia > 0 && Math.Abs(ganancia - 1.0) > 0.06)
+                {
+                    Normalizar(destino, ganancia);
+                }
                 MelonLogger.Msg("[Video] audio extraido: " + Path.GetFileName(destino)
                     + "  " + frecuencia.ToString() + " Hz x" + canales.ToString()
-                    + "  " + (datos / (1024 * 1024)).ToString() + " MB");
+                    + "  " + (datos / (1024 * 1024)).ToString() + " MB"
+                    + "  volumen x" + ganancia.ToString("0.00")
+                    + " (" + (20.0 * Math.Log10(Math.Max(0.0001, ganancia))).ToString("+0.0;-0.0")
+                    + " dB)");
                 return true;
             }
             catch (Exception ex)
@@ -136,9 +168,15 @@ namespace CloneHeroMod
             }
         }
 
-        private static long Copiar(IMFSourceReader lector, Stream destino)
+        // Mide mientras escribe: la suma de cuadrados y el pico salen gratis
+        // aqui, y evitan tener que volver a decodificar el video solo para
+        // saber como de fuerte sonaba.
+        private static long Copiar(IMFSourceReader lector, Stream destino,
+                                   out double sumaCuadrados, out int pico)
         {
             long total = 0;
+            sumaCuadrados = 0;
+            pico = 0;
             byte[] tampon = null;
             while (true)
             {
@@ -179,6 +217,13 @@ namespace CloneHeroMod
                             tampon = new byte[Math.Max(largo, 1 << 16)];
                         }
                         Marshal.Copy(p, tampon, 0, largo);
+                        for (int i = 0; i + 1 < largo; i += 2)
+                        {
+                            int m = (short)(tampon[i] | (tampon[i + 1] << 8));
+                            sumaCuadrados += (double)m * m;
+                            int a = m < 0 ? -m : m;
+                            if (a > pico) pico = a;
+                        }
                         destino.Write(tampon, 0, largo);
                         total += largo;
                     }
@@ -194,6 +239,91 @@ namespace CloneHeroMod
                 }
             }
             return total;
+        }
+
+        // Cuanto hay que subir o bajar. Manda el volumen medio; el pico solo
+        // pone el techo, para que subir no acabe recortando la onda.
+        private static double Ganancia(double sumaCuadrados, int pico, long muestras)
+        {
+            if (muestras <= 0 || sumaCuadrados <= 0 || pico <= 0)
+            {
+                return 1.0;
+            }
+            double media = Math.Sqrt(sumaCuadrados / muestras) / 32768.0;
+            if (media <= 0.0001)
+            {
+                return 1.0;      // practicamente silencio: mejor no tocarlo
+            }
+            // MANDA LA MEDIA, NO EL PICO. La primera version se quedaba con el
+            // menor de los dos y el resultado no normalizaba nada: un audio
+            // con picos altos y media baja solo subia 2 dB —de -19,8 a -17,8—
+            // porque el techo de pico lo frenaba enseguida. Y uno muy flojo se
+            // quedaba a 12 dB del objetivo por el tope de ganancia.
+            //
+            // Ahora se sube hasta donde pide la media y del pico se encarga el
+            // limitador de mas abajo, que dobla suavemente lo que se pasa en
+            // vez de cortarlo en seco.
+            double g = MediaObjetivo / media;
+            if (g > GananciaMaxima) g = GananciaMaxima;
+            if (g < 1.0 / GananciaMaxima) g = 1.0 / GananciaMaxima;
+            return g;
+        }
+
+        // Freno suave para lo que se sale. Por debajo del codo no toca nada;
+        // por encima, la curva se va acercando al techo sin llegar nunca, asi
+        // que no hay recorte. Cortar en seco en el techo mete distorsion que
+        // se oye; esto no.
+        private static double Limitar(double x)
+        {
+            double a = x < 0 ? -x : x;
+            double codo = CodoLimitador * PicoMaximo;
+            if (a <= codo)
+            {
+                return x;
+            }
+            double margen = PicoMaximo - codo;
+            double doblado = codo + margen * Math.Tanh((a - codo) / margen);
+            return x < 0 ? -doblado : doblado;
+        }
+
+        // Se aplica sobre el archivo ya escrito, en trozos. Hacerlo asi evita
+        // tener la cancion entera en memoria y evita decodificar dos veces.
+        private static void Normalizar(string ruta, double ganancia)
+        {
+            try
+            {
+                using (FileStream f = new FileStream(ruta, FileMode.Open, FileAccess.ReadWrite))
+                {
+                    byte[] trozo = new byte[1 << 16];
+                    long pos = 44;      // detras de la cabecera
+                    f.Seek(pos, SeekOrigin.Begin);
+                    while (true)
+                    {
+                        int leidos = f.Read(trozo, 0, trozo.Length);
+                        if (leidos <= 0)
+                        {
+                            break;
+                        }
+                        for (int i = 0; i + 1 < leidos; i += 2)
+                        {
+                            int m = (short)(trozo[i] | (trozo[i + 1] << 8));
+                            int v = (int)Math.Round(Limitar(m / 32768.0 * ganancia) * 32767.0);
+                            if (v > 32767) v = 32767;
+                            if (v < -32768) v = -32768;
+                            trozo[i] = (byte)(v & 0xFF);
+                            trozo[i + 1] = (byte)((v >> 8) & 0xFF);
+                        }
+                        f.Seek(pos, SeekOrigin.Begin);
+                        f.Write(trozo, 0, leidos);
+                        pos += leidos;
+                        f.Seek(pos, SeekOrigin.Begin);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Video] normalizar: " + ex.Message);
+            }
         }
 
         private static void Cabecera(Stream f, int canales, int frecuencia, long datos)
