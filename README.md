@@ -406,7 +406,7 @@ The resulting `.dll` is copied into the game's `Mods` folder automatically.
 > letters, and without a BOM the compiler reads them with the system ANSI
 > codepage and silently corrupts them.
 
-## 🔧 Special thanks for their feedback
+## 🗣️ Special thanks for their feedback
 
 - daku_kuramakun
 - ditto
