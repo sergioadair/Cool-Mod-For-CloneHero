@@ -405,3 +405,9 @@ The resulting `.dll` is copied into the game's `Mods` folder automatically.
 > BOM**. They contain the game's obfuscated identifiers as Unicode modifier
 > letters, and without a BOM the compiler reads them with the system ANSI
 > codepage and silently corrupts them.
+
+## 🔧 Special thanks for their feedback
+
+- daku_kuramakun
+- ditto
+- unkchannaman
