@@ -6,7 +6,8 @@ using MelonLoader;
 
 namespace CloneHeroMod
 {
-    // Fila "Show Cool Note Streak" en Settings > Gameplay.
+    // Filas "Show Cool Note Streak" y "Show Cool Star Power" en
+    // Settings > Gameplay.
     //
     // Es el sitio que le toca: enciende y apaga un cartel que sale durante la
     // cancion. Estuvo un rato en Audio por falta de hueco, cuando las filas de
@@ -28,6 +29,7 @@ namespace CloneHeroMod
     public static class MenuGameplay
     {
         public const string Prefijo = "Show Cool Note Streak";
+        public const string PrefijoEstrella = "Show Cool Star Power";
 
         private static bool parcheado;
         private static object menu;
@@ -69,6 +71,16 @@ namespace CloneHeroMod
             return Prefijo + ": " + (Ajustes.MostrarRacha ? "Yes" : "No");
         }
 
+        private static string TextoEstrella()
+        {
+            return PrefijoEstrella + ": " + (Ajustes.MostrarEstrella ? "Yes" : "No");
+        }
+
+        private static string TextoDe(string prefijo)
+        {
+            return prefijo == PrefijoEstrella ? TextoEstrella() : Texto();
+        }
+
         // __instance se pide como Il2CppSystem.Object y se convierte a mano:
         // BaseSettingMenu es abstracta y pedirla directamente hace fallar la
         // conversion del trampolin.
@@ -88,6 +100,7 @@ namespace CloneHeroMod
                 menu = g;
                 vigilante.Preparar(g);
                 FilasMenu.Anadir(g, Texto(), Prefijo);
+                FilasMenu.Anadir(g, TextoEstrella(), PrefijoEstrella);
             }
             catch (Exception ex)
             {
@@ -96,20 +109,28 @@ namespace CloneHeroMod
         }
 
         private static readonly VigilanteMenu vigilante =
-            new VigilanteMenu("MenuGameplay", Prefijo);
+            new VigilanteMenu("MenuGameplay", Prefijo, PrefijoEstrella);
 
         public static void Tick()
         {
             try
             {
-                if (vigilante.RecienAbierta(menu) == null)
+                string prefijo = vigilante.RecienAbierta(menu);
+                if (prefijo == null)
                 {
                     return;
                 }
-                Ajustes.GuardarMostrarRacha(!Ajustes.MostrarRacha);
-                int fila = FilasMenu.IndiceDe(menu, Prefijo);
-                FilasMenu.CambiarTexto(menu, fila, Texto());
-                RefrescarFila(fila);
+                if (prefijo == PrefijoEstrella)
+                {
+                    Ajustes.GuardarMostrarEstrella(!Ajustes.MostrarEstrella);
+                }
+                else
+                {
+                    Ajustes.GuardarMostrarRacha(!Ajustes.MostrarRacha);
+                }
+                int fila = FilasMenu.IndiceDe(menu, prefijo);
+                FilasMenu.CambiarTexto(menu, fila, TextoDe(prefijo));
+                RefrescarFila(fila, TextoDe(prefijo));
             }
             catch (Exception)
             {
@@ -123,7 +144,7 @@ namespace CloneHeroMod
 
         // menuStrings solo se relee al redibujar el menu entero, asi que el
         // texto se escribe tambien en la fila fisica.
-        private static void RefrescarFila(int indice)
+        private static void RefrescarFila(int indice, string texto)
         {
             try
             {
@@ -146,7 +167,7 @@ namespace CloneHeroMod
                 var t = idx.GetValue(arr, new object[] { indice }) as Il2CppTMPro.TextMeshProUGUI;
                 if (t != null)
                 {
-                    t.text = Texto();
+                    t.text = texto;
                 }
             }
             catch (Exception)

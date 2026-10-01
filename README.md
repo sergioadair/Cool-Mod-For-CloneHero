@@ -4,7 +4,7 @@ A set of quality-of-life features I always wanted Clone Hero to have. It
 **turns any audio or video into a playable song**, **fills in the difficulties
 a song is missing** so you can play that Expert-only chart on Medium, gives
 every song a real **difficulty score** and a profile of *why* it is hard,
-throws a **note streak** callout while you play, puts a **song clock** on
+throws **note streak** and **SP Ready** callouts while you play, puts a **song clock** on
 screen, lets you **replace any texture in the game** with your own, and adds
 **custom menu backgrounds**, a background **slideshow**, a **Favorites** filter
 and a **custom sound** when you finish a song.
@@ -182,6 +182,21 @@ mod here. Partial names work, so any of these will do:
 > nothing about scoring is reimplemented or altered. With the option off, the
 > code does not run at all — see below.
 
+### ⚡ SP Ready callout
+
+**`SP Ready!`** pops up the moment your Star Power bar lights up and is ready
+to use — so you know without looking away from the notes.
+
+Blue with a black outline by default. Toggle it at
+`Settings > Gameplay > Show Cool Star Power`, and restyle it in `settings.ini`
+the same way as the streak:
+
+```ini
+star_power_size = 72         ; 20 to 200
+star_power_color = 33B5FF    ; RRGGBB
+star_power_font =            ; empty = the game's own
+```
+
 ### ⏱️ Song clock
 
 **`1:25 / 2:30`** in the top right corner while you play, so you know where you
@@ -283,9 +298,9 @@ Every one of the mod's per-frame checks is switched off the moment the gameplay
 scene loads, and switched back on when you return to the menus. No frame drops,
 no stutter.
 
-The note streak callout is the only part that runs during a song, and it is
-budgeted for it: with the option off it costs a single boolean check per frame,
-and with it on, reading one integer.
+The callouts are the only parts that run during a song, and they are
+budgeted for it: with an option off it costs a single boolean check per frame,
+and with it on, next to nothing.
 
 ---
 
@@ -364,6 +379,10 @@ has a menu option except the slideshow interval and the sound volume.
 | `note_streak_size` | `72` | Size of the note streak text |
 | `note_streak_color` | `FFD14A` | Its colour, `RRGGBB` |
 | `note_streak_font` | — | One of the game's fonts; empty uses the default |
+| `show_cool_star_power` | `1` | Show the SP Ready callout during a song |
+| `star_power_size` | `72` | Size of the SP Ready text |
+| `star_power_color` | `33B5FF` | Its colour, `RRGGBB` |
+| `star_power_font` | — | One of the game's fonts; empty uses the default |
 | `show_time_display` | `1` | Show the song clock while you play |
 | `time_display_size` | `28` | Size of the song clock text |
 | `time_display_color` | `FFFFFF` | Its colour, `RRGGBB` |

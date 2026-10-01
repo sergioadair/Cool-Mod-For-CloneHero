@@ -32,6 +32,10 @@ namespace CloneHeroMod
         public const string ClaveRachaTamano = "note_streak_size";
         public const string ClaveRachaColor = "note_streak_color";
         public const string ClaveRachaFuente = "note_streak_font";
+        public const string ClaveMostrarEstrella = "show_cool_star_power";
+        public const string ClaveEstrellaTamano = "star_power_size";
+        public const string ClaveEstrellaColor = "star_power_color";
+        public const string ClaveEstrellaFuente = "star_power_font";
         public const string ClaveMostrarTiempo = "show_time_display";
         public const string ClaveTiempoTamano = "time_display_size";
         public const string ClaveTiempoColor = "time_display_color";
@@ -50,6 +54,10 @@ namespace CloneHeroMod
         private static float rachaTamano = RachaTamanoPorDefecto;
         private static string rachaColor = RachaColorPorDefecto;
         private static string rachaFuente = "";
+        private static float mostrarEstrella = 1f;
+        private static float estrellaTamano = EstrellaTamanoPorDefecto;
+        private static string estrellaColor = EstrellaColorPorDefecto;
+        private static string estrellaFuente = "";
         private static float mostrarTiempo = 1f;
         private static float tiempoTamano = TiempoTamanoPorDefecto;
         private static string tiempoColor = TiempoColorPorDefecto;
@@ -173,6 +181,62 @@ namespace CloneHeroMod
             {
                 if (!cargado) { Cargar(); }
                 return rachaFuente;
+            }
+        }
+
+        // Cartel de "Star Power Ready!". Mismo trato que el de racha: el
+        // encendido en Settings > Gameplay y los gustos en el .ini. Azul por
+        // defecto, el color del Star Power en la autopista.
+        public const float EstrellaTamanoPorDefecto = 72f;
+        public const string EstrellaColorPorDefecto = "33B5FF";
+
+        public static bool MostrarEstrella
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return mostrarEstrella >= 0.5f;
+            }
+        }
+
+        public static void GuardarMostrarEstrella(bool activo)
+        {
+            try
+            {
+                mostrarEstrella = activo ? 1f : 0f;
+                EscribirClave(RutaSettings(), Seccion, ClaveMostrarEstrella, mostrarEstrella);
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Ajustes] guardar star power: " + ex.Message);
+            }
+        }
+
+        public static float EstrellaTamano
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return estrellaTamano;
+            }
+        }
+
+        public static string EstrellaColor
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return estrellaColor;
+            }
+        }
+
+        // Vacio = la del juego.
+        public static string EstrellaFuente
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return estrellaFuente;
             }
         }
 
@@ -333,6 +397,11 @@ namespace CloneHeroMod
                                             RachaTamanoMin, RachaTamanoMax);
                 rachaColor = TextoOEscribir(ruta, ClaveRachaColor, RachaColorPorDefecto);
                 rachaFuente = TextoOEscribir(ruta, ClaveRachaFuente, "");
+                mostrarEstrella = LeerOEscribir(ruta, ClaveMostrarEstrella, 1f, 0f, 1f);
+                estrellaTamano = LeerOEscribir(ruta, ClaveEstrellaTamano, EstrellaTamanoPorDefecto,
+                                               RachaTamanoMin, RachaTamanoMax);
+                estrellaColor = TextoOEscribir(ruta, ClaveEstrellaColor, EstrellaColorPorDefecto);
+                estrellaFuente = TextoOEscribir(ruta, ClaveEstrellaFuente, "");
                 mostrarTiempo = LeerOEscribir(ruta, ClaveMostrarTiempo, 1f, 0f, 1f);
                 tiempoTamano = LeerOEscribir(ruta, ClaveTiempoTamano, TiempoTamanoPorDefecto,
                                              TiempoTamanoMin, TiempoTamanoMax);
@@ -346,7 +415,8 @@ namespace CloneHeroMod
                     + "  segundos=" + Texto(slideshowSegundos)
                     + "  sfxFin=" + (sfxFin >= 0.5f ? "si" : "no")
                     + "  mostrarDificultad=" + (mostrarDificultad >= 0.5f ? "si" : "no")
-                    + "  racha=" + (mostrarRacha >= 0.5f ? "si" : "no"));
+                    + "  racha=" + (mostrarRacha >= 0.5f ? "si" : "no")
+                    + "  estrella=" + (mostrarEstrella >= 0.5f ? "si" : "no"));
             }
             catch (Exception ex)
             {

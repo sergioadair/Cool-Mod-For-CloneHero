@@ -67,6 +67,7 @@ namespace CloneHeroMod
             if (Buscador.EnJuego)
             {
                 RachaNotas.Tick();
+                EstrellaLista.Tick();
                 TiempoCancion.Tick();
                 // Excepcion a la regla de no gastar nada durante la cancion: el
                 // atlas de trastes solo esta cargado aqui. Son unos pocos
@@ -120,6 +121,9 @@ namespace CloneHeroMod
                     MenuVideo.InstalarParches(HarmonyInstance);
                     MenuAudio.InstalarParches(HarmonyInstance);
                     MenuGameplay.InstalarParches(HarmonyInstance);
+                    // No es de menu, pero tampoco necesita esperar a nada:
+                    // engancha el sonido de Star Power listo.
+                    EstrellaLista.InstalarParche(HarmonyInstance);
                 }
                 catch (Exception ex)
                 {
@@ -135,6 +139,7 @@ namespace CloneHeroMod
                     fondosListos = true;
                     Ajustes.Cargar();
                     RachaNotas.ResolverEstilo();
+                    EstrellaLista.ResolverEstilo();
                     FondosPersonalizados.Instalar();
                 }
             }
@@ -145,6 +150,7 @@ namespace CloneHeroMod
                 // La etiqueta primero: refresca la referencia a SongSelect que
                 // el orden consulta para saber si hay que hacer algo.
                 RachaNotas.ResolverEstilo();
+                EstrellaLista.ResolverEstilo();
                 TiempoCancion.ResolverEstilo();
                 AvisoVersion.Tick();
                 EtiquetaDificultad.Tick();
@@ -217,6 +223,7 @@ namespace CloneHeroMod
         {
             Buscador.EscenaCambiada(nombre);
             RachaNotas.EscenaCambiada(nombre, Buscador.EnJuego);
+            EstrellaLista.EscenaCambiada(nombre, Buscador.EnJuego);
             TiempoCancion.EscenaCambiada(nombre, Buscador.EnJuego);
             FondosPersonalizados.EscenaCambiada(Buscador.EnJuego);
             TexturasPersonalizadas.EscenaCambiada(nombre, Buscador.EnJuego);
