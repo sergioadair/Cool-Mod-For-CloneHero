@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net6.0</TargetFramework>
@@ -82,6 +82,10 @@
     </Reference>
     <Reference Include="UnityEngine.ImageConversionModule">
       <HintPath>$(Il2CppDir)\UnityEngine.ImageConversionModule.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
+    <Reference Include="UnityEngine.VideoModule">
+      <HintPath>$(Il2CppDir)\UnityEngine.VideoModule.dll</HintPath>
       <Private>false</Private>
     </Reference>
     <!-- Font y GlyphRenderMode: para intentar construir una TMP_FontAsset a

@@ -40,6 +40,7 @@ namespace CloneHeroMod
             "ʾʷʹʿʻʻʿʽʳʽˁ";
 
         private bool yaVolcado;
+        private bool menusParcheados;
         private bool fondosListos;
         private float preparacion;
         private float transcurrido;
@@ -93,6 +94,38 @@ namespace CloneHeroMod
             // del cambiazo. No dependen de que el juego termine de arrancar:
             // en cuanto la textura esta cargada, se puede pintar.
             TexturasPersonalizadas.Tick();
+
+            // LOS MENUS DE AJUSTES SE PARCHEAN EN EL PRIMER FOTOGRAMA, no a los
+            // 12 segundos con el resto.
+            //
+            // Colgaban del bloque de yaVolcado, que espera a que el juego
+            // rellene sus listas de orden y filtro. Pero estos cuatro no
+            // necesitan nada de eso: parchean por tipo y ya. Y la espera abria
+            // una ventana mala: el menu principal sale unos 4 s despues de
+            // arrancar y los parches no existian hasta los 10 —medido en un
+            // log: Main Menu a las 10:28:20, parches a las 10:28:26—. Entrar
+            // a Settings en esos seis segundos montaba los menus sin el mod, y
+            // las filas acababan anadiendose despues sobre un menu ya
+            // construido. Pasando antes por Quickplay daba tiempo a que se
+            // cerrara la ventana, que es justo lo que se reporto.
+            //
+            // Aqui todavia se esta en la escena de carga, asi que no hay
+            // forma de abrir un menu antes de que esten puestos.
+            if (!menusParcheados)
+            {
+                menusParcheados = true;
+                try
+                {
+                    OpcionCalcular.InstalarParches(HarmonyInstance);
+                    MenuVideo.InstalarParches(HarmonyInstance);
+                    MenuAudio.InstalarParches(HarmonyInstance);
+                    MenuGameplay.InstalarParches(HarmonyInstance);
+                }
+                catch (Exception ex)
+                {
+                    MelonLogger.Error("parches de menu: " + ex);
+                }
+            }
 
             if (!fondosListos)
             {
@@ -153,12 +186,8 @@ namespace CloneHeroMod
                 FondosPersonalizados.Instalar();
                 FiltroFavoritos.Instalar();
                 FiltroFavoritos.InstalarParche(HarmonyInstance);
-                OpcionCalcular.InstalarParches(HarmonyInstance);
                 OrdenDificultad.InstalarParcheRefresco(HarmonyInstance);
                 OrdenDificultad.InstalarParcheNombre(HarmonyInstance);
-                MenuVideo.InstalarParches(HarmonyInstance);
-                MenuAudio.InstalarParches(HarmonyInstance);
-                MenuGameplay.InstalarParches(HarmonyInstance);
                 ChartsFaltantes.InstalarParches(HarmonyInstance);
                 Actualizador.Comprobar();
                 // Los volcados recorren los 1475 tipos del juego y leen todos
@@ -189,6 +218,7 @@ namespace CloneHeroMod
             Buscador.EscenaCambiada(nombre);
             RachaNotas.EscenaCambiada(nombre, Buscador.EnJuego);
             TiempoCancion.EscenaCambiada(nombre, Buscador.EnJuego);
+            FondosPersonalizados.EscenaCambiada(Buscador.EnJuego);
             TexturasPersonalizadas.EscenaCambiada(nombre, Buscador.EnJuego);
             SfxFinDeCancion.EscenaCambiada(nombre);
             // Los paneles del menu se destruyen al cambiar de escena; sus

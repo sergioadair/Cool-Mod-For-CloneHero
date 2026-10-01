@@ -615,6 +615,8 @@ namespace CloneHeroMod
             public RectTransform caja;
             public float altoFila;
             public int capacidad;      // filas que caben sin estirar
+            public int originales;     // opciones del juego, sin las nuestras
+            public bool avisado;       // el aviso de fallo, una vez y no mas
         }
 
         private static readonly Dictionary<string, Medida> medidas =
@@ -626,14 +628,36 @@ namespace CloneHeroMod
             try { clave = menu.GetType().Name; }
             catch (Exception) { clave = "?"; }
 
+            // UNA MEDICION FALLIDA NO SE DA POR DEFINITIVA. Antes se anotaba
+            // igual "para no reintentar en bucle", y eso convertia un fallo
+            // de un momento en un fallo para toda la sesion: si la primera vez
+            // que se tocaba un menu su contenedor aun no tenia tamano —justo
+            // lo que pasa al entrar a Settings recien abierto el juego—, la
+            // caja quedaba como desconocida y AjustarAlto no volvia a estirar
+            // ese menu. Las filas que no cabian en la holgura se salian y el
+            // menu se movia.
+            //
+            // Reintentar no cuesta: esto solo corre al abrir un menu.
+            //
+            // PERO SE MIDE CONTRA LAS OPCIONES ORIGINALES, las que traia el
+            // juego, que se anotan la primera vez y no cambian. Si se midiera
+            // con las de ahora, en un reintento ya contarian filas nuestras
+            // que el contenedor no tiene sitio para ellas, y el alto de fila
+            // saldria falso —77 en vez de 80—, lo justo para que una fila se
+            // saliera sin que nada avisara.
             Medida m;
-            if (medidas.TryGetValue(clave, out m))
+            bool existia = medidas.TryGetValue(clave, out m);
+            if (existia && m.caja != null)
             {
                 return m;
             }
-
-            m = new Medida();
-            medidas[clave] = m;      // aunque salga vacia: no se reintenta en bucle
+            if (!existia)
+            {
+                m = new Medida();
+                m.originales = opciones;
+                medidas[clave] = m;
+            }
+            opciones = m.originales;
             try
             {
                 UnityEngine.Component c = menu as UnityEngine.Component;
@@ -664,8 +688,12 @@ namespace CloneHeroMod
                         + " opciones -> fila de " + alto.ToString("0"));
                     return m;
                 }
-                MelonLogger.Warning("[Filas] " + clave + ": no se localizo el contenedor"
-                    + " de scroll; las filas de mas podrian no alcanzarse");
+                if (!m.avisado)
+                {
+                    m.avisado = true;
+                    MelonLogger.Warning("[Filas] " + clave + ": no se localizo el contenedor"
+                        + " de scroll todavia; se reintenta al volver a abrir el menu");
+                }
             }
             catch (Exception ex)
             {

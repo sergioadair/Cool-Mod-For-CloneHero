@@ -14,9 +14,34 @@ namespace CloneHeroMod
     // Texture2D fijos de MenuBackground y el ajuste menu_background va de 0 a
     // 13. Se le sube el maximo y, cuando el valor cae por encima de 13, se le
     // pone nuestra textura al RawImage del fondo.
+    //
+    // VIDEOS TAMBIEN. Van en la misma carpeta y la misma lista que las
+    // imagenes; la unica diferencia es de donde sale la textura: en vez de un
+    // archivo cargado una vez, la que va pintando un VideoPlayer.
+    //
+    // Se usa el reproductor del propio juego y de la misma forma que lo usa
+    // el, porque lo que el juego no usa puede venir recortado de la build. En
+    // el volcado ISIL salen todas las piezas que hacen falta, y en uso:
+    // get_texture (18 llamadas), set_url, set_renderMode, set_audioOutputMode,
+    // set_isLooping, Play, Stop. El modo es APIOnly: el reproductor decodifica
+    // en su propia textura y se la pasamos al RawImage del fondo, sin
+    // RenderTexture de por medio.
+    //
+    // Mudo, en bucle, y parado durante la cancion: alli el mod no gasta.
     public static class FondosPersonalizados
     {
         public const int FondosDeSerie = 14;      // indices 0..13
+
+        // Los mismos formatos que el juego admite para sus fondos de video
+        // en Windows, segun su propio README de Custom.
+        public static readonly string[] ExtensionesVideo =
+            { ".mp4", ".webm", ".avi", ".ogv", ".mpeg", ".mpg", ".mov", ".m4v" };
+
+        // Si un video no da su primer fotograma en este tiempo, se da por
+        // perdido. El README del juego avisa de que hay equipos que no
+        // reproducen video en absoluto; quedarse esperando dejaria el fondo
+        // en negro para siempre.
+        public const float EsperaPrimerFotograma = 8f;
 
         private static string[] rutas;
         private static Texture2D[] texturas;
@@ -61,7 +86,8 @@ namespace CloneHeroMod
                 for (int i = 0; i < archivos.Length; i++)
                 {
                     string ext = Path.GetExtension(archivos[i]).ToLowerInvariant();
-                    if (ext == ".png" || ext == ".jpg" || ext == ".jpeg")
+                    if (ext == ".png" || ext == ".jpg" || ext == ".jpeg"
+                        || Array.IndexOf(ExtensionesVideo, ext) >= 0)
                     {
                         lista.Add(archivos[i]);
                     }
@@ -84,7 +110,7 @@ namespace CloneHeroMod
                 Escanear();
                 if (rutas.Length == 0)
                 {
-                    MelonLogger.Msg("[Fondos] no hay imagenes en " + Carpeta);
+                    MelonLogger.Msg("[Fondos] no hay imagenes ni videos en " + Carpeta);
                     return;
                 }
                 if (!ResolverAjuste())
@@ -94,7 +120,7 @@ namespace CloneHeroMod
                 }
                 propMaximo.SetValue(ajusteFondo, FondosDeSerie - 1 + rutas.Length);
                 instalado = true;
-                MelonLogger.Msg("[Fondos] " + rutas.Length.ToString() + " imagen(es); maximo -> "
+                MelonLogger.Msg("[Fondos] " + rutas.Length.ToString() + " fondo(s); maximo -> "
                     + (FondosDeSerie - 1 + rutas.Length).ToString());
 
                 // Restaurar el fondo propio: el juego ya recorto su ajuste al
@@ -238,25 +264,20 @@ namespace CloneHeroMod
                 {
                     // Fondo de serie: hay que devolverle su material, o se
                     // quedaria con el nuestro y perderia su efecto.
-                    if (materialesOriginales.Count > 0)
-                    {
-                        foreach (UnityEngine.UI.RawImage r in RawImagesDelFondo())
-                        {
-                            Material suyo;
-                            if (materialesOriginales.TryGetValue(r.GetInstanceID(), out suyo)
-                                && r.material != suyo)
-                            {
-                                r.material = suyo;
-                                ultimoAplicado = -1;
-                            }
-                        }
-                    }
+                    Detener();
+                    DevolverMateriales();
                     return;
                 }
 
-                Texture2D tex = Textura(indice);
+                Texture tex = TexturaDe(indice);
                 if (tex == null)
                 {
+                    // Un video que no arranca se queda con el fondo del juego
+                    // en vez de en negro. Uno que esta cargando, se espera.
+                    if (rotos.Contains(indice))
+                    {
+                        DevolverMateriales();
+                    }
                     return;
                 }
                 List<UnityEngine.UI.RawImage> destinos = RawImagesDelFondo();
@@ -345,6 +366,143 @@ namespace CloneHeroMod
             }
             return indiceSlideshow;
         }
+
+        private static void DevolverMateriales()
+        {
+            if (materialesOriginales.Count == 0)
+            {
+                return;
+            }
+            foreach (UnityEngine.UI.RawImage r in RawImagesDelFondo())
+            {
+                Material suyo;
+                if (materialesOriginales.TryGetValue(r.GetInstanceID(), out suyo)
+                    && r.material != suyo)
+                {
+                    r.material = suyo;
+                    ultimoAplicado = -1;
+                }
+            }
+        }
+
+        public static bool EsVideo(string ruta)
+        {
+            string ext = Path.GetExtension(ruta).ToLowerInvariant();
+            return Array.IndexOf(ExtensionesVideo, ext) >= 0;
+        }
+
+        // La textura del fondo i: la imagen cargada, o el fotograma actual del
+        // video. null si aun no hay nada que pintar.
+        private static Texture TexturaDe(int i)
+        {
+            if (i < 0 || i >= rutas.Length)
+            {
+                return null;
+            }
+            if (!EsVideo(rutas[i]))
+            {
+                Detener();      // una imagen no necesita el reproductor
+                return Textura(i);
+            }
+            if (rotos.Contains(i))
+            {
+                return null;
+            }
+            try
+            {
+                UnityEngine.Video.VideoPlayer vp = Reproductor();
+                if (vp == null)
+                {
+                    return null;
+                }
+                if (urlActual != rutas[i])
+                {
+                    urlActual = rutas[i];
+                    vp.url = rutas[i];
+                    vp.Play();      // si no esta preparado, Play lo prepara
+                    pedidoEn = Time.realtimeSinceStartup;
+                }
+                Texture t = vp.texture;
+                if (t == null
+                    && Time.realtimeSinceStartup - pedidoEn > EsperaPrimerFotograma)
+                {
+                    rotos.Add(i);
+                    MelonLogger.Warning("[Fondos] el video " + Path.GetFileName(rutas[i])
+                        + " no ha dado imagen en " + EsperaPrimerFotograma.ToString("0")
+                        + " s; se deja el fondo del juego. Puede ser el formato o el equipo.");
+                    Detener();
+                }
+                return t;
+            }
+            catch (Exception ex)
+            {
+                rotos.Add(i);
+                MelonLogger.Warning("[Fondos] video " + Path.GetFileName(rutas[i]) + ": "
+                    + ex.Message);
+                Detener();
+                reproductor = null;
+                return null;
+            }
+        }
+
+        // Un solo reproductor para todo, que sobrevive a los cambios de escena.
+        private static UnityEngine.Video.VideoPlayer Reproductor()
+        {
+            if (reproductor != null)
+            {
+                return reproductor;
+            }
+            GameObject go = new GameObject("CoolModMenuVideo");
+            UnityEngine.Object.DontDestroyOnLoad(go);
+            UnityEngine.Video.VideoPlayer vp = go.AddComponent<UnityEngine.Video.VideoPlayer>();
+            vp.playOnAwake = false;
+            vp.renderMode = UnityEngine.Video.VideoRenderMode.APIOnly;
+            vp.audioOutputMode = UnityEngine.Video.VideoAudioOutputMode.None;
+            vp.isLooping = true;
+            vp.skipOnDrop = true;        // mejor saltar fotogramas que retrasarse
+            vp.waitForFirstFrame = true;
+            reproductor = vp;
+            MelonLogger.Msg("[Fondos] reproductor de video creado");
+            return vp;
+        }
+
+        // Para el video: al pasar a una imagen, a un fondo de serie o a la
+        // cancion. Un video parado no decodifica, que es lo que cuesta.
+        private static void Detener()
+        {
+            if (urlActual == null)
+            {
+                return;
+            }
+            urlActual = null;
+            try
+            {
+                if (reproductor != null)
+                {
+                    reproductor.Stop();
+                }
+            }
+            catch (Exception)
+            {
+                reproductor = null;
+            }
+        }
+
+        // Durante la cancion el mod no gasta, y un video decodificando por
+        // detras de la partida seria justo eso. Al volver al menu, el
+        // siguiente Tick lo arranca solo.
+        public static void EscenaCambiada(bool enJuego)
+        {
+            if (enJuego)
+            {
+                Detener();
+            }
+        }
+
+        private static UnityEngine.Video.VideoPlayer reproductor;
+        private static string urlActual;
+        private static float pedidoEn;
+        private static readonly HashSet<int> rotos = new HashSet<int>();
 
         private static Texture2D Textura(int i)
         {

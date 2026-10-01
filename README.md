@@ -233,9 +233,10 @@ found, so you can be more specific.
 
 ### 🖼️ Custom menu backgrounds
 
-Drop any `.png` / `.jpg` / `.jpeg` into your **Menu Backgrounds** folder and
-they show up as extra options in `Settings > Video > Menu Backgrounds`, listed
-by file name. Your choice is remembered between sessions.
+Drop any image (`.png`, `.jpg`) **or video** (`.mp4`, `.webm`, `.avi`, `.ogv`)
+into your **Menu Backgrounds** folder and they show up as extra options in
+`Settings > Video > Menu Backgrounds`, listed by file name. Videos play muted and
+on a loop. Your choice is remembered between sessions.
 
 A starter pack is included in [`assets/Menu Backgrounds/`](assets/Menu%20Backgrounds/).
 
