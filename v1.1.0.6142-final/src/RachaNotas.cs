@@ -53,7 +53,13 @@ namespace CloneHeroMod
 
         private static GameObject raiz;
         private static Il2CppTMPro.TextMeshProUGUI texto;
-        private static RectTransform rtTexto;
+        // Lo que se anima: el texto y, si hay imagen propia, la imagen con el
+        // numero encima (ver CartelImagen).
+        private static GameObject cartel;
+        private static RectTransform rtCartel;
+        private static RawImage imagen;
+        private static Texture2D texturaImagen;
+        private static bool imagenBuscada;
         private static bool animando;
         private static float t;
 
@@ -85,7 +91,9 @@ namespace CloneHeroMod
             animando = false;
             raiz = null;      // lo destruye Unity al descargar la escena
             texto = null;
-            rtTexto = null;
+            cartel = null;
+            rtCartel = null;
+            imagen = null;
             material = null;
 
             activo = enJuego && Ajustes.MostrarRacha;
@@ -266,8 +274,9 @@ namespace CloneHeroMod
                     return;
                 }
             }
-            texto.text = hito.ToString() + Sufijo;
-            texto.gameObject.SetActive(true);
+            // Con imagen, el texto es solo el numero, encima de ella.
+            texto.text = imagen != null ? hito.ToString() : hito.ToString() + Sufijo;
+            cartel.SetActive(true);
             animando = true;
             t = 0f;
             MelonLogger.Msg("[Racha] " + hito.ToString() + " notas seguidas");
@@ -279,9 +288,9 @@ namespace CloneHeroMod
             if (t >= Duracion)
             {
                 animando = false;
-                if (texto != null)
+                if (cartel != null)
                 {
-                    texto.gameObject.SetActive(false);
+                    cartel.SetActive(false);
                 }
                 return;
             }
@@ -317,9 +326,13 @@ namespace CloneHeroMod
             }
 
             float avance = t / Duracion;
-            rtTexto.localScale = new Vector3(escala, escala, 1f);
-            rtTexto.anchoredPosition = new Vector2(0f, AlturaBase + Deriva * avance * avance);
+            rtCartel.localScale = new Vector3(escala, escala, 1f);
+            rtCartel.anchoredPosition = new Vector2(0f, AlturaBase + Deriva * avance * avance);
             texto.color = new Color(color.r, color.g, color.b, alfa);
+            if (imagen != null)
+            {
+                imagen.color = new Color(1f, 1f, 1f, alfa);
+            }
 
             // El borde se desvanece aparte: en el shader de TextMeshPro el
             // color de vertice tine la CARA de la letra, no el contorno, asi
@@ -361,6 +374,11 @@ namespace CloneHeroMod
         // eso no puede pasar durante el gameplay.
         public static void ResolverEstilo()
         {
+            if (!imagenBuscada)
+            {
+                imagenBuscada = true;
+                texturaImagen = CartelImagen.Cargar(CartelImagen.Racha);
+            }
             if (estiloResuelto || !intentoEstilo.Toca())
             {
                 return;
@@ -533,8 +551,25 @@ namespace CloneHeroMod
                 // Sin GraphicRaycaster: el cartel no se pulsa, y asi no entra en
                 // el reparto de eventos de entrada.
 
+                cartel = new GameObject("Cartel");
+                cartel.transform.SetParent(raiz.transform, false);
+                rtCartel = cartel.AddComponent<RectTransform>();
+                rtCartel.anchorMin = new Vector2(0.5f, 0.5f);
+                rtCartel.anchorMax = new Vector2(0.5f, 0.5f);
+                rtCartel.pivot = new Vector2(0.5f, 0.5f);
+                rtCartel.sizeDelta = new Vector2(1200f, 140f);
+                rtCartel.anchoredPosition = new Vector2(0f, AlturaBase);
+
+                // La imagen va centrada en el cartel y el numero encima.
+                float alto = 0f;
+                if (texturaImagen != null)
+                {
+                    alto = Ajustes.RachaTamano * CartelImagen.AltoPorTamano;
+                    imagen = CartelImagen.Poner(cartel.transform, texturaImagen, alto);
+                }
+
                 GameObject go = new GameObject("Text");
-                go.transform.SetParent(raiz.transform, false);
+                go.transform.SetParent(cartel.transform, false);
                 texto = go.AddComponent<Il2CppTMPro.TextMeshProUGUI>();
                 texto.font = fuente != null ? fuente : plantilla.font;
                 texto.fontSize = Ajustes.RachaTamano;
@@ -544,13 +579,15 @@ namespace CloneHeroMod
                 texto.raycastTarget = false;
                 texto.text = "";
 
-                rtTexto = go.GetComponent<RectTransform>();
+                RectTransform rtTexto = go.GetComponent<RectTransform>();
                 rtTexto.anchorMin = new Vector2(0.5f, 0.5f);
                 rtTexto.anchorMax = new Vector2(0.5f, 0.5f);
                 rtTexto.pivot = new Vector2(0.5f, 0.5f);
                 rtTexto.sizeDelta = new Vector2(1200f, 140f);
-                rtTexto.anchoredPosition = new Vector2(0f, AlturaBase);
-                go.SetActive(false);
+                rtTexto.anchoredPosition = imagen != null
+                    ? new Vector2(0f, alto / 2f + Ajustes.RachaTamano * 0.6f)
+                    : Vector2.zero;
+                cartel.SetActive(false);
 
                 PonerBorde();
                 MelonLogger.Msg("[Racha] cartel preparado");

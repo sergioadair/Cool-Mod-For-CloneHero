@@ -62,7 +62,14 @@ namespace CloneHeroMod
 
         private static GameObject raiz;
         private static Il2CppTMPro.TextMeshProUGUI texto;
-        private static RectTransform rtTexto;
+        // Lo que se anima: el texto o, si hay imagen propia, la imagen sola
+        // (ver CartelImagen). El texto se crea igual, vacio, para que el resto
+        // del codigo no tenga dos caminos.
+        private static GameObject cartel;
+        private static RectTransform rtCartel;
+        private static RawImage imagen;
+        private static Texture2D texturaImagen;
+        private static bool imagenBuscada;
         private static bool animando;
         private static float t;
         private static int intentos;
@@ -146,7 +153,9 @@ namespace CloneHeroMod
             animando = false;
             raiz = null;      // lo destruye Unity al descargar la escena
             texto = null;
-            rtTexto = null;
+            cartel = null;
+            rtCartel = null;
+            imagen = null;
             material = null;
             intentos = 0;
             esperaBusqueda = 0;
@@ -220,7 +229,7 @@ namespace CloneHeroMod
                     return;
                 }
             }
-            texto.gameObject.SetActive(true);
+            cartel.SetActive(true);
             animando = true;
             t = 0f;
             MelonLogger.Msg("[Estrella] Star Power listo (barra al "
@@ -235,9 +244,9 @@ namespace CloneHeroMod
             if (t >= Duracion)
             {
                 animando = false;
-                if (texto != null)
+                if (cartel != null)
                 {
-                    texto.gameObject.SetActive(false);
+                    cartel.SetActive(false);
                 }
                 return;
             }
@@ -271,9 +280,13 @@ namespace CloneHeroMod
             }
 
             float avance = t / Duracion;
-            rtTexto.localScale = new Vector3(escala, escala, 1f);
-            rtTexto.anchoredPosition = new Vector2(0f, AlturaBase + Deriva * avance * avance);
+            rtCartel.localScale = new Vector3(escala, escala, 1f);
+            rtCartel.anchoredPosition = new Vector2(0f, AlturaBase + Deriva * avance * avance);
             texto.color = new Color(color.r, color.g, color.b, alfa);
+            if (imagen != null)
+            {
+                imagen.color = new Color(1f, 1f, 1f, alfa);
+            }
             if (material != null)
             {
                 material.SetColor(idColorBorde, new Color(0f, 0f, 0f, alfa));
@@ -306,6 +319,11 @@ namespace CloneHeroMod
         // Diagnostico en el menu), asi que aqui no cuesta nada.
         public static void ResolverEstilo()
         {
+            if (!imagenBuscada)
+            {
+                imagenBuscada = true;
+                texturaImagen = CartelImagen.Cargar(CartelImagen.Estrella);
+            }
             if (estiloResuelto || !intentoEstilo.Toca())
             {
                 return;
@@ -372,8 +390,23 @@ namespace CloneHeroMod
                 escala.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
                 escala.referenceResolution = new Vector2(1920f, 1080f);
 
+                cartel = new GameObject("Cartel");
+                cartel.transform.SetParent(raiz.transform, false);
+                rtCartel = cartel.AddComponent<RectTransform>();
+                rtCartel.anchorMin = new Vector2(0.5f, 0.5f);
+                rtCartel.anchorMax = new Vector2(0.5f, 0.5f);
+                rtCartel.pivot = new Vector2(0.5f, 0.5f);
+                rtCartel.sizeDelta = new Vector2(1200f, 140f);
+                rtCartel.anchoredPosition = new Vector2(0f, AlturaBase);
+
+                if (texturaImagen != null)
+                {
+                    imagen = CartelImagen.Poner(cartel.transform, texturaImagen,
+                        Ajustes.EstrellaTamano * CartelImagen.AltoPorTamano);
+                }
+
                 GameObject go = new GameObject("Text");
-                go.transform.SetParent(raiz.transform, false);
+                go.transform.SetParent(cartel.transform, false);
                 texto = go.AddComponent<Il2CppTMPro.TextMeshProUGUI>();
                 texto.font = fuente != null ? fuente : plantilla.font;
                 texto.fontSize = Ajustes.EstrellaTamano;
@@ -381,15 +414,15 @@ namespace CloneHeroMod
                 texto.color = color;
                 texto.alignment = Il2CppTMPro.TextAlignmentOptions.Center;
                 texto.raycastTarget = false;
-                texto.text = Texto;
+                texto.text = imagen != null ? "" : Texto;
 
-                rtTexto = go.GetComponent<RectTransform>();
+                RectTransform rtTexto = go.GetComponent<RectTransform>();
                 rtTexto.anchorMin = new Vector2(0.5f, 0.5f);
                 rtTexto.anchorMax = new Vector2(0.5f, 0.5f);
                 rtTexto.pivot = new Vector2(0.5f, 0.5f);
                 rtTexto.sizeDelta = new Vector2(1200f, 140f);
-                rtTexto.anchoredPosition = new Vector2(0f, AlturaBase);
-                go.SetActive(false);
+                rtTexto.anchoredPosition = Vector2.zero;
+                cartel.SetActive(false);
 
                 PonerBorde();
                 MelonLogger.Msg("[Estrella] cartel preparado");

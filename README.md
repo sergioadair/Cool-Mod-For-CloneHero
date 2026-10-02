@@ -198,6 +198,13 @@ star_power_color = 33B5FF    ; RRGGBB
 star_power_font =            ; empty = the game's own
 ```
 
+**Use your own images.** Drop a `cool_note_streak.png` and/or a
+`cool_star_power.png` (`.jpg` works too) straight into your **Textures**
+folder, and the callouts show your image instead of the text, with the same
+animation. The note streak keeps its number on top of the image. The size
+setting above controls how big the image is. Remove the file to go back to
+the text.
+
 ### ⏱️ Song clock
 
 **`1:25 / 2:30`** in the top right corner while you play, so you know where you

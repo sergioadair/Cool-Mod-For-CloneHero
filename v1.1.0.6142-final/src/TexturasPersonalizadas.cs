@@ -149,6 +149,10 @@ namespace CloneHeroMod
                         continue;      // ahi no hay nada que aplicar
                     }
                     string nombre = Path.GetFileNameWithoutExtension(todos[i]);
+                    if (CartelImagen.EsDeCartel(nombre))
+                    {
+                        continue;      // imagen de un cartel del mod, no del juego
+                    }
                     string clave = Clave(nombre);
                     if (string.IsNullOrEmpty(clave) || Ya(clave))
                     {
