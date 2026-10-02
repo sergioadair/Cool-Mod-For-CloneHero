@@ -33,6 +33,23 @@ namespace CloneHeroMod
     // por tamano: si hay UNA sola textura cargada con las medidas exactas del
     // PNG, es esa. Esto ultimo hace falta porque las texturas que devuelve el
     // juego pueden venir sin nombre, ver mas abajo.
+    //
+    // NADA SE DA POR HECHO PARA SIEMPRE. La primera version pintaba cada
+    // textura una vez y no volvia a mirarla, y el juego no se queda quieto:
+    //
+    //   - Al entrar a una cancion descarga la escena del menu, y al volver
+    //     carga sus texturas OTRA VEZ del disco, con los pixeles originales.
+    //     Lo reporto un usuario con los iconos de Discord y Twitter: volvian
+    //     a los de serie despues de cada cancion.
+    //   - Muchas texturas no existen al arrancar: las de Quickplay (lupa,
+    //     iconos de instrumento, botones) se cargan al entrar ahi, sin cambiar
+    //     de escena, cuando el rastreo ya se habia espaciado o rendido. Se
+    //     veian las originales y luego cambiaban "de repente".
+    //
+    // Asi que se recuerda QUE objeto se pinto, y en cada barrido se comprueba
+    // que la textura que hay ahora con ese nombre es aquella; si el juego la
+    // ha recargado, se vuelve a pintar. Y se barre en los dos momentos en que
+    // aparecen texturas: al cargar una escena y al abrirse un menu.
     public static class TexturasPersonalizadas
     {
         public const string NombreCarpeta = "Textures";
@@ -52,21 +69,46 @@ namespace CloneHeroMod
         // que es cuando de verdad puede haber aparecido algo nuevo.
         public const int BarridosPorEscena = 20;
 
+        // Barridos tras abrirse un menu, en fotogramas desde que se abre. El
+        // primero pilla lo que el menu trae puesto; los siguientes, lo que
+        // rellena despues —la lista de canciones de Quickplay va poniendo sus
+        // iconos a lo largo de unos cuantos fotogramas—.
+        private static readonly int[] RafagaMenu = { 1, 10, 45, 120 };
+
         private class Objetivo
         {
             public string clave;
             public string ruta;
             public int ancho;
             public int alto;
-            public bool resuelto;
+            // El nombre venia de un volcador (UABEA y compania): es el nombre
+            // exacto de la textura y no hace falta adivinar nada.
+            public bool exportado;
+            public bool encontrada;     // alguna vez, para el aviso de las que faltan
+            public bool fallida;        // el PNG no se pudo aplicar: no se insiste
             public bool avisado;
+
+            // Lo que se pinto, para saber si el juego la ha recargado. Hace
+            // falta mas que el id: Unity le devuelve el MISMO id a un asset que
+            // descarga y vuelve a cargar del disco. Lo que no conserva es el
+            // formato —el PNG entra como ARGB32 y el original suele venir
+            // comprimido— ni la textura de la tarjeta grafica.
+            public int id;
+            public TextureFormat formato;
+            public IntPtr grafica;
+            public int veces;
         }
 
         private static readonly List<Objetivo> objetivos = new List<Objetivo>();
         private static bool hayTrabajo;
         private static bool escaneado;
-        private static int pendientes;
+        private static int faltan;
         private static readonly Buscador.Intento intento = new Buscador.Intento(3);
+
+        private static bool parcheado;
+        private static bool menuAbierto;
+        private static int abiertoEn;
+        private static int pasoRafaga = RafagaMenu.Length;
 
         // Diagnostico: una foto por escena, no una sola en toda la partida. La
         // primera version volcaba el inventario una unica vez y se gasto en el
@@ -106,13 +148,15 @@ namespace CloneHeroMod
                     {
                         continue;      // ahi no hay nada que aplicar
                     }
-                    string clave = Clave(Path.GetFileNameWithoutExtension(todos[i]));
+                    string nombre = Path.GetFileNameWithoutExtension(todos[i]);
+                    string clave = Clave(nombre);
                     if (string.IsNullOrEmpty(clave) || Ya(clave))
                     {
                         continue;
                     }
                     Objetivo o = new Objetivo();
                     o.clave = clave;
+                    o.exportado = clave != nombre;
                     o.ruta = todos[i];
                     MedidasPng(todos[i], out o.ancho, out o.alto);
                     objetivos.Add(o);
@@ -124,8 +168,8 @@ namespace CloneHeroMod
             {
                 MelonLogger.Warning("[Texturas] escaneo: " + ex.Message);
             }
-            pendientes = objetivos.Count;
-            hayTrabajo = pendientes > 0;
+            faltan = objetivos.Count;
+            hayTrabajo = faltan > 0;
             if (!hayTrabajo)
             {
                 MelonLogger.Msg("[Texturas] no hay imagenes en " + Carpeta);
@@ -213,15 +257,77 @@ namespace CloneHeroMod
             }
         }
 
+        // ------------------------------------------------------------ parche -
+        // Abrir un menu es el otro momento en que aparecen texturas sin cambiar
+        // de escena. Todos los menus del juego —Quickplay, el principal,
+        // Settings y diez mas— llaman a BaseMenu.OnEnable desde el suyo, asi
+        // que basta con este. El parche solo apunta el fotograma: el barrido
+        // lo hace Tick, fuera del codigo del juego.
+        public static void InstalarParche(HarmonyLib.Harmony harmony)
+        {
+            if (parcheado)
+            {
+                return;
+            }
+            parcheado = true;
+            try
+            {
+                System.Reflection.MethodInfo m = typeof(Il2Cpp.BaseMenu).GetMethod("OnEnable",
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance,
+                    null, Type.EmptyTypes, null);
+                if (m == null)
+                {
+                    MelonLogger.Warning("[Texturas] no esta BaseMenu.OnEnable; solo se"
+                        + " barrera al cambiar de escena");
+                    return;
+                }
+                harmony.Patch(m, null, new HarmonyLib.HarmonyMethod(
+                    typeof(TexturasPersonalizadas).GetMethod("PostMenu",
+                        System.Reflection.BindingFlags.NonPublic
+                        | System.Reflection.BindingFlags.Static)));
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Texturas] parche de menus: " + ex.Message);
+            }
+        }
+
+        private static void PostMenu()
+        {
+            if (hayTrabajo)
+            {
+                menuAbierto = true;
+            }
+        }
+
         // ------------------------------------------------------------- ciclo -
-        // Fuera de la cancion, espaciandose sola mientras no encuentre nada.
+        // Fuera de la cancion: una rafaga cada vez que se abre un menu, y
+        // aparte, espaciandose sola, mientras haya imagenes sin textura.
         public static void Tick()
         {
             if (!escaneado)
             {
                 Instalar();
             }
-            if (!hayTrabajo || barridos >= BarridosPorEscena || !intento.Toca())
+            if (!hayTrabajo)
+            {
+                return;
+            }
+            if (menuAbierto)
+            {
+                menuAbierto = false;
+                abiertoEn = Time.frameCount;
+                pasoRafaga = 0;
+                barridos = 0;      // un menu nuevo puede traer de todo
+            }
+            if (pasoRafaga < RafagaMenu.Length
+                && Time.frameCount - abiertoEn >= RafagaMenu[pasoRafaga])
+            {
+                pasoRafaga++;
+                Aplicar();
+                return;
+            }
+            if (faltan <= 0 || barridos >= BarridosPorEscena || !intento.Toca())
             {
                 return;
             }
@@ -248,7 +354,7 @@ namespace CloneHeroMod
             for (int i = 0; i < objetivos.Count; i++)
             {
                 Objetivo o = objetivos[i];
-                if (o.resuelto || o.avisado)
+                if (o.encontrada || o.avisado)
                 {
                     continue;
                 }
@@ -291,6 +397,8 @@ namespace CloneHeroMod
             intentosJuego = 0;
             proximoFotograma = 0;
             barridos = 0;
+            menuAbierto = false;
+            pasoRafaga = RafagaMenu.Length;
             if (hayTrabajo)
             {
                 Aplicar();
@@ -298,16 +406,13 @@ namespace CloneHeroMod
         }
 
         // ---------------------------------------------------------- aplicar --
-        // true si se cambio algo o si ya no queda nada pendiente.
+        // true si se pinto algo. Deja en "faltan" cuantas imagenes no tienen
+        // ahora mismo textura cargada: mientras haya alguna, Tick sigue
+        // mirando de vez en cuando.
         private static bool Aplicar()
         {
             try
             {
-                if (pendientes <= 0)
-                {
-                    hayTrabajo = false;
-                    return true;
-                }
                 string via;
                 List<Texture2D> cargadas = Cargadas(out via);
                 if (cargadas == null || cargadas.Count == 0)
@@ -316,10 +421,11 @@ namespace CloneHeroMod
                 }
 
                 bool alguna = false;
+                int sinTextura = 0;
                 for (int i = 0; i < objetivos.Count; i++)
                 {
                     Objetivo o = objetivos[i];
-                    if (o.resuelto)
+                    if (o.fallida)
                     {
                         continue;
                     }
@@ -327,24 +433,29 @@ namespace CloneHeroMod
                     Texture2D destino = Localizar(cargadas, o, out como);
                     if (destino == null)
                     {
+                        sinTextura++;
                         continue;
                     }
-                    o.resuelto = true;      // a la que falla tampoco se insiste
-                    pendientes--;
-                    if (Pintar(destino, o.ruta))
+                    o.encontrada = true;
+                    if (SiguePintada(o, destino))
                     {
-                        alguna = true;
-                        MelonLogger.Msg("[Texturas] " + o.clave + " cambiada (por "
-                            + como + ")");
+                        continue;      // lo normal en cada barrido
                     }
+                    if (!Pintar(destino, o.ruta))
+                    {
+                        o.fallida = true;
+                        continue;
+                    }
+                    Recordar(o, destino);
+                    alguna = true;
+                    MelonLogger.Msg("[Texturas] " + o.clave + (o.veces == 1
+                        ? " cambiada (por " + como + ")"
+                        : " pintada otra vez: el juego la habia recargado"));
                 }
+                faltan = sinTextura;
                 if (!alguna)
                 {
                     Inventario(cargadas, via);
-                }
-                if (pendientes <= 0)
-                {
-                    hayTrabajo = false;
                 }
                 return alguna;
             }
@@ -353,6 +464,48 @@ namespace CloneHeroMod
                 hayTrabajo = false;
                 MelonLogger.Error("[Texturas] " + ex);
                 return true;
+            }
+        }
+
+        // La textura que hay ahora es la que se pinto, y no una recargada del
+        // disco con el mismo id.
+        private static bool SiguePintada(Objetivo o, Texture2D t)
+        {
+            if (o.veces == 0 || t.GetInstanceID() != o.id || t.format != o.formato)
+            {
+                return false;
+            }
+            IntPtr g = Grafica(t);
+            return g == IntPtr.Zero || g == o.grafica;
+        }
+
+        private static void Recordar(Objetivo o, Texture2D t)
+        {
+            o.id = t.GetInstanceID();
+            o.formato = t.format;
+            o.grafica = Grafica(t);
+            o.veces++;
+        }
+
+        // Si este metodo viniera recortado del juego, se compara sin el y
+        // queda el formato, que distingue casi todos los casos.
+        private static bool sinGrafica;
+
+        private static IntPtr Grafica(Texture2D t)
+        {
+            if (sinGrafica)
+            {
+                return IntPtr.Zero;
+            }
+            try
+            {
+                return t.GetNativeTexturePtr();
+            }
+            catch (Exception ex)
+            {
+                sinGrafica = true;
+                MelonLogger.Msg("[Texturas] sin puntero de textura: " + ex.Message);
+                return IntPtr.Zero;
             }
         }
 
@@ -368,12 +521,19 @@ namespace CloneHeroMod
         // nada porque el usuario no tiene forma de saber cual toco. Devolviendo
         // null se vuelve a mirar en la siguiente pasada, asi que si aparece una
         // coincidencia exacta mas tarde, funciona igual.
+        //
+        // Con un nombre exportado solo vale la primera. Ese nombre ES el de la
+        // textura, asi que si no esta, es que no esta cargada todavia, y
+        // probar por trozo o por tamano solo puede acertar con otra: en un log
+        // de usuario, "information" (100x100) tenia por candidatas a
+        // "checkmark" y "exclamation", y en cuanto hubiera quedado una sola,
+        // se habria pintado la equivocada.
         private static Texture2D Localizar(List<Texture2D> cargadas, Objetivo o,
                                            out string como)
         {
             como = "nombre";
             Texture2D exacta = Unica(cargadas, o, true, 0, 0, o.clave, como);
-            if (exacta != null)
+            if (exacta != null || o.exportado)
             {
                 return exacta;
             }
@@ -395,7 +555,8 @@ namespace CloneHeroMod
         // texto == null se compara por medidas.
         private static Texture2D Unica(List<Texture2D> cargadas, Objetivo o,
                                        bool exacto, int ancho, int alto,
-                                       string texto, string como)
+                                       string texto, string como,
+                                       string tambienNombre = null)
         {
             Texture2D elegida = null;
             int cuantas = 0;
@@ -405,7 +566,10 @@ namespace CloneHeroMod
                 bool cumple;
                 if (texto == null)
                 {
-                    cumple = t.width == ancho && t.height == alto;
+                    cumple = t.width == ancho && t.height == alto
+                        && (tambienNombre == null
+                            || string.Equals(t.name, tambienNombre,
+                                             StringComparison.OrdinalIgnoreCase));
                 }
                 else
                 {
@@ -427,7 +591,7 @@ namespace CloneHeroMod
                 {
                     elegida = t;
                 }
-                else if (cuantas <= 6)
+                else if (cuantas <= 6 && tambienNombre == null && !exacto)
                 {
                     if (cuantas == 2)
                     {
@@ -438,10 +602,24 @@ namespace CloneHeroMod
                     MelonLogger.Msg("[Texturas]   " + Describir(t));
                 }
             }
+            if (cuantas > 1 && exacto)
+            {
+                // Dos texturas con el mismo nombre en archivos distintos. Si
+                // solo una mide lo que el PNG, es esa.
+                Texture2D porMedidas = Unica(cargadas, o, false, o.ancho, o.alto, null,
+                                             "nombre y tamano", texto);
+                if (porMedidas != null)
+                {
+                    return porMedidas;
+                }
+            }
             if (cuantas > 1)
             {
-                MelonLogger.Warning("[Texturas] " + o.clave + ": " + cuantas.ToString()
-                    + " candidatas por " + como + "; usa un nombre mas concreto");
+                if (tambienNombre == null)
+                {
+                    MelonLogger.Warning("[Texturas] " + o.clave + ": " + cuantas.ToString()
+                        + " candidatas por " + como + "; usa un nombre mas concreto");
+                }
                 return null;
             }
             return elegida;

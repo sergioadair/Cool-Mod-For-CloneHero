@@ -124,6 +124,9 @@ namespace CloneHeroMod
                     // No es de menu, pero tampoco necesita esperar a nada:
                     // engancha el sonido de Star Power listo.
                     EstrellaLista.InstalarParche(HarmonyInstance);
+                    // Tampoco de ajustes: barre las texturas propias cada vez
+                    // que se abre cualquier menu.
+                    TexturasPersonalizadas.InstalarParche(HarmonyInstance);
                 }
                 catch (Exception ex)
                 {
