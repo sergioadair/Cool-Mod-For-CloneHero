@@ -59,6 +59,9 @@ namespace CloneHeroMod
         private static RectTransform rtCartel;
         private static RawImage imagen;
         private static Texture2D texturaImagen;
+        private static Texture2D[] fotogramas;
+        private static int fotograma;
+        private static float fps = Ajustes.FpsPorDefecto;
         private static bool imagenBuscada;
         private static bool animando;
         private static float t;
@@ -276,6 +279,18 @@ namespace CloneHeroMod
             }
             // Con imagen, el texto es solo el numero, encima de ella.
             texto.text = imagen != null ? hito.ToString() : hito.ToString() + Sufijo;
+            if (fotogramas != null)
+            {
+                // Con animacion propia no se mueve ni se desvanece nada: el
+                // cartel queda quieto y opaco mientras pasan los fotogramas.
+                fotograma = 0;
+                imagen.texture = fotogramas[0];
+                rtCartel.localScale = Vector3.one;
+                rtCartel.anchoredPosition = new Vector2(0f, AlturaBase);
+                texto.color = color;
+                imagen.color = Color.white;
+                if (material != null) material.SetColor(idColorBorde, Color.black);
+            }
             cartel.SetActive(true);
             animando = true;
             t = 0f;
@@ -285,6 +300,11 @@ namespace CloneHeroMod
         private static void Animar()
         {
             t += Time.deltaTime;
+            if (fotogramas != null)
+            {
+                Fotogramas();
+                return;
+            }
             if (t >= Duracion)
             {
                 animando = false;
@@ -343,6 +363,24 @@ namespace CloneHeroMod
             }
         }
 
+        // La animacion propia: un fotograma tras otro a los FPS del .ini, y al
+        // acabar el ultimo, fuera. Dura lo que dan sus fotogramas.
+        private static void Fotogramas()
+        {
+            int f = (int)(t * fps);
+            if (f >= fotogramas.Length)
+            {
+                animando = false;
+                cartel.SetActive(false);
+                return;
+            }
+            if (f != fotograma)
+            {
+                fotograma = f;
+                imagen.texture = fotogramas[f];
+            }
+        }
+
         // Borde negro, para que el dorado se lea tambien sobre fondos claros.
         //
         // Se toca fontMaterial, que es una COPIA propia del cartel;
@@ -376,8 +414,14 @@ namespace CloneHeroMod
         {
             if (!imagenBuscada)
             {
+                // La carpeta de animacion manda sobre la imagen suelta.
                 imagenBuscada = true;
-                texturaImagen = CartelImagen.Cargar(CartelImagen.Racha);
+                fotogramas = CartelImagen.CargarAnimacion(CartelImagen.Racha);
+                if (fotogramas == null)
+                {
+                    texturaImagen = CartelImagen.Cargar(CartelImagen.Racha);
+                }
+                fps = Ajustes.RachaFps;
             }
             if (estiloResuelto || !intentoEstilo.Toca())
             {
@@ -562,10 +606,11 @@ namespace CloneHeroMod
 
                 // La imagen va centrada en el cartel y el numero encima.
                 float alto = 0f;
-                if (texturaImagen != null)
+                Texture2D primera = fotogramas != null ? fotogramas[0] : texturaImagen;
+                if (primera != null)
                 {
                     alto = Ajustes.RachaTamano * CartelImagen.AltoPorTamano;
-                    imagen = CartelImagen.Poner(cartel.transform, texturaImagen, alto);
+                    imagen = CartelImagen.Poner(cartel.transform, primera, alto);
                 }
 
                 GameObject go = new GameObject("Text");

@@ -36,6 +36,8 @@ namespace CloneHeroMod
         public const string ClaveEstrellaTamano = "star_power_size";
         public const string ClaveEstrellaColor = "star_power_color";
         public const string ClaveEstrellaFuente = "star_power_font";
+        public const string ClaveRachaFps = "note_streak_fps";
+        public const string ClaveEstrellaFps = "star_power_fps";
         public const string ClaveMostrarTiempo = "show_time_display";
         public const string ClaveTiempoTamano = "time_display_size";
         public const string ClaveTiempoColor = "time_display_color";
@@ -58,6 +60,8 @@ namespace CloneHeroMod
         private static float estrellaTamano = EstrellaTamanoPorDefecto;
         private static string estrellaColor = EstrellaColorPorDefecto;
         private static string estrellaFuente = "";
+        private static float rachaFps = FpsPorDefecto;
+        private static float estrellaFps = FpsPorDefecto;
         private static float mostrarTiempo = 1f;
         private static float tiempoTamano = TiempoTamanoPorDefecto;
         private static string tiempoColor = TiempoColorPorDefecto;
@@ -240,6 +244,30 @@ namespace CloneHeroMod
             }
         }
 
+        // Fotogramas por segundo de las animaciones propias de los carteles
+        // (una carpeta de imagenes en Custom/Textures, ver CartelImagen).
+        public const float FpsPorDefecto = 10f;
+        public const float FpsMin = 1f;
+        public const float FpsMax = 60f;
+
+        public static float RachaFps
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return rachaFps;
+            }
+        }
+
+        public static float EstrellaFps
+        {
+            get
+            {
+                if (!cargado) { Cargar(); }
+                return estrellaFps;
+            }
+        }
+
         // Reloj de la cancion ("1:25 / 2:30"), y su aspecto. Mismo trato que el
         // cartel de racha: el encendido va en el menu y los gustos en el .ini.
         public const float TiempoTamanoPorDefecto = 28f;
@@ -402,6 +430,8 @@ namespace CloneHeroMod
                                                RachaTamanoMin, RachaTamanoMax);
                 estrellaColor = TextoOEscribir(ruta, ClaveEstrellaColor, EstrellaColorPorDefecto);
                 estrellaFuente = TextoOEscribir(ruta, ClaveEstrellaFuente, "");
+                rachaFps = LeerOEscribir(ruta, ClaveRachaFps, FpsPorDefecto, FpsMin, FpsMax);
+                estrellaFps = LeerOEscribir(ruta, ClaveEstrellaFps, FpsPorDefecto, FpsMin, FpsMax);
                 mostrarTiempo = LeerOEscribir(ruta, ClaveMostrarTiempo, 1f, 0f, 1f);
                 tiempoTamano = LeerOEscribir(ruta, ClaveTiempoTamano, TiempoTamanoPorDefecto,
                                              TiempoTamanoMin, TiempoTamanoMax);

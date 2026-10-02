@@ -69,6 +69,9 @@ namespace CloneHeroMod
         private static RectTransform rtCartel;
         private static RawImage imagen;
         private static Texture2D texturaImagen;
+        private static Texture2D[] fotogramas;
+        private static int fotograma;
+        private static float fps = Ajustes.FpsPorDefecto;
         private static bool imagenBuscada;
         private static bool animando;
         private static float t;
@@ -229,6 +232,15 @@ namespace CloneHeroMod
                     return;
                 }
             }
+            if (fotogramas != null)
+            {
+                // Con animacion propia no se mueve ni se desvanece nada.
+                fotograma = 0;
+                imagen.texture = fotogramas[0];
+                rtCartel.localScale = Vector3.one;
+                rtCartel.anchoredPosition = new Vector2(0f, AlturaBase);
+                imagen.color = Color.white;
+            }
             cartel.SetActive(true);
             animando = true;
             t = 0f;
@@ -236,11 +248,34 @@ namespace CloneHeroMod
                 + (rellenoAlDisparar * 100f).ToString("0") + "%)");
         }
 
+        // La animacion propia: un fotograma tras otro a los FPS del .ini, y al
+        // acabar el ultimo, fuera. Dura lo que dan sus fotogramas.
+        private static void Fotogramas()
+        {
+            int f = (int)(t * fps);
+            if (f >= fotogramas.Length)
+            {
+                animando = false;
+                cartel.SetActive(false);
+                return;
+            }
+            if (f != fotograma)
+            {
+                fotograma = f;
+                imagen.texture = fotogramas[f];
+            }
+        }
+
         // La misma animacion que el cartel de racha: entra pasandose de
         // tamano, se asienta, aguanta y se desvanece mientras sube.
         private static void Animar()
         {
             t += Time.deltaTime;
+            if (fotogramas != null)
+            {
+                Fotogramas();
+                return;
+            }
             if (t >= Duracion)
             {
                 animando = false;
@@ -321,8 +356,14 @@ namespace CloneHeroMod
         {
             if (!imagenBuscada)
             {
+                // La carpeta de animacion manda sobre la imagen suelta.
                 imagenBuscada = true;
-                texturaImagen = CartelImagen.Cargar(CartelImagen.Estrella);
+                fotogramas = CartelImagen.CargarAnimacion(CartelImagen.Estrella);
+                if (fotogramas == null)
+                {
+                    texturaImagen = CartelImagen.Cargar(CartelImagen.Estrella);
+                }
+                fps = Ajustes.EstrellaFps;
             }
             if (estiloResuelto || !intentoEstilo.Toca())
             {
@@ -399,9 +440,10 @@ namespace CloneHeroMod
                 rtCartel.sizeDelta = new Vector2(1200f, 140f);
                 rtCartel.anchoredPosition = new Vector2(0f, AlturaBase);
 
-                if (texturaImagen != null)
+                Texture2D primera = fotogramas != null ? fotogramas[0] : texturaImagen;
+                if (primera != null)
                 {
-                    imagen = CartelImagen.Poner(cartel.transform, texturaImagen,
+                    imagen = CartelImagen.Poner(cartel.transform, primera,
                         Ajustes.EstrellaTamano * CartelImagen.AltoPorTamano);
                 }
 

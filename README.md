@@ -205,6 +205,20 @@ animation. The note streak keeps its number on top of the image. The size
 setting above controls how big the image is. Remove the file to go back to
 the text.
 
+**Or your own animations.** Make a folder named `cool_note_streak` or
+`cool_star_power` inside **Textures** and fill it with frames (`1.png`,
+`2.png`, `3.png`…). They play in order, once, at the speed you set:
+
+```ini
+note_streak_fps = 10         ; frames per second
+star_power_fps = 10
+```
+
+A folder wins over a single image, and an empty folder is ignored. The note
+streak still shows its number on top. A ready-made note streak animation is
+included in [`assets/Textures/cool_note_streak/`](assets/Textures/cool_note_streak/)
+— copy the whole folder into your **Textures** folder to use it.
+
 ### ⏱️ Song clock
 
 **`1:25 / 2:30`** in the top right corner while you play, so you know where you
@@ -391,6 +405,8 @@ has a menu option except the slideshow interval and the sound volume.
 | `star_power_size` | `72` | Size of the SP Ready text |
 | `star_power_color` | `33B5FF` | Its colour, `RRGGBB` |
 | `star_power_font` | — | One of the game's fonts; empty uses the default |
+| `note_streak_fps` | `10` | Speed of a custom note streak animation, 1 to 60 |
+| `star_power_fps` | `10` | Speed of a custom SP Ready animation, 1 to 60 |
 | `show_time_display` | `1` | Show the song clock while you play |
 | `time_display_size` | `28` | Size of the song clock text |
 | `time_display_color` | `FFFFFF` | Its colour, `RRGGBB` |
