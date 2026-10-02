@@ -111,6 +111,89 @@ namespace CloneHeroMod
             return salida;
         }
 
+        // ----------------------------------------------------------- rasgos -
+        // Como suena cada instante, para reconocer cuando una parte de la
+        // cancion se repite: la armonia (12 semitonos, sin octava, que es lo
+        // que se mantiene cuando vuelve un estribillo) y el timbre (energia
+        // en 8 bandas, que distingue el riff de guitarra del verso hablado).
+        //
+        // Marcos de 2048 muestras (93 ms) cada 1024: aqui no se buscan
+        // ataques sino el color de cada pulso, y con esto sobra.
+        public const int VentanaRasgos = 2048;
+        public const int SaltoRasgos = 1024;
+        public const int DimensionRasgos = 20;
+        private static readonly double[] CortesBandas =
+            { 60, 120, 250, 500, 1000, 2000, 4000, 7000, 11000 };
+
+        public static double InstanteRasgo(int marco)
+        {
+            return (marco * SaltoRasgos + VentanaRasgos / 2.0) / Frecuencia;
+        }
+
+        public static float[][] Rasgos(float[] x)
+        {
+            int marcos = x == null ? 0 : 1 + (x.Length - VentanaRasgos) / SaltoRasgos;
+            if (marcos < 2)
+            {
+                return new float[0][];
+            }
+            int bins = VentanaRasgos / 2 + 1;
+            float[] hann = new float[VentanaRasgos];
+            for (int i = 0; i < VentanaRasgos; i++)
+            {
+                hann[i] = (float)(0.5 - 0.5 * Math.Cos(2.0 * Math.PI * i / (VentanaRasgos - 1)));
+            }
+            // a que semitono y a que banda va cada bin, de una vez
+            int[] clase = new int[bins];
+            int[] banda = new int[bins];
+            for (int k = 0; k < bins; k++)
+            {
+                double f = (double)k * Frecuencia / VentanaRasgos;
+                clase[k] = -1;
+                if (f >= 80 && f <= 5000)
+                {
+                    int midi = (int)Math.Round(69 + 12 * Math.Log(f / 440.0, 2.0));
+                    clase[k] = ((midi % 12) + 12) % 12;
+                }
+                banda[k] = -1;
+                for (int j = 0; j + 1 < CortesBandas.Length; j++)
+                {
+                    if (f >= CortesBandas[j] && f < CortesBandas[j + 1]) banda[k] = j;
+                }
+            }
+
+            Fft fft = new Fft(VentanaRasgos);
+            float[] mag = new float[bins];
+            float[][] salida = new float[marcos][];
+            for (int m = 0; m < marcos; m++)
+            {
+                fft.Magnitudes(x, m * SaltoRasgos, hann, mag);
+                float[] r = new float[DimensionRasgos];
+                double totalCroma = 0;
+                double[] energia = new double[8];
+                for (int k = 0; k < bins; k++)
+                {
+                    double e = (double)mag[k] * mag[k];
+                    if (clase[k] >= 0)
+                    {
+                        r[clase[k]] += (float)e;
+                        totalCroma += e;
+                    }
+                    if (banda[k] >= 0) energia[banda[k]] += e;
+                }
+                for (int c = 0; c < 12; c++)
+                {
+                    r[c] = totalCroma > 1e-12 ? (float)(r[c] / totalCroma) : 0f;
+                }
+                for (int j = 0; j < 8; j++)
+                {
+                    r[12 + j] = (float)Math.Log(1.0 + 1000.0 * energia[j]);
+                }
+                salida[m] = r;
+            }
+            return salida;
+        }
+
         // ------------------------------------------------------------ picos -
         // Un pico cuenta si destaca sobre su propio entorno, no sobre un
         // umbral fijo: una cancion con subidas y bajadas de volumen no tiene

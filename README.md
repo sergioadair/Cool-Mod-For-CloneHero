@@ -51,8 +51,9 @@ A three-minute song takes about six seconds.
 
 > It reads what it can actually hear, so the chart follows the song: the
 > drums, the singing, the guitar, whatever stands out. On a meme it follows
-> the talking. It will not match a chart someone spent a week on by hand — but
-> it is something.
+> the talking. Notes stay on the beat, and when a part of the song comes back,
+> it is charted the same way again, so you can learn it. It will not match a
+> chart someone spent a week on by hand — but it is something.
 >
 > Folders that already have a chart are never touched.
 

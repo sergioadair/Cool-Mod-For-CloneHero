@@ -301,8 +301,13 @@ namespace CloneHeroMod
             int dificultades = Puntuar(carpeta, chart);
 
             MelonLogger.Msg("[Audio] " + Path.GetFileName(carpeta) + ": "
-                + r.notas.Count.ToString() + " notas, " + r.bpm.ToString("0") + " bpm"
-                + (r.cuadriculado ? ", cuadriculado" : ", sin cuadricular")
+                + r.notas.Count.ToString() + " notas (" + r.inventadas.ToString()
+                + " sin ataque debajo), " + r.bpm.ToString("0") + " bpm"
+                + (r.ternario ? ", rejilla ternaria" : ", rejilla binaria")
+                + ", notas movidas " + r.movidaMedia.ToString("0") + " ms (p90 "
+                + r.movidaP90.ToString("0") + ")"
+                + ", " + r.compasesCopiados.ToString() + "/" + r.compases.ToString()
+                + " compases repetidos"
                 + ", " + dificultades.ToString() + " valores de dificultad");
             return true;
         }
@@ -506,9 +511,23 @@ namespace CloneHeroMod
             sync.nombre = "SyncTrack";
             sync.lineas.Add("  0 = TS 4");
             // el .chart guarda el tempo multiplicado por mil
-            long bpmMil = (long)Math.Round(r.bpm * 1000.0);
-            if (bpmMil < 1000) bpmMil = 120000;
-            sync.lineas.Add("  0 = B " + bpmMil.ToString(CultureInfo.InvariantCulture));
+            // El mapa sigue los pulsos de la cancion: un cambio de tempo por
+            // cada pulso que se mueve. Si por lo que sea viniera vacio, un
+            // tempo fijo como antes.
+            if (r.tempos != null && r.tempos.Count > 0)
+            {
+                for (int i = 0; i < r.tempos.Count; i++)
+                {
+                    sync.lineas.Add("  " + r.tempos[i].Key.ToString(CultureInfo.InvariantCulture)
+                        + " = B " + r.tempos[i].Value.ToString(CultureInfo.InvariantCulture));
+                }
+            }
+            else
+            {
+                long bpmMil = (long)Math.Round(r.bpm * 1000.0);
+                if (bpmMil < 1000) bpmMil = 120000;
+                sync.lineas.Add("  0 = B " + bpmMil.ToString(CultureInfo.InvariantCulture));
+            }
             c.secciones.Add(sync);
 
             ArchivoChart.Seccion eventos = new ArchivoChart.Seccion();
