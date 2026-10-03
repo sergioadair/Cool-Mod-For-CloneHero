@@ -85,6 +85,10 @@ namespace CloneHeroMod
         // ------------------------------------------------------------ escena -
         public static void EscenaCambiada(string nombre, bool enJuego)
         {
+            if (enJuego && !estiloResuelto)
+            {
+                ResolverEstilo(true);
+            }
             contador = null;
             leerValor = null;
             intentos = 0;
@@ -410,7 +414,14 @@ namespace CloneHeroMod
         // Color, tamano y fuente. Se llama desde los menus, antes de que
         // empiece ninguna cancion: buscar una fuente recorre objetos cargados y
         // eso no puede pasar durante el gameplay.
-        public static void ResolverEstilo()
+        // forzar: sin esperar turno. Se usa al entrar a la cancion: el turno
+        // normal solo llega en los menus y tras 12 s de menu, asi que quien
+        // abria el juego y entraba enseguida a una cancion veia el cartel con
+        // el color de serie —y al repetirla igual, porque dentro de la cancion
+        // esto no corre—. Lo reporto un usuario con video. Leer el color no
+        // cuesta nada, y buscar la fuente queda tapado por el tiron de la
+        // propia carga de la escena.
+        public static void ResolverEstilo(bool forzar = false)
         {
             if (!imagenBuscada)
             {
@@ -423,7 +434,7 @@ namespace CloneHeroMod
                 }
                 fps = Ajustes.RachaFps;
             }
-            if (estiloResuelto || !intentoEstilo.Toca())
+            if (estiloResuelto || (!forzar && !intentoEstilo.Toca()))
             {
                 return;
             }
