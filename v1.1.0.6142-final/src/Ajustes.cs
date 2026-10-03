@@ -46,7 +46,7 @@ namespace CloneHeroMod
         public const string ClaveVolumenSfx = "finished_song_sfx_volume";
 
         public const float SlideshowPorDefecto = 0f;         // 0 = apagado
-        public const float SegundosPorDefecto = 900f;        // 15 minutos
+        public const float SegundosPorDefecto = 300f;        // 5 minutos
         public const float SegundosMin = 5f;
         public const float SegundosMax = 86400f;
 

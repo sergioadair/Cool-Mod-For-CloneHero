@@ -55,6 +55,8 @@ namespace CloneHeroMod
         private static bool instalado;
         private static int indiceSlideshow = -1;
         private static float proximoCambio;
+        private static int valorVisto = -1;       // el del menu en el tick anterior
+        private static float serieHasta;          // un fondo de serie elegido a mano
 
         public static int Cantidad
         {
@@ -244,7 +246,39 @@ namespace CloneHeroMod
                 int valor = (int)propValor.GetValue(ajusteFondo);
                 bool slideshow = Ajustes.SlideshowActivo && rutas.Length > 1;
 
+                // ELEGIR A MANO CON EL SLIDESHOW PUESTO. Antes el slideshow no
+                // miraba el valor del menu, asi que cambiar el fondo desde
+                // Settings no hacia nada. Ahora, si el valor cambia, se pone
+                // ese fondo y el slideshow sigue desde ahi: el siguiente cambio
+                // llega al cabo de un intervalo completo. Si se eligio uno de
+                // serie, se ve ese mismo intervalo y luego vuelven los propios.
+                if (slideshow && valorVisto >= 0 && valor != valorVisto)
+                {
+                    float ahora = Time.realtimeSinceStartup;
+                    proximoCambio = ahora + Ajustes.SlideshowSegundos;
+                    if (valor >= FondosDeSerie && valor < FondosDeSerie + rutas.Length)
+                    {
+                        indiceSlideshow = valor - FondosDeSerie;
+                        serieHasta = 0;
+                        fondoGuardado = valor;
+                        Ajustes.GuardarFondo(valor);
+                    }
+                    else
+                    {
+                        serieHasta = proximoCambio;
+                    }
+                    MelonLogger.Msg("[Fondos] elegido a mano con el slideshow puesto: "
+                        + valor.ToString() + "; el slideshow sigue desde aqui");
+                }
+                valorVisto = valor;
+
                 int indice;
+                if (slideshow && Time.realtimeSinceStartup < serieHasta)
+                {
+                    Detener();
+                    DevolverMateriales();
+                    return;
+                }
                 if (slideshow)
                 {
                     indice = IndiceSlideshow();

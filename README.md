@@ -280,7 +280,9 @@ A starter pack is included in [`assets/Menu Backgrounds/`](assets/Menu%20Backgro
 ### 🔀 Menu background slideshow
 
 `Settings > Video > Menu BG Slideshow` — rotates through your custom
-backgrounds automatically. The interval is configurable (15 minutes by default).
+backgrounds automatically. The interval is configurable (5 minutes by default).
+Pick a background by hand while it is on and it switches right away; the
+slideshow carries on from there.
 
 ### ⭐ Favorites filter
 
@@ -392,7 +394,7 @@ has a menu option except the slideshow interval and the sound volume.
 |---|---|---|
 | `difficulty_reference_nps` | `14` | Notes per second that equals 100/100. Raise it to compress the scale, lower it to expand |
 | `menu_bg_slideshow` | `0` | Background slideshow on/off |
-| `menu_bg_slideshow_seconds` | `900` | Seconds between background changes |
+| `menu_bg_slideshow_seconds` | `300` | Seconds between background changes |
 | `menu_background_custom` | — | Which custom background is selected (written by the mod) |
 | `finished_song_sfx` | `1` | End-of-song sound on/off |
 | `finished_song_sfx_volume` | `1` | Multiplies that sound's volume |
