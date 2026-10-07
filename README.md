@@ -218,6 +218,19 @@ A folder wins over a single image, and an empty folder is ignored. Animations
 play in place, at their own size, in the middle of the screen. The note streak
 still shows its number.
 
+Changed your images with the game open? Go back to the main menu and they
+reload.
+
+### 🖼️ Images on screen while you play
+
+Put images in a `during_song` folder inside **Textures** and they stay on
+screen for the whole song, then go away when it ends. They sit in the middle
+of the screen at their own size, on top of the game but under the pause menu
+and the fade at the end.
+
+If there are several, they stack in order: `2.png` goes on top of `1.png`,
+and so on. Changes reload when you go back to the main menu.
+
 ### ⏱️ Song clock
 
 **`1:25 / 2:30`** in the top right corner while you play, so you know where you

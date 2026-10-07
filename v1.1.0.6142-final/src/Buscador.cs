@@ -30,6 +30,7 @@ namespace CloneHeroMod
         // hacer: no existen ni SongSelect ni MenuBackground ni EndOfSong, y es
         // justo el momento en que cualquier trabajo se nota como un tiron.
         public const string EscenaJuego = "Gameplay";
+        public const string EscenaMenu = "Main Menu";
 
         private static bool enJuego;
 

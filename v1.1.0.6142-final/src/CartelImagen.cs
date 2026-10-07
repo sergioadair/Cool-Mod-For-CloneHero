@@ -48,7 +48,9 @@ namespace CloneHeroMod
         public static bool EsCarpetaDeCartel(string ruta)
         {
             string carpeta = Path.GetFileName(Path.GetDirectoryName(ruta) ?? "");
-            return EsDeCartel(carpeta);
+            return EsDeCartel(carpeta)
+                || string.Equals(carpeta, ImagenesCancion.NombreCarpeta,
+                                 StringComparison.OrdinalIgnoreCase);
         }
 
         // La imagen, o null si no hay. Se mira una sola vez por sesion.
@@ -111,30 +113,7 @@ namespace CloneHeroMod
                 string carpeta = string.IsNullOrEmpty(raiz) ? null : Path.Combine(raiz, nombre);
                 if (carpeta != null && Directory.Exists(carpeta))
                 {
-                    List<string> archivos = new List<string>();
-                    foreach (string f in Directory.GetFiles(carpeta))
-                    {
-                        string ext = Path.GetExtension(f).ToLowerInvariant();
-                        if (Array.IndexOf(Extensiones, ext) >= 0) archivos.Add(f);
-                    }
-                    archivos.Sort(OrdenNatural);
-                    List<Texture2D> fotogramas = new List<Texture2D>();
-                    List<string> orden = new List<string>();
-                    for (int i = 0; i < archivos.Count; i++)
-                    {
-                        Texture2D f = Leer(archivos[i]);
-                        if (f == null) continue;
-                        fotogramas.Add(f);
-                        orden.Add(Path.GetFileName(archivos[i]));
-                    }
-                    if (fotogramas.Count > 0)
-                    {
-                        t = fotogramas.ToArray();
-                        MelonLogger.Msg("[Carteles] animacion propia: " + nombre + ", "
-                            + t.Length.ToString() + " fotogramas ("
-                            + t[0].width.ToString() + "x" + t[0].height.ToString() + "), en este orden: "
-                            + string.Join(", ", orden.ToArray()));
-                    }
+                    t = LeerCarpeta(carpeta, "[Carteles] animacion propia: " + nombre);
                 }
             }
             catch (Exception ex)
@@ -147,6 +126,38 @@ namespace CloneHeroMod
 
         private static readonly Dictionary<string, Texture2D[]> animaciones =
             new Dictionary<string, Texture2D[]>(StringComparer.OrdinalIgnoreCase);
+
+        // Todas las imagenes de una carpeta, en orden natural, o null si no
+        // hay ninguna. Deja en el log cuantas y en que orden, precedido de
+        // "etiqueta". La usan las animaciones de los carteles y las imagenes
+        // de durante la cancion (ImagenesCancion).
+        public static Texture2D[] LeerCarpeta(string carpeta, string etiqueta)
+        {
+            List<string> archivos = new List<string>();
+            foreach (string f in Directory.GetFiles(carpeta))
+            {
+                string ext = Path.GetExtension(f).ToLowerInvariant();
+                if (Array.IndexOf(Extensiones, ext) >= 0) archivos.Add(f);
+            }
+            archivos.Sort(OrdenNatural);
+            List<Texture2D> leidas = new List<Texture2D>();
+            List<string> orden = new List<string>();
+            for (int i = 0; i < archivos.Count; i++)
+            {
+                Texture2D f = Leer(archivos[i]);
+                if (f == null) continue;
+                leidas.Add(f);
+                orden.Add(Path.GetFileName(archivos[i]));
+            }
+            if (leidas.Count == 0)
+            {
+                return null;
+            }
+            MelonLogger.Msg(etiqueta + ", " + leidas.Count.ToString() + " imagen(es) ("
+                + leidas[0].width.ToString() + "x" + leidas[0].height.ToString()
+                + "), en este orden: " + string.Join(", ", orden.ToArray()));
+            return leidas.ToArray();
+        }
 
         private static Texture2D Leer(string ruta)
         {
@@ -191,6 +202,27 @@ namespace CloneHeroMod
                 }
             }
             return (a.Length - i).CompareTo(b.Length - j);
+        }
+
+        // Olvida todo lo cargado, para que la proxima vez se lea de nuevo del
+        // disco. Se llama al volver al menu principal. Las texturas se
+        // destruyen: llevan HideAndDontSave y Unity no las soltaria nunca.
+        public static void Descartar()
+        {
+            foreach (Texture2D t in cargadas.Values)
+            {
+                if (t != null) UnityEngine.Object.Destroy(t);
+            }
+            foreach (Texture2D[] a in animaciones.Values)
+            {
+                if (a == null) continue;
+                for (int i = 0; i < a.Length; i++)
+                {
+                    if (a[i] != null) UnityEngine.Object.Destroy(a[i]);
+                }
+            }
+            cargadas.Clear();
+            animaciones.Clear();
         }
 
         // Un RawImage hijo de "padre", centrado y al tamano de la imagen.

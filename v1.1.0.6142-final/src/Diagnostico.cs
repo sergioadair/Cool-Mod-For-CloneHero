@@ -68,6 +68,7 @@ namespace CloneHeroMod
             {
                 RachaNotas.Tick();
                 EstrellaLista.Tick();
+                ImagenesCancion.Tick();
                 TiempoCancion.Tick();
                 // Excepcion a la regla de no gastar nada durante la cancion: el
                 // atlas de trastes solo esta cargado aqui. Son unos pocos
@@ -143,6 +144,7 @@ namespace CloneHeroMod
                     Ajustes.Cargar();
                     RachaNotas.ResolverEstilo();
                     EstrellaLista.ResolverEstilo();
+                    ImagenesCancion.Cargar();
                     FondosPersonalizados.Instalar();
                 }
             }
@@ -225,8 +227,13 @@ namespace CloneHeroMod
         public override void OnSceneWasLoaded(int indice, string nombre)
         {
             Buscador.EscenaCambiada(nombre);
+            if (nombre == Buscador.EscenaMenu)
+            {
+                CartelImagen.Descartar();      // antes que los carteles las relean
+            }
             RachaNotas.EscenaCambiada(nombre, Buscador.EnJuego);
             EstrellaLista.EscenaCambiada(nombre, Buscador.EnJuego);
+            ImagenesCancion.EscenaCambiada(nombre, Buscador.EnJuego);
             TiempoCancion.EscenaCambiada(nombre, Buscador.EnJuego);
             FondosPersonalizados.EscenaCambiada(Buscador.EnJuego);
             TexturasPersonalizadas.EscenaCambiada(nombre, Buscador.EnJuego);

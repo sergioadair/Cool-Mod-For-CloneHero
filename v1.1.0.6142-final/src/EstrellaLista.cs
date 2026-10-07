@@ -155,6 +155,16 @@ namespace CloneHeroMod
         // ------------------------------------------------------------ escena -
         public static void EscenaCambiada(string nombre, bool enJuego)
         {
+            // Al volver al menu principal se vuelven a leer la imagen y la
+            // animacion propias (CartelImagen ya tiro las de antes): asi se
+            // pueden cambiar con el juego abierto, sin reiniciarlo.
+            if (nombre == Buscador.EscenaMenu)
+            {
+                imagenBuscada = false;
+                texturaImagen = null;
+                fotogramas = null;
+                ResolverEstilo();
+            }
             if (enJuego && !estiloResuelto)
             {
                 ResolverEstilo(true);
