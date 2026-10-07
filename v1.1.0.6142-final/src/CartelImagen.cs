@@ -24,10 +24,12 @@ namespace CloneHeroMod
         public const string Racha = "cool_note_streak";
         public const string Estrella = "cool_star_power";
 
-        // El tamano del .ini es el de la letra. Para una imagen se toma como
-        // su alto en pixeles por este factor: con el 72 de serie, 144 px, que
-        // es mas o menos lo que ocupa el texto. El ancho sale de su proporcion.
-        public const float AltoPorTamano = 2f;
+        // La imagen y la animacion se ven a su tamano, tal cual, y centradas
+        // en la pantalla: quien las dibuja ya decidio cuanto miden. El tamano
+        // del .ini es solo el de la letra (el numero del Note Streak). Los
+        // pixeles son los de la resolucion de referencia del lienzo, 1920x1080:
+        // a 1080p se ven exactos, y en otras resoluciones escalan con todo lo
+        // demas.
 
         private static readonly string[] Extensiones = { ".png", ".jpg", ".jpeg" };
         private static readonly Dictionary<string, Texture2D> cargadas =
@@ -191,9 +193,8 @@ namespace CloneHeroMod
             return (a.Length - i).CompareTo(b.Length - j);
         }
 
-        // Un RawImage hijo de "padre", centrado, con el alto pedido y el ancho
-        // que le toque por proporcion.
-        public static RawImage Poner(Transform padre, Texture2D tex, float alto)
+        // Un RawImage hijo de "padre", centrado y al tamano de la imagen.
+        public static RawImage Poner(Transform padre, Texture2D tex)
         {
             GameObject go = new GameObject("Imagen");
             go.transform.SetParent(padre, false);
@@ -204,8 +205,7 @@ namespace CloneHeroMod
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            float ancho = tex.height > 0 ? alto * tex.width / tex.height : alto;
-            rt.sizeDelta = new Vector2(ancho, alto);
+            rt.sizeDelta = new Vector2(tex.width, tex.height);
             rt.anchoredPosition = Vector2.zero;
             return img;
         }

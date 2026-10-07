@@ -34,6 +34,10 @@ namespace CloneHeroMod
         // que se genero el atlas de la fuente.
         private const float GrosorBorde = 0.2f;
         private const float AlturaBase = 250f;   // por encima de la autopista
+
+        // Donde arranca el cartel: AlturaBase con texto, el centro de la
+        // pantalla con imagen o animacion propia.
+        private static float baseY = AlturaBase;
         private const float Deriva = 55f;
 
         // Activa solo dentro de la cancion y solo si la opcion esta puesta. Se
@@ -290,7 +294,7 @@ namespace CloneHeroMod
                 fotograma = 0;
                 imagen.texture = fotogramas[0];
                 rtCartel.localScale = Vector3.one;
-                rtCartel.anchoredPosition = new Vector2(0f, AlturaBase);
+                rtCartel.anchoredPosition = new Vector2(0f, baseY);
                 texto.color = color;
                 imagen.color = Color.white;
                 if (material != null) material.SetColor(idColorBorde, Color.black);
@@ -351,7 +355,7 @@ namespace CloneHeroMod
 
             float avance = t / Duracion;
             rtCartel.localScale = new Vector3(escala, escala, 1f);
-            rtCartel.anchoredPosition = new Vector2(0f, AlturaBase + Deriva * avance * avance);
+            rtCartel.anchoredPosition = new Vector2(0f, baseY + Deriva * avance * avance);
             texto.color = new Color(color.r, color.g, color.b, alfa);
             if (imagen != null)
             {
@@ -383,6 +387,15 @@ namespace CloneHeroMod
                 fotograma = f;
                 imagen.texture = fotogramas[f];
             }
+        }
+
+        // Donde va el numero cuando hay imagen: el mismo sitio de siempre,
+        // por encima de la autopista, aunque la imagen ahora vaya al centro de
+        // la pantalla. Es la altura que tenia con la imagen al tamano antiguo
+        // (dos veces el de la letra), asi que no se mueve respecto a antes.
+        private static float PosicionNumero()
+        {
+            return AlturaBase + Ajustes.RachaTamano * 1.6f;
         }
 
         // Borde negro, para que el dorado se lea tambien sobre fondos claros.
@@ -613,16 +626,16 @@ namespace CloneHeroMod
                 rtCartel.anchorMax = new Vector2(0.5f, 0.5f);
                 rtCartel.pivot = new Vector2(0.5f, 0.5f);
                 rtCartel.sizeDelta = new Vector2(1200f, 140f);
-                rtCartel.anchoredPosition = new Vector2(0f, AlturaBase);
 
-                // La imagen va centrada en el cartel y el numero encima.
-                float alto = 0f;
+                // La imagen, a su tamano y en el centro de la pantalla; el
+                // numero, al tamano del .ini y donde estuvo siempre.
                 Texture2D primera = fotogramas != null ? fotogramas[0] : texturaImagen;
                 if (primera != null)
                 {
-                    alto = Ajustes.RachaTamano * CartelImagen.AltoPorTamano;
-                    imagen = CartelImagen.Poner(cartel.transform, primera, alto);
+                    imagen = CartelImagen.Poner(cartel.transform, primera);
                 }
+                baseY = imagen != null ? 0f : AlturaBase;
+                rtCartel.anchoredPosition = new Vector2(0f, baseY);
 
                 GameObject go = new GameObject("Text");
                 go.transform.SetParent(cartel.transform, false);
@@ -641,7 +654,7 @@ namespace CloneHeroMod
                 rtTexto.pivot = new Vector2(0.5f, 0.5f);
                 rtTexto.sizeDelta = new Vector2(1200f, 140f);
                 rtTexto.anchoredPosition = imagen != null
-                    ? new Vector2(0f, alto / 2f + Ajustes.RachaTamano * 0.6f)
+                    ? new Vector2(0f, PosicionNumero() - baseY)
                     : Vector2.zero;
                 cartel.SetActive(false);
 

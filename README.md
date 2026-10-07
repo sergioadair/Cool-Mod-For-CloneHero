@@ -201,9 +201,9 @@ star_power_font =            ; empty = the game's own
 **Use your own images.** Drop a `cool_note_streak.png` and/or a
 `cool_star_power.png` (`.jpg` works too) straight into your **Textures**
 folder, and the callouts show your image instead of the text, with the same
-animation. The note streak keeps its number on top of the image. The size
-setting above controls how big the image is. Remove the file to go back to
-the text.
+animation. Images show at their own size, in the middle of the screen. The
+note streak keeps its number where it always is, at the size set above.
+Remove the file to go back to the text.
 
 **Or your own animations.** Make a folder named `cool_note_streak` or
 `cool_star_power` inside **Textures** and fill it with frames (`1.png`,
@@ -214,10 +214,9 @@ note_streak_fps = 10         ; frames per second
 star_power_fps = 10
 ```
 
-A folder wins over a single image, and an empty folder is ignored. The note
-streak still shows its number on top. A ready-made note streak animation is
-included in [`assets/Textures/cool_note_streak/`](assets/Textures/cool_note_streak/)
-— copy the whole folder into your **Textures** folder to use it.
+A folder wins over a single image, and an empty folder is ignored. Animations
+play in place, at their own size, in the middle of the screen. The note streak
+still shows its number.
 
 ### ⏱️ Song clock
 
