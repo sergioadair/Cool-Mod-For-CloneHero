@@ -96,7 +96,15 @@ namespace CloneHeroMod
         public const int UmbralHopo = 65;
 
         // Tiempo que hace falta para mover la mano dos trastes de golpe.
-        public const double TiempoParaSaltar = 0.40;
+        public const double TiempoParaSaltar = 0.30;
+
+        // Donde empieza cada traste a partir del rojo, en puesto de la nota
+        // (0 la mas baja, 1 la mas alta). No son quintos iguales a proposito:
+        // la mano solo se mueve de uno en uno o de dos en dos, asi que lo que
+        // se pide en los extremos se alcanza menos que lo del centro. Con
+        // quintos iguales salia verde 8-14% y naranja 5-7%; los humanos de
+        // dificultad 25-50 ponen 16% y 12% de mediana (293 charts).
+        private static readonly double[] CortesTraste = { 0.22, 0.42, 0.57, 0.70 };
 
         // Tramos para medir la rejilla, y cuanto tienen que apartarse entre si
         // para seguir a una cancion que se adelanta o se atrasa. Ver Mapa.
@@ -129,6 +137,10 @@ namespace CloneHeroMod
         public const double Contraste = 2.0;
         public const double LimiteRapida = 0.20;
         public const double ConfianzaSeguidor = 0.85;
+
+        // Con tono en menos de esta fraccion de las notas, los trastes salen
+        // del brillo del sonido en vez del tono.
+        public const double MinimoConTono = 0.5;
 
         // ENTRADILLA. Dos segundos en blanco antes de que empiece nada, para
         // que al darle a jugar no te caiga una nota encima de inmediato.
@@ -175,6 +187,9 @@ namespace CloneHeroMod
             public int compases;
             public int compasesCopiados;
             public int inventadas;
+            // Fraccion de notas en las que se encontro tono. Por debajo de
+            // MinimoConTono, los trastes salen del brillo (ver AsignarTrastes).
+            public double conTono;
             // El mapa de tempo: (tick, bpm x 1000), uno por cada cambio.
             public List<KeyValuePair<long, long>> tempos = new List<KeyValuePair<long, long>>();
             public int ataques;
@@ -370,10 +385,13 @@ namespace CloneHeroMod
         {
             int n = elegidos.Count;
             double[] tono = new double[n];
+            int conTono = 0;
             for (int i = 0; i < n; i++)
             {
                 tono[i] = Tono(x, (int)(elegidos[i].segundo * AnalisisAudio.Frecuencia));
+                if (tono[i] > 0) conTono++;
             }
+            r.conTono = n > 0 ? (double)conTono / n : 0;
             // los huecos se rellenan con el tono anterior conocido: en un
             // ataque de percusion no hay altura que medir, pero la nota tiene
             // que ir a algun traste
@@ -388,10 +406,27 @@ namespace CloneHeroMod
                 if (tono[i] <= 0 && i + 1 < n) tono[i] = tono[i + 1];
             }
 
-            // Cinco tramos por cuantiles del propio audio. Repartir asi —en
-            // vez de por frecuencia absoluta— hace que el chart use los cinco
-            // trastes tanto en una voz grave como en una guitarra aguda.
-            double[] cortes = Cuantiles(tono);
+            // EL TRASTE DESEADO SALE DEL PUESTO DE LA NOTA EN LA CANCION, de
+            // la mas grave a la mas aguda, partido en cinco quintos iguales.
+            //
+            // Antes eran cinco tramos por cuantiles del tono, y en mezclas
+            // densas y producidas eso se rompia: el tono apenas se encuentra
+            // (la autocorrelacion no ve una altura clara entre tantos
+            // instrumentos), los huecos se rellenan con el ultimo conocido y
+            // quedan largas rachas de valores IGUALES. Con empates los cortes
+            // se juntan y casi todo caia en el traste 0; el rojo y el amarillo
+            // salian solo de los acordes y de las rapidas desplazadas. Las tres
+            // canciones de Dua Lipa y Kudai usaban solo verde, rojo y amarillo.
+            //
+            // Ahora: si hay tono en al menos la mitad de las notas, manda el
+            // tono; si no, el BRILLO del sonido (centroide del espectro), que
+            // siempre se puede medir y sube y baja con lo que se toca. Y los
+            // empates se deshacen con el brillo. Al repartir por puesto, cada
+            // traste recibe su quinta parte de notas deseadas; luego la mano
+            // (saltos cortos, ver abajo) decide como se llega.
+            double[] brillo = Brillos(x, elegidos);
+            bool porTono = r.conTono >= MinimoConTono;
+            double[] puesto = Puestos(porTono ? tono : brillo, brillo);
             double umbralAcorde = UmbralAcorde(elegidos);
 
             int anterior = -1;
@@ -405,7 +440,8 @@ namespace CloneHeroMod
                 // uno en uno, o de dos si hay tiempo: los humanos saltan dos o
                 // mas trastes en el 14% de las notas, y el tono crudo daba
                 // hasta un 36%.
-                int deseado = Tramo(tono[i], cortes);
+                int deseado = 4;
+                while (deseado > 0 && puesto[i] < CortesTraste[deseado - 1]) deseado--;
                 int traste = deseado;
                 if (anterior >= 0)
                 {
@@ -420,8 +456,8 @@ namespace CloneHeroMod
                 // traste, hacia donde va el tono.
                 if (rapida && traste == anterior)
                 {
-                    bool sube = tono[i] > tono[i - 1] ? true
-                              : tono[i] < tono[i - 1] ? false
+                    bool sube = puesto[i] > puesto[i - 1] ? true
+                              : puesto[i] < puesto[i - 1] ? false
                               : traste < 4;
                     traste = sube ? (traste < 4 ? traste + 1 : traste - 1)
                                   : (traste > 0 ? traste - 1 : traste + 1);
@@ -447,6 +483,59 @@ namespace CloneHeroMod
                 }
                 r.notas.Add(nota);
             }
+        }
+
+        // El puesto de cada nota entre 0 (la mas baja) y 1 (la mas alta)
+        // segun "valor", deshaciendo empates con "desempate".
+        private static double[] Puestos(double[] valor, double[] desempate)
+        {
+            int n = valor.Length;
+            int[] orden = new int[n];
+            for (int i = 0; i < n; i++) orden[i] = i;
+            Array.Sort(orden, delegate (int a, int b)
+            {
+                int c = valor[a].CompareTo(valor[b]);
+                if (c != 0) return c;
+                c = desempate[a].CompareTo(desempate[b]);
+                return c != 0 ? c : a.CompareTo(b);
+            });
+            double[] puesto = new double[n];
+            for (int k = 0; k < n; k++)
+            {
+                puesto[orden[k]] = n > 1 ? (double)k / (n - 1) : 0.5;
+            }
+            return puesto;
+        }
+
+        // Brillo de cada nota: el centroide de sus 8 bandas de energia en los
+        // ~100 ms que siguen al ataque. Sube cuando suena algo mas agudo o mas
+        // metalico y baja con lo grave, que es lo que hace falta para mover la
+        // mano por el mastil cuando no hay tono que medir.
+        private static double[] Brillos(float[] x, List<AnalisisAudio.Ataque> elegidos)
+        {
+            float[][] rasgos = AnalisisAudio.Rasgos(x);
+            double[] salida = new double[elegidos.Count];
+            for (int i = 0; i < elegidos.Count; i++)
+            {
+                double a = elegidos[i].segundo, b = a + 0.10;
+                double suma = 0, peso = 0;
+                int m0 = Math.Max(0, (int)((a * AnalisisAudio.Frecuencia
+                    - AnalisisAudio.VentanaRasgos / 2.0) / AnalisisAudio.SaltoRasgos));
+                for (int m = m0; m < rasgos.Length; m++)
+                {
+                    double c = AnalisisAudio.InstanteRasgo(m);
+                    if (c < a - 0.05) continue;
+                    if (c > b) break;
+                    for (int j = 0; j < 8; j++)
+                    {
+                        double e = (Math.Exp(rasgos[m][12 + j]) - 1.0) / 1000.0;
+                        suma += j * e;
+                        peso += e;
+                    }
+                }
+                salida[i] = peso > 0 ? suma / peso : 0;
+            }
+            return salida;
         }
 
         // Las frases de Star Power. Se eligen las ventanas de notas seguidas
@@ -1158,33 +1247,6 @@ namespace CloneHeroMod
             fuerzas.Sort();
             int idx = (int)((1.0 - ProporcionAcordes) * (fuerzas.Count - 1));
             return fuerzas[Math.Max(0, Math.Min(fuerzas.Count - 1, idx))];
-        }
-
-        private static double[] Cuantiles(double[] tono)
-        {
-            List<double> v = new List<double>();
-            for (int i = 0; i < tono.Length; i++)
-            {
-                if (tono[i] > 0) v.Add(tono[i]);
-            }
-            if (v.Count < 5) return null;
-            v.Sort();
-            double[] cortes = new double[4];
-            for (int k = 1; k <= 4; k++)
-            {
-                cortes[k - 1] = v[(int)((double)k / 5 * (v.Count - 1))];
-            }
-            return cortes;
-        }
-
-        private static int Tramo(double t, double[] cortes)
-        {
-            if (cortes == null || t <= 0) return 0;
-            for (int i = 0; i < cortes.Length; i++)
-            {
-                if (t <= cortes[i]) return i;
-            }
-            return 4;
         }
 
         // Frecuencia dominante por autocorrelacion. No es un afinador: solo

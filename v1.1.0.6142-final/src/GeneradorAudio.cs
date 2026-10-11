@@ -303,6 +303,9 @@ namespace CloneHeroMod
             MelonLogger.Msg("[Audio] " + Path.GetFileName(carpeta) + ": "
                 + r.notas.Count.ToString() + " notas (" + r.inventadas.ToString()
                 + " sin ataque debajo), " + r.bpm.ToString("0") + " bpm"
+                + ", trastes " + Reparto(r.notas) + " por "
+                + (r.conTono >= ChartDesdeAudio.MinimoConTono ? "tono" : "brillo")
+                + " (tono en " + (r.conTono * 100).ToString("0") + "%)"
                 + (r.ternario ? ", rejilla ternaria" : ", rejilla binaria")
                 + ", notas movidas " + r.movidaMedia.ToString("0") + " ms (p90 "
                 + r.movidaP90.ToString("0") + ")"
@@ -310,6 +313,26 @@ namespace CloneHeroMod
                 + " compases repetidos"
                 + ", " + dificultades.ToString() + " valores de dificultad");
             return true;
+        }
+
+        // Que parte de las notas cae en cada traste, de verde a naranja, en %.
+        private static string Reparto(List<ReduccionChart.Nota> notas)
+        {
+            int[] c = new int[5];
+            int total = 0;
+            for (int i = 0; i < notas.Count; i++)
+            {
+                for (int t = 0; t < 5; t++)
+                {
+                    if ((notas[i].trastes & (1 << t)) != 0) { c[t]++; total++; }
+                }
+            }
+            string[] partes = new string[5];
+            for (int t = 0; t < 5; t++)
+            {
+                partes[t] = total > 0 ? (100 * c[t] / total).ToString() : "0";
+            }
+            return string.Join("/", partes);
         }
 
         // El valor de Difficulty de cada instrumento, con el mismo calculo
