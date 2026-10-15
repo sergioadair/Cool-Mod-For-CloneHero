@@ -168,6 +168,7 @@ namespace CloneHeroMod
                 ChartsFaltantes.Tick();
                 OverlayProgreso.Refrescar();
                 SfxFinDeCancion.Tick();
+                Reescaneo.Tick();
 
                 // El juego rehace sus listas de orden y de filtro al reescanear
                 // la biblioteca, y se lleva por delante lo que anadimos. Se

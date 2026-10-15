@@ -8,7 +8,7 @@ using MelonLoader;
 
 namespace CloneHeroMod
 {
-    // "Generate Charts From Audio": recorre las carpetas de canciones, busca
+    // "Generate Charts From Audio/Video": recorre las carpetas de canciones, busca
     // las que tienen audio pero NINGUN chart, y les hace uno.
     //
     // Solo se genera Experto. Las demas dificultades salen despues del motor
@@ -27,7 +27,7 @@ namespace CloneHeroMod
     // TODO EL TEXTO EN INGLES: se ve en pantalla.
     public static class GeneradorAudio
     {
-        public const string Nombre = "Generate Charts From Audio";
+        public const string Nombre = "Generate Charts From Audio/Video";
 
         public static readonly string[] Extensiones = { ".ogg", ".opus", ".mp3", ".wav", ".flac" };
 
@@ -85,7 +85,7 @@ namespace CloneHeroMod
                 total = carpetas.Count;
                 if (total == 0)
                 {
-                    Aviso.Mostrar("Generate Charts From Audio",
+                    Aviso.Mostrar(Nombre,
                         "No audio folders without a chart were found.");
                     return;
                 }
@@ -110,13 +110,18 @@ namespace CloneHeroMod
                     }
                     hechas++;
                 }
-                Aviso.Mostrar("Generate Charts From Audio",
-                    generadas.ToString() + " chart(s) created. Rescan your songs to play them.");
+                if (generadas > 0)
+                {
+                    Reescaneo.Pedir(Nombre);
+                }
+                Aviso.Mostrar(Nombre,
+                    generadas.ToString() + " chart(s) created."
+                    + (generadas > 0 ? " Scanning your songs now." : ""));
             }
             catch (Exception ex)
             {
                 MelonLogger.Error("[Audio] " + ex);
-                Aviso.Mostrar("Generate Charts From Audio", "Failed: " + ex.Message);
+                Aviso.Mostrar(Nombre, "Failed: " + ex.Message);
             }
             finally
             {

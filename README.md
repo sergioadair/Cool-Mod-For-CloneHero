@@ -36,8 +36,8 @@ play it.
 1. Make a folder inside your **Songs** folder, named `Artist - Song`.
 2. Put the audio in it — `.ogg`, `.mp3`, `.opus`, `.wav` or `.flac`. The file
    can be called anything.
-3. Go to `Settings > General >` **`Generate Charts From Audio`**.
-4. Rescan your songs. It is there, ready to play.
+3. Go to `Settings > General >` **`Generate Charts From Audio/Video`**.
+4. That's it — the mod rescans your songs by itself and it is there, ready to play.
 
 That is it. You get **all four difficulties**, a difficulty score, and the song
 shows up like any other.
@@ -88,8 +88,8 @@ time**.
 **Your original is safe.** It gets backed up next to the song before anything is
 written, and you can always put it back — **`Restore Song Chart`** for the one
 you are on, **`Restore All Song Charts`** in `Settings > General` for everything
-at once. Works with plain song folders and with `.sng` files. Run `Scan Songs`
-afterwards to see the new difficulties.
+at once. Works with plain song folders and with `.sng` files. Your songs are
+rescanned automatically afterwards, so the new difficulties show up right away.
 
 > Only downwards, and only for instruments the song already has. Easy cannot be
 > turned into Expert — those notes do not exist anywhere — and a song with no

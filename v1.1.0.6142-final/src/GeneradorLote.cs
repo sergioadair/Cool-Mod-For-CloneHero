@@ -284,18 +284,22 @@ namespace CloneHeroMod
 
         private static void Terminado(bool restaurar)
         {
+            if (cambiadas > 0)
+            {
+                Reescaneo.Pedir(restaurar ? NombreRestaurar : NombreGenerar);
+            }
             if (restaurar)
             {
                 Aviso.Mostrar(NombreRestaurar, cambiadas == 0
                     ? "Nothing to restore."
-                    : cambiadas.ToString() + " song(s) restored.\n\nScan Songs to apply."
+                    : cambiadas.ToString() + " song(s) restored.\n\nScanning your songs now."
                       + (pendientes > 0 ? "\nSome .sng need a restart." : ""));
                 return;
             }
             Aviso.Mostrar(NombreGenerar, cambiadas == 0
                 ? "Nothing to do - every song has them all."
                 : dificultades.ToString() + " added across "
-                  + cambiadas.ToString() + " song(s).\n\nScan Songs to play them."
+                  + cambiadas.ToString() + " song(s).\n\nScanning your songs now."
                   + (pendientes > 0 ? "\nSome .sng need a restart." : ""));
         }
     }

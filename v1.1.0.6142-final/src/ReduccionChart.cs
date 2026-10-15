@@ -144,19 +144,17 @@ namespace CloneHeroMod
             {
                 objetivo = 1;
             }
+            //
+            //    EL RECORTE SE HACE COMPAS A COMPAS (ver Recortar). Antes era
+            //    global, por peso, y con los empates deshechos por tiempo: en un
+            //    chart que es casi todo corcheas del mismo peso, se comia de
+            //    golpe las del final. Lo reporto un usuario con Kudai - Escapar
+            //    generada: en Hard y Medium habia huecos de 15-18 s cerca del
+            //    final con la cancion sonando, y la ultima nota a los 259 s de
+            //    280.
             if (aceptadas.Count > objetivo)
             {
-                int[] a = aceptadas.ToArray();
-                Array.Sort(a, delegate (int x, int y)
-                {
-                    int d = clave[y] - clave[x];
-                    return d != 0 ? d : f[x].tick.CompareTo(f[y].tick);
-                });
-                aceptadas = new List<int>();
-                for (int i = 0; i < objetivo; i++)
-                {
-                    aceptadas.Add(a[i]);
-                }
+                aceptadas = Recortar(aceptadas, clave, f, objetivo, resolucion);
             }
             aceptadas.Sort(delegate (int x, int y) { return f[x].tick.CompareTo(f[y].tick); });
 
@@ -188,6 +186,49 @@ namespace CloneHeroMod
                 d.trastes = mascara;
                 d.sostenido = o.sostenido;
                 salida.Add(d);
+            }
+            return salida;
+        }
+
+        // Se queda con "objetivo" notas recortando COMPAS A COMPAS: cada compas
+        // conserva la misma proporcion de las suyas, las de mas peso dentro de
+        // el. Un recorte global por pesos vaciaba pasajes enteros: si un
+        // tramo era todo contratiempos (peso bajo), caia completo. Con esto
+        // ningun compas que tenia notas se queda sin ellas por el recorte.
+        //
+        // Lo que sobra de redondear un compas pasa al siguiente, para que el
+        // total cuadre con el objetivo.
+        private static List<int> Recortar(List<int> aceptadas, int[] peso, List<Nota> f,
+                                          int objetivo, int resolucion)
+        {
+            List<int> enOrden = new List<int>(aceptadas);
+            enOrden.Sort(delegate (int x, int y) { return f[x].tick.CompareTo(f[y].tick); });
+            double proporcion = (double)objetivo / enOrden.Count;
+            long largoCompas = 4L * resolucion;
+
+            List<int> salida = new List<int>();
+            double arrastre = 0;
+            int i = 0;
+            while (i < enOrden.Count)
+            {
+                long compas = f[enOrden[i]].tick / largoCompas;
+                int j = i;
+                while (j < enOrden.Count && f[enOrden[j]].tick / largoCompas == compas) j++;
+                List<int> grupo = enOrden.GetRange(i, j - i);
+
+                double cuota = grupo.Count * proporcion + arrastre;
+                int quedan = (int)Math.Floor(cuota + 0.5);
+                if (quedan < 1) quedan = 1;
+                if (quedan > grupo.Count) quedan = grupo.Count;
+                arrastre = cuota - quedan;
+
+                grupo.Sort(delegate (int x, int y)
+                {
+                    int d = peso[y] - peso[x];
+                    return d != 0 ? d : f[x].tick.CompareTo(f[y].tick);
+                });
+                for (int k = 0; k < quedan; k++) salida.Add(grupo[k]);
+                i = j;
             }
             return salida;
         }

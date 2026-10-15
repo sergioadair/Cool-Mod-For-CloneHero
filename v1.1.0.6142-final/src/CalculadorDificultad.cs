@@ -259,8 +259,12 @@ namespace CloneHeroMod
                     + alDia.ToString() + " ya estaban al dia, "
                     + saltadas.ToString() + " saltadas, "
                     + fallidas.ToString() + " sin datos suficientes");
-                MelonLogger.Msg("[Dificultad] reinicia el juego (o reescanea) para que "
-                    + "el juego recargue los song.ini");
+                // El juego tiene que releer los song.ini: se le pide el
+                // escaneo, igual que tras generar charts.
+                if (escritas > 0)
+                {
+                    Reescaneo.Pedir("Calculate Difficulty");
+                }
             }
         }
 

@@ -456,8 +456,12 @@ namespace CloneHeroMod
                     + Dificultad.NombreDificultad(hechos[i].dificultad);
             }
             MelonLogger.Msg("[Generar] " + hechos.Count.ToString() + " dificultad(es)");
+            if (hechos.Count > 0)
+            {
+                Reescaneo.Pedir("Generate Song Difficulties");
+            }
             Aviso.Mostrar("Generate Song Difficulties",
-                Cuantas(hechos.Count) + " added.\n\nScan Songs to play them.");
+                Cuantas(hechos.Count) + " added.\n\nScanning your songs now.");
         }
 
         // ------------------------------------------------------ en espera --
@@ -597,9 +601,10 @@ namespace CloneHeroMod
                     File.Copy(copia, chart, true);
                 }
                 MelonLogger.Msg("[Generar] restaurado desde la copia");
+                Reescaneo.Pedir("Restore Song Chart");
                 Aviso.Mostrar("Restore Song Chart",
                     "Original chart restored.\n\n"
-                    + "Scan Songs to apply.");
+                    + "Scanning your songs now.");
             }
             catch (Exception ex)
             {
