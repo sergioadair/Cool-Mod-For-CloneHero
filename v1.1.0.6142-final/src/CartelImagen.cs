@@ -24,12 +24,14 @@ namespace CloneHeroMod
         public const string Racha = "cool_note_streak";
         public const string Estrella = "cool_star_power";
 
-        // La imagen y la animacion se ven a su tamano, tal cual, y centradas
-        // en la pantalla: quien las dibuja ya decidio cuanto miden. El tamano
-        // del .ini es solo el de la letra (el numero del Note Streak). Los
-        // pixeles son los de la resolucion de referencia del lienzo, 1920x1080:
-        // a 1080p se ven exactos, y en otras resoluciones escalan con todo lo
-        // demas.
+        // La imagen y la animacion LLENAN LA PANTALLA, sea cual sea su
+        // resolucion y la del jugador, como hace el juego con los fondos. Antes
+        // se veian a su tamano tal cual, y un usuario lo reporto: para que un
+        // cartel cubriera una pantalla 4K habia que dibujarlo a 3840x2160, y
+        // asi cada fotograma ocupa unos 33 MB en memoria una vez cargado
+        // —61 fotogramas, unos 2 GB—, aunque el PNG pese poco. Estirando, unos
+        // fotogramas de 800x450 sirven en cualquier pantalla. El tamano del
+        // .ini es solo el de la letra (el numero del Note Streak).
 
         private static readonly string[] Extensiones = { ".png", ".jpg", ".jpeg" };
         private static readonly Dictionary<string, Texture2D> cargadas =
@@ -53,19 +55,20 @@ namespace CloneHeroMod
                                  StringComparison.OrdinalIgnoreCase);
         }
 
-        // La imagen, o null si no hay. Se mira una sola vez por sesion.
+        // La imagen, o null si no hay.
+        //
+        // SOLO SE RELEE SI CAMBIO ALGO. Se llama cada vez que se vuelve al
+        // menu principal, para que los cambios hechos con el juego abierto se
+        // vean sin reiniciar; pero releer siempre hacia que salir de una
+        // cancion tardara muchisimo con animaciones grandes. Ahora se compara
+        // una firma —nombres, tamanos y fechas de los archivos— y si es la
+        // misma se devuelve lo que ya habia.
         public static Texture2D Cargar(string nombre)
         {
-            Texture2D t;
-            if (cargadas.TryGetValue(nombre, out t))
-            {
-                return t;
-            }
-            t = null;
+            string ruta = null;
             try
             {
                 string carpeta = RutasJuego.CarpetaCustom(TexturasPersonalizadas.NombreCarpeta);
-                string ruta = null;
                 if (!string.IsNullOrEmpty(carpeta) && Directory.Exists(carpeta))
                 {
                     for (int i = 0; i < Extensiones.Length && ruta == null; i++)
@@ -74,6 +77,22 @@ namespace CloneHeroMod
                         if (File.Exists(c)) ruta = c;
                     }
                 }
+            }
+            catch (Exception)
+            {
+            }
+            string firma = ruta == null ? "" : Firma(new List<string> { ruta });
+            Texture2D t;
+            string vista;
+            if (cargadas.TryGetValue(nombre, out t) && firmas.TryGetValue(nombre, out vista)
+                && vista == firma)
+            {
+                return t;
+            }
+            if (t != null) UnityEngine.Object.Destroy(t);
+            t = null;
+            try
+            {
                 if (ruta != null)
                 {
                     t = Leer(ruta);
@@ -89,6 +108,7 @@ namespace CloneHeroMod
                 MelonLogger.Warning("[Carteles] " + nombre + ": " + ex.Message);
             }
             cargadas[nombre] = t;
+            firmas[nombre] = firma;
             return t;
         }
 
@@ -101,16 +121,27 @@ namespace CloneHeroMod
         // 1, 10, 11, 12, 2... Asi vale igual con 1.png que con frame_001.png.
         public static Texture2D[] CargarAnimacion(string nombre)
         {
-            Texture2D[] t;
-            if (animaciones.TryGetValue(nombre, out t))
-            {
-                return t;
-            }
-            t = null;
+            string carpeta = null;
             try
             {
                 string raiz = RutasJuego.CarpetaCustom(TexturasPersonalizadas.NombreCarpeta);
-                string carpeta = string.IsNullOrEmpty(raiz) ? null : Path.Combine(raiz, nombre);
+                carpeta = string.IsNullOrEmpty(raiz) ? null : Path.Combine(raiz, nombre);
+            }
+            catch (Exception)
+            {
+            }
+            string firma = FirmaCarpeta(carpeta);
+            Texture2D[] t;
+            string vista;
+            if (animaciones.TryGetValue(nombre, out t) && firmas.TryGetValue("/" + nombre, out vista)
+                && vista == firma)
+            {
+                return t;
+            }
+            Destruir(t);
+            t = null;
+            try
+            {
                 if (carpeta != null && Directory.Exists(carpeta))
                 {
                     t = LeerCarpeta(carpeta, "[Carteles] animacion propia: " + nombre);
@@ -121,7 +152,54 @@ namespace CloneHeroMod
                 MelonLogger.Warning("[Carteles] animacion " + nombre + ": " + ex.Message);
             }
             animaciones[nombre] = t;
+            firmas["/" + nombre] = firma;
             return t;
+        }
+
+        private static readonly Dictionary<string, string> firmas =
+            new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        // Nombres, tamanos y fechas de las imagenes de una carpeta: si no
+        // cambia, el contenido tampoco. "" si no hay carpeta.
+        public static string FirmaCarpeta(string carpeta)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(carpeta) || !Directory.Exists(carpeta)) return "";
+                List<string> archivos = new List<string>();
+                foreach (string f in Directory.GetFiles(carpeta))
+                {
+                    string ext = Path.GetExtension(f).ToLowerInvariant();
+                    if (Array.IndexOf(Extensiones, ext) >= 0) archivos.Add(f);
+                }
+                archivos.Sort(StringComparer.OrdinalIgnoreCase);
+                return Firma(archivos);
+            }
+            catch (Exception)
+            {
+                return "?";
+            }
+        }
+
+        private static string Firma(List<string> archivos)
+        {
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            for (int i = 0; i < archivos.Count; i++)
+            {
+                FileInfo fi = new FileInfo(archivos[i]);
+                sb.Append(fi.Name).Append('|').Append(fi.Length).Append('|')
+                  .Append(fi.LastWriteTimeUtc.Ticks).Append(';');
+            }
+            return sb.ToString();
+        }
+
+        public static void Destruir(Texture2D[] a)
+        {
+            if (a == null) return;
+            for (int i = 0; i < a.Length; i++)
+            {
+                if (a[i] != null) UnityEngine.Object.Destroy(a[i]);
+            }
         }
 
         private static readonly Dictionary<string, Texture2D[]> animaciones =
@@ -162,7 +240,11 @@ namespace CloneHeroMod
         private static Texture2D Leer(string ruta)
         {
             Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
-            if (!UnityEngine.ImageConversion.LoadImage(tex, File.ReadAllBytes(ruta)))
+            // markNonReadable: en cuanto los pixeles suben a la tarjeta, Unity
+            // suelta la copia que guarda en RAM. Nunca se vuelven a leer, y
+            // esa copia es tanto como la textura entera: la mitad de lo que
+            // ocupaba cada fotograma.
+            if (!UnityEngine.ImageConversion.LoadImage(tex, File.ReadAllBytes(ruta), true))
             {
                 MelonLogger.Warning("[Carteles] no se pudo leer " + ruta);
                 return null;
@@ -204,29 +286,9 @@ namespace CloneHeroMod
             return (a.Length - i).CompareTo(b.Length - j);
         }
 
-        // Olvida todo lo cargado, para que la proxima vez se lea de nuevo del
-        // disco. Se llama al volver al menu principal. Las texturas se
-        // destruyen: llevan HideAndDontSave y Unity no las soltaria nunca.
-        public static void Descartar()
-        {
-            foreach (Texture2D t in cargadas.Values)
-            {
-                if (t != null) UnityEngine.Object.Destroy(t);
-            }
-            foreach (Texture2D[] a in animaciones.Values)
-            {
-                if (a == null) continue;
-                for (int i = 0; i < a.Length; i++)
-                {
-                    if (a[i] != null) UnityEngine.Object.Destroy(a[i]);
-                }
-            }
-            cargadas.Clear();
-            animaciones.Clear();
-        }
-
-        // Un RawImage hijo de "padre", centrado y al tamano de la imagen.
-        public static RawImage Poner(Transform padre, Texture2D tex)
+        // Un RawImage hijo de "padre": centrado y al tamano de la imagen, o
+        // estirado a todo "padre" si pantallaCompleta.
+        public static RawImage Poner(Transform padre, Texture2D tex, bool pantallaCompleta = false)
         {
             GameObject go = new GameObject("Imagen");
             go.transform.SetParent(padre, false);
@@ -237,7 +299,16 @@ namespace CloneHeroMod
             rt.anchorMin = new Vector2(0.5f, 0.5f);
             rt.anchorMax = new Vector2(0.5f, 0.5f);
             rt.pivot = new Vector2(0.5f, 0.5f);
-            rt.sizeDelta = new Vector2(tex.width, tex.height);
+            if (pantallaCompleta)
+            {
+                rt.anchorMin = Vector2.zero;
+                rt.anchorMax = Vector2.one;
+                rt.sizeDelta = Vector2.zero;
+            }
+            else
+            {
+                rt.sizeDelta = new Vector2(tex.width, tex.height);
+            }
             rt.anchoredPosition = Vector2.zero;
             return img;
         }

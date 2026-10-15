@@ -201,9 +201,10 @@ star_power_font =            ; empty = the game's own
 **Use your own images.** Drop a `cool_note_streak.png` and/or a
 `cool_star_power.png` (`.jpg` works too) straight into your **Textures**
 folder, and the callouts show your image instead of the text, with the same
-animation. Images show at their own size, in the middle of the screen. The
-note streak keeps its number where it always is, at the size set above.
-Remove the file to go back to the text.
+animation. Images are stretched to fill the screen, whatever its resolution,
+so a small image works fine on a 4K screen. The note streak keeps its number
+where it always is, at the size set above. Remove the file to go back to the
+text.
 
 **Or your own animations.** Make a folder named `cool_note_streak` or
 `cool_star_power` inside **Textures** and fill it with frames (`1.png`,
@@ -215,8 +216,16 @@ star_power_fps = 10
 ```
 
 A folder wins over a single image, and an empty folder is ignored. Animations
-play in place, at their own size, in the middle of the screen. The note streak
-still shows its number.
+play in place, filling the screen. The note streak still shows its number.
+
+**Or a video.** A `cool_note_streak.webm` or `cool_star_power.webm` in
+**Textures** plays once, full screen, every time the callout pops — and it
+wins over everything else. A WebM with transparency (VP8 with alpha) keeps the
+game visible behind it. Videos load instantly, so they are the best choice
+for long or detailed animations.
+
+> Keep frames small. Every frame is held in memory at full size, so dozens of
+> 4K frames make loading slow — 800×450 frames look the same once stretched.
 
 Changed your images with the game open? Go back to the main menu and they
 reload.
@@ -224,9 +233,9 @@ reload.
 ### 🖼️ Images on screen while you play
 
 Put images in a `during_song` folder inside **Textures** and they stay on
-screen for the whole song, then go away when it ends. They sit in the middle
-of the screen at their own size, on top of the game but under the pause menu
-and the fade at the end.
+screen for the whole song, then go away when it ends. They are stretched to
+fill the screen, on top of the game but under the pause menu and the fade at
+the end.
 
 If there are several, they stack in order: `2.png` goes on top of `1.png`,
 and so on. Changes reload when you go back to the main menu.

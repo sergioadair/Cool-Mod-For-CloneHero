@@ -47,7 +47,9 @@ namespace CloneHeroMod
 
         // Por debajo del cartel de racha (250), para que no se pisen si un
         // hito y el Star Power coinciden.
-        private const float AlturaBase = 150f;
+        // Por debajo del cartel de racha, que bajo a 190 para no tapar la
+        // letra, y con el mismo hueco entre los dos que antes.
+        private const float AlturaBase = 100f;
 
         // Donde arranca el cartel: AlturaBase con texto, el centro de la
         // pantalla con imagen o animacion propia.
@@ -74,6 +76,8 @@ namespace CloneHeroMod
         private static RawImage imagen;
         private static Texture2D texturaImagen;
         private static Texture2D[] fotogramas;
+        private static string rutaVideo;          // un .webm propio, ver CartelVideo
+        private static CartelVideo video;
         private static int fotograma;
         private static float fps = Ajustes.FpsPorDefecto;
         private static bool imagenBuscada;
@@ -155,14 +159,15 @@ namespace CloneHeroMod
         // ------------------------------------------------------------ escena -
         public static void EscenaCambiada(string nombre, bool enJuego)
         {
-            // Al volver al menu principal se vuelven a leer la imagen y la
-            // animacion propias (CartelImagen ya tiro las de antes): asi se
-            // pueden cambiar con el juego abierto, sin reiniciarlo.
+            // Al volver al menu principal se mira si la imagen o la animacion
+            // propias cambiaron (CartelImagen solo relee si cambio algo): asi
+            // se pueden cambiar con el juego abierto, sin reiniciarlo.
             if (nombre == Buscador.EscenaMenu)
             {
                 imagenBuscada = false;
                 texturaImagen = null;
                 fotogramas = null;
+                rutaVideo = null;
                 ResolverEstilo();
             }
             if (enJuego && !estiloResuelto)
@@ -177,6 +182,7 @@ namespace CloneHeroMod
             cartel = null;
             rtCartel = null;
             imagen = null;
+            video = null;      // su reproductor se destruye con la escena
             material = null;
             intentos = 0;
             esperaBusqueda = 0;
@@ -250,6 +256,14 @@ namespace CloneHeroMod
                     return;
                 }
             }
+            if (video != null)
+            {
+                // Con video propio, como con animacion: quieto y opaco.
+                video.Arrancar();
+                rtCartel.localScale = Vector3.one;
+                rtCartel.anchoredPosition = new Vector2(0f, baseY);
+                imagen.color = Color.white;
+            }
             if (fotogramas != null)
             {
                 // Con animacion propia no se mueve ni se desvanece nada.
@@ -264,6 +278,23 @@ namespace CloneHeroMod
             t = 0f;
             MelonLogger.Msg("[Estrella] Star Power listo (barra al "
                 + (rellenoAlDisparar * 100f).ToString("0") + "%)");
+        }
+
+        // El video propio: se pinta lo que vaya decodificando el reproductor
+        // y, cuando se acaba, fuera y rebobinado para la proxima vez. Hasta
+        // que haya textura no se pinta nada: un RawImage sin textura sale
+        // blanco.
+        private static void Video()
+        {
+            Texture tex = video.Textura;
+            if (tex != null && imagen.texture != tex) imagen.texture = tex;
+            imagen.enabled = tex != null;
+            if (video.Terminado(t))
+            {
+                animando = false;
+                video.Rebobinar();
+                cartel.SetActive(false);
+            }
         }
 
         // La animacion propia: un fotograma tras otro a los FPS del .ini, y al
@@ -289,6 +320,11 @@ namespace CloneHeroMod
         private static void Animar()
         {
             t += Time.deltaTime;
+            if (video != null)
+            {
+                Video();
+                return;
+            }
             if (fotogramas != null)
             {
                 Fotogramas();
@@ -383,8 +419,11 @@ namespace CloneHeroMod
             {
                 // La carpeta de animacion manda sobre la imagen suelta.
                 imagenBuscada = true;
-                fotogramas = CartelImagen.CargarAnimacion(CartelImagen.Estrella);
-                if (fotogramas == null)
+                // Y el video, sobre las dos.
+                rutaVideo = CartelVideo.Ruta(CartelImagen.Estrella);
+                fotogramas = rutaVideo != null
+                    ? null : CartelImagen.CargarAnimacion(CartelImagen.Estrella);
+                if (fotogramas == null && rutaVideo == null)
                 {
                     texturaImagen = CartelImagen.Cargar(CartelImagen.Estrella);
                 }
@@ -466,9 +505,23 @@ namespace CloneHeroMod
 
                 // La imagen, a su tamano y en el centro de la pantalla.
                 Texture2D primera = fotogramas != null ? fotogramas[0] : texturaImagen;
-                if (primera != null)
+                if (primera != null || rutaVideo != null)
                 {
-                    imagen = CartelImagen.Poner(cartel.transform, primera);
+                    // El cartel ocupa toda la pantalla y la imagen se estira a
+                    // el: llena la pantalla del jugador sea cual sea su
+                    // resolucion (ver CartelImagen).
+                    rtCartel.anchorMin = Vector2.zero;
+                    rtCartel.anchorMax = Vector2.one;
+                    rtCartel.sizeDelta = Vector2.zero;
+                    imagen = CartelImagen.Poner(cartel.transform, primera, true);
+                    if (rutaVideo != null)
+                    {
+                        // El reproductor va en la raiz, que siempre esta
+                        // activa: en un objeto inactivo no se prepara.
+                        imagen.enabled = false;
+                        video = new CartelVideo();
+                        if (!video.Montar(raiz, rutaVideo)) video = null;
+                    }
                 }
                 baseY = imagen != null ? 0f : AlturaBase;
                 rtCartel.anchoredPosition = new Vector2(0f, baseY);

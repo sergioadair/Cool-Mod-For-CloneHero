@@ -228,10 +228,6 @@ namespace CloneHeroMod
         public override void OnSceneWasLoaded(int indice, string nombre)
         {
             Buscador.EscenaCambiada(nombre);
-            if (nombre == Buscador.EscenaMenu)
-            {
-                CartelImagen.Descartar();      // antes que los carteles las relean
-            }
             RachaNotas.EscenaCambiada(nombre, Buscador.EnJuego);
             EstrellaLista.EscenaCambiada(nombre, Buscador.EnJuego);
             ImagenesCancion.EscenaCambiada(nombre, Buscador.EnJuego);

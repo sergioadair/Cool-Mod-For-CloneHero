@@ -8,8 +8,9 @@ using UnityEngine.UI;
 namespace CloneHeroMod
 {
     // Imagenes fijas durante la cancion: todo lo que haya en
-    // Custom/Textures/during_song se pinta centrado, a su tamano, mientras se
-    // toca, y se va cuando la cancion acaba.
+    // Custom/Textures/during_song se pinta estirado a toda la pantalla, sea
+    // cual sea su resolucion y la del jugador, mientras se toca, y se va
+    // cuando la cancion acaba.
     //
     // ENCIMA DE TODO, MENOS DE DOS COSAS: el menu de pausa y el fundido a
     // negro del final. Si quedaran por encima, taparian el menu o seguirian
@@ -58,9 +59,8 @@ namespace CloneHeroMod
             cargadas = true;
             try
             {
-                string raizTexturas = RutasJuego.CarpetaCustom(TexturasPersonalizadas.NombreCarpeta);
-                string carpeta = string.IsNullOrEmpty(raizTexturas)
-                    ? null : Path.Combine(raizTexturas, NombreCarpeta);
+                string carpeta = Carpeta();
+                firmaCargada = CartelImagen.FirmaCarpeta(carpeta);
                 if (carpeta == null || !Directory.Exists(carpeta))
                 {
                     return;
@@ -71,6 +71,14 @@ namespace CloneHeroMod
             {
                 MelonLogger.Warning("[DuranteCancion] " + ex.Message);
             }
+        }
+
+        private static string firmaCargada;
+
+        private static string Carpeta()
+        {
+            string raizTexturas = RutasJuego.CarpetaCustom(TexturasPersonalizadas.NombreCarpeta);
+            return string.IsNullOrEmpty(raizTexturas) ? null : Path.Combine(raizTexturas, NombreCarpeta);
         }
 
         // Las texturas viejas se destruyen: llevan HideAndDontSave, asi que
@@ -97,16 +105,20 @@ namespace CloneHeroMod
             intentos = 0;
             espera = 0;
 
-            // RECARGA AL VOLVER AL MENU PRINCIPAL. Antes las imagenes se leian
-            // una vez por sesion, y cambiar la carpeta con el juego abierto no
-            // tenia efecto hasta reiniciarlo: una imagen sacada de la carpeta
-            // seguia saliendo en la cancion. Al cargar el menu principal se
-            // tiran las que habia y se vuelve a leer la carpeta; es un momento
-            // de carga, asi que no se nota.
+            // RECARGA AL VOLVER AL MENU PRINCIPAL, SI CAMBIO ALGO. Antes las
+            // imagenes se leian una vez por sesion, y cambiar la carpeta con el
+            // juego abierto no tenia efecto hasta reiniciarlo. Luego se
+            // releian siempre, y con imagenes grandes salir de una cancion
+            // tardaba. Ahora se compara la firma de la carpeta (nombres,
+            // tamanos y fechas) y solo se relee si es distinta.
             if (nombre == Buscador.EscenaMenu)
             {
-                Descartar();
-                Cargar();
+                string firma = CartelImagen.FirmaCarpeta(Carpeta());
+                if (firma != firmaCargada)
+                {
+                    Descartar();
+                    Cargar();
+                }
             }
             if (enJuego && !cargadas)
             {
@@ -158,7 +170,8 @@ namespace CloneHeroMod
                 escala.referenceResolution = new Vector2(1920f, 1080f);
                 for (int i = 0; i < imagenes.Length; i++)
                 {
-                    RawImage img = CartelImagen.Poner(raiz.transform, imagenes[i]);
+                    // a toda la pantalla, sea cual sea su resolucion
+                    RawImage img = CartelImagen.Poner(raiz.transform, imagenes[i], true);
                     img.gameObject.name = "Imagen" + (i + 1).ToString();
                 }
                 MelonLogger.Msg("[DuranteCancion] " + imagenes.Length.ToString()

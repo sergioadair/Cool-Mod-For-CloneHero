@@ -33,7 +33,10 @@ namespace CloneHeroMod
         // mucho, el borde se come la letra: el margen lo marca el relleno con
         // que se genero el atlas de la fuente.
         private const float GrosorBorde = 0.2f;
-        private const float AlturaBase = 250f;   // por encima de la autopista
+        // Por debajo de la barra de la letra de la cancion: a 250 la tapaba
+        // (lo reporto un usuario con una captura), y con la subida del final
+        // de la animacion aun mas.
+        private const float AlturaBase = 190f;   // por encima de la autopista
 
         // Donde arranca el cartel: AlturaBase con texto, el centro de la
         // pantalla con imagen o animacion propia.
@@ -64,6 +67,8 @@ namespace CloneHeroMod
         private static RawImage imagen;
         private static Texture2D texturaImagen;
         private static Texture2D[] fotogramas;
+        private static string rutaVideo;          // un .webm propio, ver CartelVideo
+        private static CartelVideo video;
         private static int fotograma;
         private static float fps = Ajustes.FpsPorDefecto;
         private static bool imagenBuscada;
@@ -89,14 +94,15 @@ namespace CloneHeroMod
         // ------------------------------------------------------------ escena -
         public static void EscenaCambiada(string nombre, bool enJuego)
         {
-            // Al volver al menu principal se vuelven a leer la imagen y la
-            // animacion propias (CartelImagen ya tiro las de antes): asi se
-            // pueden cambiar con el juego abierto, sin reiniciarlo.
+            // Al volver al menu principal se mira si la imagen o la animacion
+            // propias cambiaron (CartelImagen solo relee si cambio algo): asi
+            // se pueden cambiar con el juego abierto, sin reiniciarlo.
             if (nombre == Buscador.EscenaMenu)
             {
                 imagenBuscada = false;
                 texturaImagen = null;
                 fotogramas = null;
+                rutaVideo = null;
                 ResolverEstilo();
             }
             if (enJuego && !estiloResuelto)
@@ -115,6 +121,7 @@ namespace CloneHeroMod
             cartel = null;
             rtCartel = null;
             imagen = null;
+            video = null;      // su reproductor se destruye con la escena
             material = null;
 
             activo = enJuego && Ajustes.MostrarRacha;
@@ -297,6 +304,16 @@ namespace CloneHeroMod
             }
             // Con imagen, el texto es solo el numero, encima de ella.
             texto.text = imagen != null ? hito.ToString() : hito.ToString() + Sufijo;
+            if (video != null)
+            {
+                // Con video propio, como con animacion: quieto y opaco.
+                video.Arrancar();
+                rtCartel.localScale = Vector3.one;
+                rtCartel.anchoredPosition = new Vector2(0f, baseY);
+                imagen.color = Color.white;
+                texto.color = color;
+                if (material != null) material.SetColor(idColorBorde, Color.black);
+            }
             if (fotogramas != null)
             {
                 // Con animacion propia no se mueve ni se desvanece nada: el
@@ -318,6 +335,11 @@ namespace CloneHeroMod
         private static void Animar()
         {
             t += Time.deltaTime;
+            if (video != null)
+            {
+                Video();
+                return;
+            }
             if (fotogramas != null)
             {
                 Fotogramas();
@@ -381,6 +403,23 @@ namespace CloneHeroMod
             }
         }
 
+        // El video propio: se pinta lo que vaya decodificando el reproductor
+        // y, cuando se acaba, fuera y rebobinado para la proxima vez. Hasta
+        // que haya textura no se pinta nada: un RawImage sin textura sale
+        // blanco.
+        private static void Video()
+        {
+            Texture tex = video.Textura;
+            if (tex != null && imagen.texture != tex) imagen.texture = tex;
+            imagen.enabled = tex != null;
+            if (video.Terminado(t))
+            {
+                animando = false;
+                video.Rebobinar();
+                cartel.SetActive(false);
+            }
+        }
+
         // La animacion propia: un fotograma tras otro a los FPS del .ini, y al
         // acabar el ultimo, fuera. Dura lo que dan sus fotogramas.
         private static void Fotogramas()
@@ -399,13 +438,11 @@ namespace CloneHeroMod
             }
         }
 
-        // Donde va el numero cuando hay imagen: el mismo sitio de siempre,
-        // por encima de la autopista, aunque la imagen ahora vaya al centro de
-        // la pantalla. Es la altura que tenia con la imagen al tamano antiguo
-        // (dos veces el de la letra), asi que no se mueve respecto a antes.
+        // Donde va el numero cuando hay imagen: donde iria el cartel de texto,
+        // por encima de la autopista y por debajo de la letra.
         private static float PosicionNumero()
         {
-            return AlturaBase + Ajustes.RachaTamano * 1.6f;
+            return AlturaBase;
         }
 
         // Borde negro, para que el dorado se lea tambien sobre fondos claros.
@@ -450,8 +487,11 @@ namespace CloneHeroMod
             {
                 // La carpeta de animacion manda sobre la imagen suelta.
                 imagenBuscada = true;
-                fotogramas = CartelImagen.CargarAnimacion(CartelImagen.Racha);
-                if (fotogramas == null)
+                // Y el video, sobre las dos.
+                rutaVideo = CartelVideo.Ruta(CartelImagen.Racha);
+                fotogramas = rutaVideo != null
+                    ? null : CartelImagen.CargarAnimacion(CartelImagen.Racha);
+                if (fotogramas == null && rutaVideo == null)
                 {
                     texturaImagen = CartelImagen.Cargar(CartelImagen.Racha);
                 }
@@ -640,9 +680,23 @@ namespace CloneHeroMod
                 // La imagen, a su tamano y en el centro de la pantalla; el
                 // numero, al tamano del .ini y donde estuvo siempre.
                 Texture2D primera = fotogramas != null ? fotogramas[0] : texturaImagen;
-                if (primera != null)
+                if (primera != null || rutaVideo != null)
                 {
-                    imagen = CartelImagen.Poner(cartel.transform, primera);
+                    // El cartel ocupa toda la pantalla y la imagen se estira a
+                    // el: llena la pantalla del jugador sea cual sea su
+                    // resolucion (ver CartelImagen).
+                    rtCartel.anchorMin = Vector2.zero;
+                    rtCartel.anchorMax = Vector2.one;
+                    rtCartel.sizeDelta = Vector2.zero;
+                    imagen = CartelImagen.Poner(cartel.transform, primera, true);
+                    if (rutaVideo != null)
+                    {
+                        // El reproductor va en la raiz, que siempre esta
+                        // activa: en un objeto inactivo no se prepara.
+                        imagen.enabled = false;
+                        video = new CartelVideo();
+                        if (!video.Montar(raiz, rutaVideo)) video = null;
+                    }
                 }
                 baseY = imagen != null ? 0f : AlturaBase;
                 rtCartel.anchoredPosition = new Vector2(0f, baseY);
