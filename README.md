@@ -223,7 +223,7 @@ play in place, filling the screen. The note streak still shows its number.
 you like. It plays once, full screen, every time the callout pops, and it wins
 over frames and images. A WebM with transparency (VP8 with alpha) keeps the
 game visible behind it. Videos load instantly, so they are the best choice
-for long or detailed animations, and they pause along with the game.
+for long or detailed animations.
 
 ```
 Custom\Textures\cool_note_streak\my_streak.webm
@@ -240,8 +240,7 @@ reload.
 
 Put images or videos in a `during_song` folder inside **Textures** and they
 stay on screen for the whole song, then go away when it ends. They are
-stretched to fill the screen, on top of the game but under the pause menu and
-the fade at the end. `.webm` videos loop, muted, and pause along with the game.
+stretched to fill the screen. `.webm` videos loop, muted.
 
 ```
 Custom\Textures\during_song\1.webm
@@ -250,9 +249,6 @@ Custom\Textures\during_song\2.png
 
 If there are several, they stack in order: `2.png` goes on top of `1.webm`,
 and so on. Changes reload when you go back to the main menu.
-
-> The callouts, the song clock and everything in `during_song` sit under the
-> pause menu, so pausing always looks clean.
 
 ### ⏱️ Song clock
 
