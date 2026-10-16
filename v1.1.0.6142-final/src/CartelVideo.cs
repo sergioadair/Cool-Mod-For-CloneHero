@@ -6,9 +6,14 @@ using UnityEngine.Video;
 
 namespace CloneHeroMod
 {
-    // Un video .webm como cartel de Note Streak o SP Ready, en vez de una
-    // carpeta de fotogramas: Custom/Textures/cool_note_streak.webm o
-    // cool_star_power.webm. Tiene prioridad sobre la carpeta y la imagen.
+    // Un video .webm como cartel de Note Streak o SP Ready: cualquier .webm
+    // dentro de la carpeta del cartel (Custom/Textures/cool_note_streak o
+    // cool_star_power), se llame como se llame. Tiene prioridad sobre los
+    // fotogramas de esa misma carpeta y sobre la imagen suelta.
+    //
+    // Va DENTRO de la carpeta, no suelto en Textures, para que cada cartel
+    // tenga todo lo suyo en un sitio y el nombre del archivo no importe: se
+    // puede dejar el video tal como sale del programa con que se hizo.
     //
     // POR QUE. Un usuario probo animaciones por fotogramas y la carga se hacia
     // eterna: cada fotograma se guarda entero en memoria (a 3840x2160, unos
@@ -35,15 +40,25 @@ namespace CloneHeroMod
         private bool fallido;
         private double largo;
 
-        // La ruta del video del cartel, o null si no hay.
+        // La ruta del video del cartel, o null si no hay. Si hubiera varios
+        // .webm en la carpeta, el primero por nombre, y se avisa.
         public static string Ruta(string nombre)
         {
             try
             {
-                string carpeta = RutasJuego.CarpetaCustom(TexturasPersonalizadas.NombreCarpeta);
-                if (string.IsNullOrEmpty(carpeta)) return null;
-                string ruta = Path.Combine(carpeta, nombre + Extension);
-                return File.Exists(ruta) ? ruta : null;
+                string raiz = RutasJuego.CarpetaCustom(TexturasPersonalizadas.NombreCarpeta);
+                if (string.IsNullOrEmpty(raiz)) return null;
+                string carpeta = Path.Combine(raiz, nombre);
+                if (!Directory.Exists(carpeta)) return null;
+                string[] videos = Directory.GetFiles(carpeta, "*" + Extension);
+                if (videos.Length == 0) return null;
+                Array.Sort(videos, StringComparer.OrdinalIgnoreCase);
+                if (videos.Length > 1)
+                {
+                    MelonLogger.Warning("[Carteles] hay " + videos.Length.ToString()
+                        + " videos en " + nombre + "; se usa " + Path.GetFileName(videos[0]));
+                }
+                return videos[0];
             }
             catch (Exception)
             {
@@ -118,6 +133,28 @@ namespace CloneHeroMod
             catch (Exception)
             {
                 return true;
+            }
+        }
+
+        // LA PAUSA DEL JUEGO. El reproductor no se entera: el juego pausa
+        // poniendo Time.timeScale a 0. La animacion del cartel se congela sola
+        // (cuenta con Time.deltaTime), pero el video seguia corriendo y al
+        // reanudar iba por delante. Se llama en cada fotograma mientras el
+        // cartel esta en pantalla.
+        private bool pausado;
+
+        public void SeguirPausa()
+        {
+            if (vp == null || fallido) return;
+            bool pausa = Time.timeScale < 0.001f;
+            if (pausa == pausado) return;
+            pausado = pausa;
+            try
+            {
+                if (pausa) vp.Pause(); else vp.Play();
+            }
+            catch (Exception)
+            {
             }
         }
 

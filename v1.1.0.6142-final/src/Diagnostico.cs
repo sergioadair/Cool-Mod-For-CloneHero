@@ -68,6 +68,7 @@ namespace CloneHeroMod
             {
                 RachaNotas.Tick();
                 EstrellaLista.Tick();
+                Capas.Tick();
                 ImagenesCancion.Tick();
                 TiempoCancion.Tick();
                 // Excepcion a la regla de no gastar nada durante la cancion: el
@@ -228,6 +229,7 @@ namespace CloneHeroMod
         public override void OnSceneWasLoaded(int indice, string nombre)
         {
             Buscador.EscenaCambiada(nombre);
+            Capas.EscenaCambiada(Buscador.EnJuego);      // antes de que nadie registre
             RachaNotas.EscenaCambiada(nombre, Buscador.EnJuego);
             EstrellaLista.EscenaCambiada(nombre, Buscador.EnJuego);
             ImagenesCancion.EscenaCambiada(nombre, Buscador.EnJuego);

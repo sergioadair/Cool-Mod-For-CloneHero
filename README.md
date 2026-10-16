@@ -218,11 +218,17 @@ star_power_fps = 10
 A folder wins over a single image, and an empty folder is ignored. Animations
 play in place, filling the screen. The note streak still shows its number.
 
-**Or a video.** A `cool_note_streak.webm` or `cool_star_power.webm` in
-**Textures** plays once, full screen, every time the callout pops — and it
-wins over everything else. A WebM with transparency (VP8 with alpha) keeps the
+**Or a video.** Put a `.webm` file inside the callout's folder —
+`Textures\cool_note_streak\` or `Textures\cool_star_power\` — with any name
+you like. It plays once, full screen, every time the callout pops, and it wins
+over frames and images. A WebM with transparency (VP8 with alpha) keeps the
 game visible behind it. Videos load instantly, so they are the best choice
-for long or detailed animations.
+for long or detailed animations, and they pause along with the game.
+
+```
+Custom\Textures\cool_note_streak\my_streak.webm
+Custom\Textures\cool_star_power\sp_ready.webm
+```
 
 > Keep frames small. Every frame is held in memory at full size, so dozens of
 > 4K frames make loading slow — 800×450 frames look the same once stretched.
@@ -232,13 +238,21 @@ reload.
 
 ### 🖼️ Images on screen while you play
 
-Put images in a `during_song` folder inside **Textures** and they stay on
-screen for the whole song, then go away when it ends. They are stretched to
-fill the screen, on top of the game but under the pause menu and the fade at
-the end.
+Put images or videos in a `during_song` folder inside **Textures** and they
+stay on screen for the whole song, then go away when it ends. They are
+stretched to fill the screen, on top of the game but under the pause menu and
+the fade at the end. `.webm` videos loop, muted, and pause along with the game.
 
-If there are several, they stack in order: `2.png` goes on top of `1.png`,
+```
+Custom\Textures\during_song.webm
+Custom\Textures\during_song.png
+```
+
+If there are several, they stack in order: `2.png` goes on top of `1.webm`,
 and so on. Changes reload when you go back to the main menu.
+
+> The callouts, the song clock and everything in `during_song` sit under the
+> pause menu, so pausing always looks clean.
 
 ### ⏱️ Song clock
 

@@ -159,7 +159,12 @@ namespace CloneHeroMod
         private static readonly Dictionary<string, string> firmas =
             new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        // Nombres, tamanos y fechas de las imagenes de una carpeta: si no
+        public static bool EsImagen(string ruta)
+        {
+            return Array.IndexOf(Extensiones, Path.GetExtension(ruta).ToLowerInvariant()) >= 0;
+        }
+
+        // Nombres, tamanos y fechas de las imagenes (y videos) de una carpeta: si no
         // cambia, el contenido tampoco. "" si no hay carpeta.
         public static string FirmaCarpeta(string carpeta)
         {
@@ -170,7 +175,11 @@ namespace CloneHeroMod
                 foreach (string f in Directory.GetFiles(carpeta))
                 {
                     string ext = Path.GetExtension(f).ToLowerInvariant();
-                    if (Array.IndexOf(Extensiones, ext) >= 0) archivos.Add(f);
+                    // los videos tambien: un .webm nuevo tiene que notarse
+                    if (Array.IndexOf(Extensiones, ext) >= 0 || ext == CartelVideo.Extension)
+                    {
+                        archivos.Add(f);
+                    }
                 }
                 archivos.Sort(StringComparer.OrdinalIgnoreCase);
                 return Firma(archivos);
@@ -237,7 +246,7 @@ namespace CloneHeroMod
             return leidas.ToArray();
         }
 
-        private static Texture2D Leer(string ruta)
+        public static Texture2D Leer(string ruta)
         {
             Texture2D tex = new Texture2D(2, 2, TextureFormat.RGBA32, false);
             // markNonReadable: en cuanto los pixeles suben a la tarjeta, Unity
@@ -257,7 +266,7 @@ namespace CloneHeroMod
         }
 
         // Trozos de digitos se comparan por su valor; el resto, como texto.
-        private static int OrdenNatural(string a, string b)
+        public static int OrdenNatural(string a, string b)
         {
             a = Path.GetFileNameWithoutExtension(a);
             b = Path.GetFileNameWithoutExtension(b);

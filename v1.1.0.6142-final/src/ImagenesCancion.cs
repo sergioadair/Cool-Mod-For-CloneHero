@@ -13,15 +13,7 @@ namespace CloneHeroMod
     // cuando la cancion acaba.
     //
     // ENCIMA DE TODO, MENOS DE DOS COSAS: el menu de pausa y el fundido a
-    // negro del final. Si quedaran por encima, taparian el menu o seguirian
-    // viendose con la pantalla ya en negro.
-    //
-    // El orden de capas del juego no esta en su codigo (el volcado ISIL no
-    // fija sortingOrder de ningun Canvas): viene de sus escenas. Asi que se
-    // averigua al empezar cada cancion: se buscan el PauseMenu y el
-    // FadeBehaviour —aunque esten ocultos—, se sube por su jerarquia hasta su
-    // Canvas raiz, y el nuestro se pone justo por debajo del mas bajo de los
-    // dos, en su mismo modo de dibujo. Lo encontrado se deja en el log.
+    // negro del final, y por debajo de los carteles del mod. Lo coloca Capas.
     //
     // DESAPARECER AL ACABAR sale solo: el lienzo pertenece a la escena de la
     // cancion, y al acabar el juego carga otra (EndOfSong). Lo mismo al
@@ -30,23 +22,37 @@ namespace CloneHeroMod
     // ORDEN ENTRE ELLAS: el natural de los nombres (1, 2 ... 10), y cada una
     // queda por encima de las anteriores, como capas numeradas de abajo
     // arriba.
+    //
+    // VIDEOS TAMBIEN: un .webm en la carpeta se reproduce en bucle, mudo y a
+    // pantalla completa durante toda la cancion, en su sitio dentro del orden
+    // (un 1.webm de fondo con un 2.png encima, por ejemplo). Con el mismo
+    // reproductor que los carteles (ver CartelVideo), preparado al cargar la
+    // cancion. Y SE PARA CON LA PAUSA: el reproductor no se entera de la
+    // pausa del juego, que lo que hace es poner Time.timeScale a 0 (lo pone
+    // GameManager, y PauseMenu lo devuelve a 1). Se mira ese valor en cada
+    // fotograma y se pausa o reanuda con el.
     public static class ImagenesCancion
     {
         public const string NombreCarpeta = "during_song";
 
-        // Mientras no se sepa donde van la pausa y el fundido: por debajo de
-        // los carteles del mod (31000) y por encima de casi cualquier cosa.
+        // Mientras Capas no sepa donde van la pausa y el fundido: por debajo
+        // de los carteles del mod (31000) y por encima de casi cualquier cosa.
         private const int OrdenProvisional = 30000;
 
+        // Cada capa, en orden: su archivo y, si es imagen, su textura (null en
+        // los videos, que no se cargan: se decodifican al reproducirse).
+        private static string[] rutas;
         private static Texture2D[] imagenes;
         private static bool cargadas;
+
+        private static readonly List<RawImage> pantallas = new List<RawImage>();
+        private static readonly List<UnityEngine.Video.VideoPlayer> videos =
+            new List<UnityEngine.Video.VideoPlayer>();
+        private static bool pausados;
 
         private static bool activo;
         private static GameObject raiz;
         private static Canvas lienzo;
-        private static bool colocado;
-        private static int intentos;
-        private static int espera;
 
         // ------------------------------------------------------------ carga -
         // Desde los menus, nunca durante la cancion.
@@ -65,7 +71,40 @@ namespace CloneHeroMod
                 {
                     return;
                 }
-                imagenes = CartelImagen.LeerCarpeta(carpeta, "[DuranteCancion] " + NombreCarpeta);
+                List<string> archivos = new List<string>();
+                foreach (string f in Directory.GetFiles(carpeta))
+                {
+                    if (CartelImagen.EsImagen(f)
+                        || string.Equals(Path.GetExtension(f), CartelVideo.Extension,
+                                         StringComparison.OrdinalIgnoreCase))
+                    {
+                        archivos.Add(f);
+                    }
+                }
+                archivos.Sort(CartelImagen.OrdenNatural);
+                List<string> buenas = new List<string>();
+                List<Texture2D> texturas = new List<Texture2D>();
+                for (int i = 0; i < archivos.Count; i++)
+                {
+                    Texture2D t = null;
+                    if (CartelImagen.EsImagen(archivos[i]))
+                    {
+                        t = CartelImagen.Leer(archivos[i]);
+                        if (t == null) continue;
+                    }
+                    buenas.Add(archivos[i]);
+                    texturas.Add(t);
+                }
+                if (buenas.Count == 0)
+                {
+                    return;
+                }
+                rutas = buenas.ToArray();
+                imagenes = texturas.ToArray();
+                string[] nombres = new string[rutas.Length];
+                for (int i = 0; i < rutas.Length; i++) nombres[i] = Path.GetFileName(rutas[i]);
+                MelonLogger.Msg("[DuranteCancion] " + NombreCarpeta + ", " + rutas.Length.ToString()
+                    + " capa(s), de abajo arriba: " + string.Join(", ", nombres));
             }
             catch (Exception ex)
             {
@@ -93,6 +132,7 @@ namespace CloneHeroMod
                 }
             }
             imagenes = null;
+            rutas = null;
             cargadas = false;
         }
 
@@ -101,9 +141,9 @@ namespace CloneHeroMod
         {
             raiz = null;      // lo destruye Unity con la escena
             lienzo = null;
-            colocado = false;
-            intentos = 0;
-            espera = 0;
+            pantallas.Clear();
+            videos.Clear();
+            pausados = false;
 
             // RECARGA AL VOLVER AL MENU PRINCIPAL, SI CAMBIO ALGO. Antes las
             // imagenes se leian una vez por sesion, y cambiar la carpeta con el
@@ -124,36 +164,21 @@ namespace CloneHeroMod
             {
                 Cargar();
             }
-            activo = enJuego && imagenes != null && imagenes.Length > 0;
+            activo = enJuego && rutas != null && rutas.Length > 0;
             if (activo)
             {
                 Montar();
             }
         }
 
-        // Solo trabaja hasta dar con la pausa y el fundido: despues, nada.
+        // Solo hay trabajo por fotograma si hay videos.
         public static void Tick()
         {
-            if (!activo || colocado || lienzo == null)
+            if (!activo || lienzo == null || videos.Count == 0)
             {
                 return;
             }
-            if (espera > 0)
-            {
-                espera--;
-                return;
-            }
-            espera = 30;
-            intentos++;
-            try
-            {
-                colocado = Colocar(intentos >= 20);
-            }
-            catch (Exception ex)
-            {
-                colocado = true;
-                MelonLogger.Warning("[DuranteCancion] orden de capas: " + ex.Message);
-            }
+            Videos();
         }
 
         // ------------------------------------------------------------ montar -
@@ -165,17 +190,22 @@ namespace CloneHeroMod
                 lienzo = raiz.AddComponent<Canvas>();
                 lienzo.renderMode = RenderMode.ScreenSpaceOverlay;
                 lienzo.sortingOrder = OrdenProvisional;
+                Capas.Registrar(lienzo, Capas.Fondo);
                 CanvasScaler escala = raiz.AddComponent<CanvasScaler>();
                 escala.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
                 escala.referenceResolution = new Vector2(1920f, 1080f);
-                for (int i = 0; i < imagenes.Length; i++)
+                for (int i = 0; i < rutas.Length; i++)
                 {
                     // a toda la pantalla, sea cual sea su resolucion
                     RawImage img = CartelImagen.Poner(raiz.transform, imagenes[i], true);
-                    img.gameObject.name = "Imagen" + (i + 1).ToString();
+                    img.gameObject.name = "Capa" + (i + 1).ToString();
+                    if (imagenes[i] == null)
+                    {
+                        Video(img, rutas[i]);
+                    }
                 }
-                MelonLogger.Msg("[DuranteCancion] " + imagenes.Length.ToString()
-                    + " imagen(es) en pantalla");
+                MelonLogger.Msg("[DuranteCancion] " + rutas.Length.ToString()
+                    + " capa(s) en pantalla, " + videos.Count.ToString() + " de video");
             }
             catch (Exception ex)
             {
@@ -184,104 +214,62 @@ namespace CloneHeroMod
             }
         }
 
-        // Justo por debajo de la pausa y del fundido. true cuando ya no hay
-        // nada mas que hacer: colocado, o rendido.
-        private static bool Colocar(bool ultimo)
+        // Un video en bucle sobre esta capa. Hasta que de su primer fotograma
+        // la capa no se pinta: un RawImage sin textura sale blanco.
+        private static void Video(RawImage img, string ruta)
         {
-            List<Canvas> techos = new List<Canvas>();
-            Canvas pausa = LienzoDe(Il2CppInterop.Runtime.Il2CppType.Of<Il2Cpp.PauseMenu>());
-            Canvas fundido = LienzoDe(Il2CppInterop.Runtime.Il2CppType.Of<Il2Cpp.FadeBehaviour>());
-            if (pausa != null) techos.Add(pausa);
-            if (fundido != null && fundido != pausa) techos.Add(fundido);
-            if (techos.Count < 2 && !ultimo)
+            try
             {
-                return false;      // se reintenta: puede que aun no existan
+                img.enabled = false;
+                UnityEngine.Video.VideoPlayer vp =
+                    img.gameObject.AddComponent<UnityEngine.Video.VideoPlayer>();
+                vp.playOnAwake = false;
+                vp.renderMode = UnityEngine.Video.VideoRenderMode.APIOnly;
+                vp.audioOutputMode = UnityEngine.Video.VideoAudioOutputMode.None;
+                vp.isLooping = true;
+                vp.skipOnDrop = true;
+                vp.waitForFirstFrame = true;
+                vp.url = ruta;
+                vp.Play();      // si no esta preparado, Play lo prepara
+                pantallas.Add(img);
+                videos.Add(vp);
             }
-            if (techos.Count == 0)
+            catch (Exception ex)
             {
-                MelonLogger.Warning("[DuranteCancion] no se encontraron ni la pausa ni el"
-                    + " fundido; las imagenes quedan en el orden " + OrdenProvisional.ToString());
-                return true;
+                MelonLogger.Warning("[DuranteCancion] video " + Path.GetFileName(ruta) + ": "
+                    + ex.Message);
             }
-
-            Canvas bajo = techos[0];
-            for (int i = 1; i < techos.Count; i++)
-            {
-                if (Clave(techos[i]) < Clave(bajo)) bajo = techos[i];
-            }
-            for (int i = 0; i < techos.Count; i++)
-            {
-                MelonLogger.Msg("[DuranteCancion] " + (techos[i] == pausa ? "pausa" : "fundido")
-                    + ": " + techos[i].gameObject.name + "  modo " + techos[i].renderMode.ToString()
-                    + "  orden " + techos[i].sortingOrder.ToString()
-                    + "  capa " + techos[i].sortingLayerName);
-            }
-
-            if (bajo.renderMode == RenderMode.ScreenSpaceOverlay)
-            {
-                lienzo.renderMode = RenderMode.ScreenSpaceOverlay;
-            }
-            else
-            {
-                // En el mismo plano y camara que ese lienzo, para que el orden
-                // de capas decida entre los dos.
-                lienzo.renderMode = bajo.renderMode;
-                lienzo.worldCamera = bajo.worldCamera;
-                lienzo.planeDistance = bajo.planeDistance;
-                lienzo.sortingLayerID = bajo.sortingLayerID;
-            }
-            lienzo.sortingOrder = bajo.sortingOrder - 1;
-            MelonLogger.Msg("[DuranteCancion] colocadas por debajo de "
-                + bajo.gameObject.name + ": modo " + lienzo.renderMode.ToString()
-                + ", orden " + lienzo.sortingOrder.ToString());
-            return true;
         }
 
-        // Para comparar dos lienzos: un overlay va siempre por encima de uno
-        // de camara, y dentro de cada modo manda el orden.
-        private static long Clave(Canvas c)
+        // Cada fotograma: la textura de cada video a su capa, y la pausa del
+        // juego a los reproductores.
+        private static void Videos()
         {
-            long modo = c.renderMode == RenderMode.ScreenSpaceOverlay ? 1L : 0L;
-            return (modo << 32) + c.sortingOrder;
-        }
-
-        // El Canvas raiz del primer objeto de ese tipo, este activo o no.
-        private static Canvas LienzoDe(Il2CppSystem.Type tipo)
-        {
-            UnityEngine.Object[] todos = Buscar(tipo);
-            for (int i = 0; todos != null && i < todos.Length; i++)
+            try
             {
-                Component c = todos[i] == null ? null : todos[i].TryCast<Component>();
-                if (c == null) continue;
-                Canvas raizCanvas = null;
-                Transform t = c.transform;
-                while (t != null)
+                bool pausa = Time.timeScale < 0.001f;
+                for (int i = 0; i < videos.Count; i++)
                 {
-                    Component k = t.GetComponent(Il2CppInterop.Runtime.Il2CppType.Of<Canvas>());
-                    if (k != null) raizCanvas = k.TryCast<Canvas>();
-                    t = t.parent;
+                    UnityEngine.Video.VideoPlayer vp = videos[i];
+                    if (vp == null) continue;
+                    if (pausa != pausados)
+                    {
+                        if (pausa) vp.Pause(); else vp.Play();
+                    }
+                    Texture tex = vp.texture;
+                    if (tex != null && pantallas[i].texture != tex)
+                    {
+                        pantallas[i].texture = tex;
+                        pantallas[i].enabled = true;
+                    }
                 }
-                if (raizCanvas != null) return raizCanvas;
+                pausados = pausa;
             }
-            return null;
-        }
-
-        private static bool sinInactivos;
-
-        private static UnityEngine.Object[] Buscar(Il2CppSystem.Type tipo)
-        {
-            if (!sinInactivos)
+            catch (Exception ex)
             {
-                try
-                {
-                    return UnityEngine.Object.FindObjectsOfType(tipo, true);
-                }
-                catch (Exception)
-                {
-                    sinInactivos = true;      // recortado del juego: solo activos
-                }
+                videos.Clear();      // nunca a costa de la cancion
+                MelonLogger.Warning("[DuranteCancion] videos: " + ex.Message);
             }
-            return UnityEngine.Object.FindObjectsOfType(tipo);
         }
     }
 }

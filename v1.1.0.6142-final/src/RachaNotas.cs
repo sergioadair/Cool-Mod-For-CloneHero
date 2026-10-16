@@ -409,6 +409,7 @@ namespace CloneHeroMod
         // blanco.
         private static void Video()
         {
+            video.SeguirPausa();
             Texture tex = video.Textura;
             if (tex != null && imagen.texture != tex) imagen.texture = tex;
             imagen.enabled = tex != null;
@@ -663,6 +664,8 @@ namespace CloneHeroMod
                 Canvas lienzo = raiz.AddComponent<Canvas>();
                 lienzo.renderMode = RenderMode.ScreenSpaceOverlay;
                 lienzo.sortingOrder = 31000;
+                // por debajo de la pausa y del fundido, ver Capas
+                Capas.Registrar(lienzo, Capas.Carteles);
                 CanvasScaler escala = raiz.AddComponent<CanvasScaler>();
                 escala.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
                 escala.referenceResolution = new Vector2(1920f, 1080f);
