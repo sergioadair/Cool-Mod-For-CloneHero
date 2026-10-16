@@ -244,8 +244,8 @@ stretched to fill the screen, on top of the game but under the pause menu and
 the fade at the end. `.webm` videos loop, muted, and pause along with the game.
 
 ```
-Custom\Textures\during_song.webm
-Custom\Textures\during_song.png
+Custom\Textures\during_song\1.webm
+Custom\Textures\during_song\2.png
 ```
 
 If there are several, they stack in order: `2.png` goes on top of `1.webm`,
