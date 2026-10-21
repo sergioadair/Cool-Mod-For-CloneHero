@@ -152,16 +152,12 @@ namespace CloneHeroMod
 
             if (yaVolcado)
             {
-                // Mantiene lleno el hueco de la cache de secciones.
-                // La etiqueta primero: refresca la referencia a SongSelect que
-                // el orden consulta para saber si hay que hacer algo.
                 RachaNotas.ResolverEstilo();
                 EstrellaLista.ResolverEstilo();
                 TiempoCancion.ResolverEstilo();
                 AvisoVersion.Tick();
                 EtiquetaDificultad.Tick();
                 PanelPerfil.Tick();
-                OrdenDificultad.Tick();
                 OpcionCalcular.Tick();
                 MenuVideo.Tick();
                 MenuAudio.Tick();
@@ -199,8 +195,7 @@ namespace CloneHeroMod
                 FondosPersonalizados.Instalar();
                 FiltroFavoritos.Instalar();
                 FiltroFavoritos.InstalarParche(HarmonyInstance);
-                OrdenDificultad.InstalarParcheRefresco(HarmonyInstance);
-                OrdenDificultad.InstalarParcheNombre(HarmonyInstance);
+                OrdenDificultad.InstalarParches(HarmonyInstance);
                 ChartsFaltantes.InstalarParches(HarmonyInstance);
                 Actualizador.Comprobar();
                 // Los volcados recorren los 1475 tipos del juego y leen todos
