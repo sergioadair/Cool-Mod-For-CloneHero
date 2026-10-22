@@ -116,6 +116,8 @@ it has already done — running it again after adding a few songs takes seconds.
 
 **Sort by it**: `(Hold) Sort List > Sort Options > Difficulty`, grouped in tens.
 **Hide it**: `Settings > Video > Show Difficulty`.
+**Tune the scale**: `Settings > General > Difficulty Reference NPS`. Your songs
+are recalculated with the new value.
 
 ---
 
@@ -311,7 +313,8 @@ A starter pack is included in [`assets/Menu Backgrounds/`](assets/Menu%20Backgro
 ### 🔀 Menu background slideshow
 
 `Settings > Video > Menu BG Slideshow` — rotates through your custom
-backgrounds automatically. The interval is configurable (5 minutes by default).
+backgrounds automatically, every 5 minutes by default — change it at
+`Settings > Video > Slideshow Interval`.
 Pick a background by hand while it is on and it switches right away; the
 slideshow carries on from there.
 
@@ -330,7 +333,7 @@ Plays the classic **"You Rock"** sound from GH3 when the results screen appears
 the last word. Replace the file to use your own: `.opus`, `.ogg`, `.mp3` and
 `.wav` all work.
 
-Toggle it at `Settings > Audio > Finished Song SFX`.
+Toggle it and set its volume in `Settings > Audio`.
 
 ### 🔄 One-click updates
 
@@ -421,8 +424,8 @@ This build replaces a game file, so **make a backup first**.
 ## ⚙️ Settings
 
 The 1.1.0.6142 build keeps its settings in a `[mods]` section of your
-`settings.ini` (in the folder shown above), next to the game's own. Everything
-has a menu option except the slideshow interval and the sound volume.
+`settings.ini` (in the folder shown above), next to the game's own. The ones
+you would change most also have a menu option.
 
 | Key | Default | What it does |
 |---|---|---|

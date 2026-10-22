@@ -6,7 +6,8 @@ using MelonLoader;
 
 namespace CloneHeroMod
 {
-    // Fila "Finished Song SFX" en Settings > Audio.
+    // Filas "Finished Song SFX" (Yes/No) y "Finished Song SFX Volume" (barra)
+    // en Settings > Audio.
     //
     // Misma receta que la del slideshow en Video, ya probada:
     //   - la fila se anade en un PREFIX de OnEnable (si se anade despues, el
@@ -21,6 +22,10 @@ namespace CloneHeroMod
     public static class MenuAudio
     {
         public const string Prefijo = "Finished Song SFX";
+
+        // Con los dos puntos: "Finished Song SFX Volume" empieza igual, y sin
+        // ellos el interruptor la tomaba por suya.
+        private const string PrefijoInterruptor = Prefijo + ":";
 
         private static bool parcheado;
         private static object menuAudio;
@@ -82,7 +87,8 @@ namespace CloneHeroMod
                 // pulsacion era la primera observacion y no conmutaba: habia
                 // que pulsar dos veces tras arrancar el juego.
                 vigilante.Preparar(a);
-                FilasMenu.Anadir(a, Texto(), Prefijo);
+                FilasMenu.Anadir(a, Texto(), PrefijoInterruptor);
+                volumen.Anadir(a);
             }
             catch (Exception ex)
             {
@@ -91,18 +97,26 @@ namespace CloneHeroMod
         }
 
         private static readonly VigilanteMenu vigilante =
-            new VigilanteMenu("MenuAudio", Prefijo);
+            new VigilanteMenu("MenuAudio", PrefijoInterruptor);
+
+        // 0 a 100 %, de 5 en 5, como los volumenes del juego.
+        private static readonly FilaDeslizador volumen = new FilaDeslizador(
+            Prefijo + " Volume", 0, 100, 5, 100,
+            () => Ajustes.VolumenSfx * 100f,
+            v => Ajustes.GuardarVolumenSfx(v / 100f),
+            v => ((int)Math.Round(v)).ToString() + "%");
 
         public static void Tick()
         {
             try
             {
+                volumen.Tick(menuAudio);
                 if (vigilante.RecienAbierta(menuAudio) == null)
                 {
                     return;
                 }
                 Ajustes.GuardarSfxFin(!Ajustes.SfxFinActivo);
-                int fila = FilasMenu.IndiceDe(menuAudio, Prefijo);
+                int fila = FilasMenu.IndiceDe(menuAudio, PrefijoInterruptor);
                 FilasMenu.CambiarTexto(menuAudio, fila, Texto());
                 RefrescarFila(fila);
             }

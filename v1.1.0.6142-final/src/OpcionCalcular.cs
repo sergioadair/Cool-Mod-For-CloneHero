@@ -209,6 +209,16 @@ namespace CloneHeroMod
 
         public static void Tick()
         {
+            referencia.Tick(ultimoMenu);
+            // Si ya habia una pasada en marcha, se espera a que acabe: anota
+            // la referencia vieja y la nueva pasada vera la diferencia.
+            if (recalcularPendiente && !CalculadorDificultad.Corriendo)
+            {
+                recalcularPendiente = false;
+                MelonLogger.Msg("[Dificultad] referencia cambiada a "
+                    + Ajustes.ReferenceNps.ToString("0.#") + ": se recalcula");
+                CalculadorDificultad.Lanzar();
+            }
             if (revisar > 0 && ultimoMenu != null)
             {
                 revisar--;
@@ -216,7 +226,7 @@ namespace CloneHeroMod
                 {
                     FilasMenu.Comprobar(ultimoMenu, "General", new[]
                     {
-                        Nombre, GeneradorLote.NombreGenerar, GeneradorAudio.Nombre,
+                        Nombre, referencia.Nombre, GeneradorLote.NombreGenerar, GeneradorAudio.Nombre,
                         GeneradorLote.NombreRestaurar, Actualizador.Etiqueta
                     });
                 }
@@ -322,6 +332,36 @@ namespace CloneHeroMod
             }
         }
 
+        // Las notas por segundo que valen un 100 % de dificultad.
+        private static readonly FilaDeslizador referencia = CrearReferencia();
+        private static bool recalcularPendiente;
+
+        private static FilaDeslizador CrearReferencia()
+        {
+            FilaDeslizador f = new FilaDeslizador(
+                "Difficulty Reference NPS", 1, 100, 1, (int)Ajustes.ReferenceNpsPorDefecto,
+                () => Ajustes.ReferenceNps,
+                v => Ajustes.GuardarReferenceNps(v),
+                v => v.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture));
+            f.AlCerrar = ReferenciaCerrada;
+            return f;
+        }
+
+        // Al cerrar la fila, si la referencia ya no es la de la ultima pasada,
+        // se recalcula todo (CalculadorDificultad lo ve cambiado y no salta
+        // ninguna). Se espera al cierre y no a cada paso de la barra para no
+        // lanzar una pasada por pulsacion; y si la referencia acaba siendo la
+        // de antes, no se hace nada. Sin pasada previa (-1) tampoco: no hay
+        // dificultades viejas que corregir, y calcularlas es cosa del jugador.
+        private static void ReferenciaCerrada()
+        {
+            float ultima = Ajustes.UltimaRefUsada();
+            if (ultima >= 0f && Math.Abs(Ajustes.ReferenceNps - ultima) > 0.0001f)
+            {
+                recalcularPendiente = true;
+            }
+        }
+
         // -------------------------------------------------------------- fila -
         // El montaje de la fila lo hace FilasMenu: las filas de estos menus son
         // contenedores dentro de un VerticalLayoutGroup, y clonar solo la
@@ -346,6 +386,7 @@ namespace CloneHeroMod
             //
             // Cada fila nueva vuelve a poner a prueba ese ajuste, asi que si
             // algun menu de ajustes se ve deformado, mirar ahi primero.
+            referencia.Anadir(menu);
             FilasMenu.Anadir(menu, Nombre, Nombre);
             FilasMenu.Anadir(menu, GeneradorLote.NombreGenerar,
                                    GeneradorLote.NombreGenerar);

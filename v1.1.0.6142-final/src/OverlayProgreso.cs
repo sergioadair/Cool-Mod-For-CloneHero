@@ -20,6 +20,57 @@ namespace CloneHeroMod
         private static RectTransform recuadro;
         private static bool falloCreacion;
 
+        // ------------------------------------------------ controles bloqueados
+        // Mientras hay un trabajo en marcha, los menus no atienden al mando ni
+        // al teclado: moverse por debajo del cartel sin verlo, o lanzar otra
+        // cosa a la vez, solo lleva a lios. Los avisos sueltos no bloquean: se
+        // van solos en un par de segundos.
+        //
+        // Toda la entrada de los menus pasa por BaseMenu.DoInput(CHPlayer)
+        // —ningun menu la sobrescribe—, y el propio juego la corta ahi cuando
+        // hay un editor abierto (perfiles de color, rutas de canciones). Aqui
+        // se corta igual, con un prefix que se salta el metodo.
+        private const string MetodoEntrada =
+            "Method_Protected_Virtual_New_Void_ObjectPublicObPlInPlBoBoObBoObBoUnique_0";
+
+        public static bool Trabajando
+        {
+            get
+            {
+                return CalculadorDificultad.Corriendo || GeneradorCharts.Corriendo
+                    || GeneradorLote.Corriendo || GeneradorAudio.Corriendo;
+            }
+        }
+
+        public static void InstalarParches(HarmonyLib.Harmony harmony)
+        {
+            try
+            {
+                System.Reflection.MethodInfo entrada = typeof(Il2Cpp.BaseMenu).GetMethod(MetodoEntrada,
+                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic
+                    | System.Reflection.BindingFlags.Instance);
+                if (entrada == null || entrada.ReturnType != typeof(void)
+                    || entrada.GetParameters().Length != 1)
+                {
+                    MelonLogger.Warning("[Overlay] no se localizo la entrada de los menus: los"
+                        + " controles no se bloquean durante los trabajos");
+                    return;
+                }
+                harmony.Patch(entrada, new HarmonyLib.HarmonyMethod(typeof(OverlayProgreso).GetMethod(
+                    "AntesDeEntrada", System.Reflection.BindingFlags.NonPublic
+                    | System.Reflection.BindingFlags.Static)));
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Overlay] parche de entrada: " + ex.Message);
+            }
+        }
+
+        private static bool AntesDeEntrada()
+        {
+            return !Trabajando;
+        }
+
         public static void Refrescar()
         {
             try

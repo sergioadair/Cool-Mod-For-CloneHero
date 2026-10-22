@@ -375,6 +375,17 @@ namespace CloneHeroMod
         private static readonly Dictionary<int, Material> materialesOriginales =
             new Dictionary<int, Material>();
 
+        // Con el intervalo cambiado desde el menu, el siguiente cambio se
+        // cuenta ya con el nuevo: si no, pasar de 60 minutos a 1 seguiria
+        // esperando lo que quedara de la hora.
+        public static void IntervaloCambiado()
+        {
+            if (indiceSlideshow >= 0)
+            {
+                proximoCambio = Time.realtimeSinceStartup + Ajustes.SlideshowSegundos;
+            }
+        }
+
         // Va rotando entre las imagenes cada N segundos.
         private static int IndiceSlideshow()
         {

@@ -271,6 +271,20 @@ namespace CloneHeroMod
             }
         }
 
+        // La etiqueta fisica de una fila, o null.
+        public static Il2CppTMPro.TextMeshProUGUI Etiqueta(object menu, int indice)
+        {
+            PropertyInfo p = Prop(menu.GetType(), "textObjects");
+            object arr = p != null ? p.GetValue(menu) : null;
+            if (arr == null || indice < 0
+                || (int)arr.GetType().GetProperty("Length").GetValue(arr) <= indice)
+            {
+                return null;
+            }
+            return arr.GetType().GetProperty("Item").GetValue(arr, new object[] { indice })
+                as Il2CppTMPro.TextMeshProUGUI;
+        }
+
         // Anade una fila al final. Devuelve true si la creo (false si ya estaba).
         public static bool Anadir(object menu, string texto, string prefijo)
         {
@@ -331,6 +345,131 @@ namespace CloneHeroMod
                 MelonLogger.Error("[Filas] " + ex);
                 return false;
             }
+        }
+
+        // Anade una fila con barra y numero, como las de volumen o Framerate.
+        // Devuelve la barra y su numero (null si ya estaba o no se pudo).
+        //
+        // La fila se crea como las de texto y despues se le pone una copia de
+        // la barra de una fila del propio menu: la primera de "sliders" que
+        // lleve numero. Se coloca a la misma distancia de nuestra etiqueta que
+        // la original de la suya, y asi vale los dos montajes que tienen los
+        // menus de ajustes:
+        //
+        //   - Con cajas (Video recien cargado): etiqueta y barra cuelgan de la
+        //     caja de su fila, la distancia vertical es cero y la copia va a
+        //     nuestra caja en la misma posicion.
+        //   - Desenrollado: UnrollChildMenuitems.Start() saca, una sola vez, el
+        //     contenido de cada caja y lo cuelga todo del contenedor
+        //     conservando su posicion (Audio ya esta asi cuando lo tocamos).
+        //     La copia va al contenedor, una fila mas abajo que la original
+        //     por cada fila que nos separa.
+        //
+        // La barra y el numero hay que guardarlos AHORA: despues del
+        // desenrollado no se sabe que hijo del contenedor era de que fila.
+        public static bool AnadirDeslizador(object menu, string texto,
+            out UnityEngine.UI.Slider barra, out Il2CppTMPro.TextMeshProUGUI numero)
+        {
+            barra = null;
+            numero = null;
+            try
+            {
+                if (IndiceDe(menu, texto) >= 0)
+                {
+                    return false;      // ya estaba
+                }
+                Il2Cpp.BaseSettingMenu m = menu as Il2Cpp.BaseSettingMenu;
+                if (m == null || m.sliders == null || m.slidersText == null)
+                {
+                    return false;
+                }
+                UnityEngine.UI.Slider modelo = null;
+                Il2CppTMPro.TextMeshProUGUI modeloNumero = null;
+                for (int k = 0; k < m.sliders.Length && k < m.slidersText.Length; k++)
+                {
+                    if (m.sliders[k] != null && m.slidersText[k] != null)
+                    {
+                        modelo = m.sliders[k];
+                        modeloNumero = m.slidersText[k];
+                        break;
+                    }
+                }
+                Il2CppTMPro.TextMeshProUGUI modeloEtiqueta =
+                    modelo != null ? EtiquetaDe(menu, modelo.transform) : null;
+                if (modeloEtiqueta == null)
+                {
+                    MelonLogger.Warning("[Filas] '" + texto + "': el menu no tiene una barra que copiar");
+                    return false;
+                }
+
+                if (!Anadir(menu, texto, texto))
+                {
+                    return false;
+                }
+                Il2CppTMPro.TextMeshProUGUI etiqueta = Etiqueta(menu, IndiceDe(menu, texto));
+                if (etiqueta == null)
+                {
+                    return false;
+                }
+                float dy = etiqueta.transform.localPosition.y - modeloEtiqueta.transform.localPosition.y;
+
+                GameObject copia = Copiar(modelo.gameObject, etiqueta.transform.parent, dy);
+                var barras = copia.GetComponentsInChildren<UnityEngine.UI.Slider>(true);
+                barra = barras.Length > 0 ? barras[0] : null;
+                var textos = copia.GetComponentsInChildren<Il2CppTMPro.TextMeshProUGUI>(true);
+                if (textos.Length > 0)
+                {
+                    numero = textos[0];      // el numero va dentro de la barra
+                }
+                else if (modeloNumero.transform.parent == modelo.transform.parent)
+                {
+                    numero = Copiar(modeloNumero.gameObject, etiqueta.transform.parent, dy)
+                        .GetComponent<Il2CppTMPro.TextMeshProUGUI>();
+                }
+                MelonLogger.Msg("[Filas] '" + texto + "' con barra (copia de la de '"
+                    + modeloEtiqueta.text + "')");
+                return true;
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Error("[Filas] deslizador: " + ex);
+                return false;
+            }
+        }
+
+        private static GameObject Copiar(GameObject original, Transform padre, float dy)
+        {
+            GameObject copia = UnityEngine.Object.Instantiate(original);
+            copia.name = "mod_" + original.name;
+            copia.transform.SetParent(padre, false);
+            copia.transform.localScale = original.transform.localScale;
+            copia.transform.localRotation = original.transform.localRotation;
+            copia.transform.localPosition = original.transform.localPosition + new Vector3(0f, dy, 0f);
+            return copia;
+        }
+
+        // La etiqueta de la fila de un widget: la que cuelga de su mismo padre
+        // a la altura mas parecida (en una caja solo hay una).
+        private static Il2CppTMPro.TextMeshProUGUI EtiquetaDe(object menu, Transform widget)
+        {
+            Il2CppTMPro.TextMeshProUGUI mejor = null;
+            float distancia = float.MaxValue;
+            Il2CppStringArray filas = Opciones(menu);
+            for (int i = 0; filas != null && i < filas.Length; i++)
+            {
+                Il2CppTMPro.TextMeshProUGUI t = Etiqueta(menu, i);
+                if (t == null || t.transform.parent != widget.parent)
+                {
+                    continue;
+                }
+                float d = Math.Abs(t.transform.localPosition.y - widget.localPosition.y);
+                if (d < distancia)
+                {
+                    distancia = d;
+                    mejor = t;
+                }
+            }
+            return mejor;
         }
 
         // Cuantas etiquetas fisicas hay frente a cuantos textos. Se deja una vez
@@ -505,7 +644,8 @@ namespace CloneHeroMod
 
                 // Del clon se conservan el recuadro de fondo y la etiqueta. El
                 // widget de valor (interruptor, desplegable, deslizador) sobra:
-                // nuestras filas llevan el valor en el propio texto.
+                // las filas Yes/No llevan el valor en el propio texto, y las de
+                // barra se la ponen despues (AnadirDeslizador).
                 Il2CppTMPro.TextMeshProUGUI etiqueta = null;
                 UnityEngine.UI.Image fondo = null;
                 Transform tr = clon.transform;

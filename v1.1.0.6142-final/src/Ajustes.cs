@@ -82,6 +82,20 @@ namespace CloneHeroMod
             }
         }
 
+        // Desde su fila de Settings > Audio.
+        public static void GuardarVolumenSfx(float volumen)
+        {
+            try
+            {
+                volumenSfx = Math.Max(0f, Math.Min(1f, volumen));
+                EscribirClave(RutaSettings(), Seccion, ClaveVolumenSfx, volumenSfx);
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Ajustes] guardar volumen sfx: " + ex.Message);
+            }
+        }
+
         public static bool SfxFinActivo
         {
             get
@@ -373,6 +387,23 @@ namespace CloneHeroMod
             }
         }
 
+        // Desde su fila de Settings > General. Las dificultades ya calculadas
+        // siguen con la referencia vieja hasta el siguiente Calculate
+        // Difficulty, que al verla cambiada las recalcula todas.
+        public static void GuardarReferenceNps(float valor)
+        {
+            try
+            {
+                referenceNps = Limitar(valor);
+                EscribirClave(RutaSettings(), Seccion, ClaveReferenceNps, referenceNps);
+                GuardarRespaldo(referenceNps);
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Ajustes] guardar referencia: " + ex.Message);
+            }
+        }
+
         private static string RutaSettings()
         {
             // La carpeta de datos cambia segun como este instalado el juego
@@ -555,6 +586,20 @@ namespace CloneHeroMod
             catch (Exception ex)
             {
                 MelonLogger.Warning("[Ajustes] guardar slideshow: " + ex.Message);
+            }
+        }
+
+        // El intervalo, desde su fila de Settings > Video.
+        public static void GuardarSlideshowSegundos(float segundos)
+        {
+            try
+            {
+                slideshowSegundos = Math.Max(SegundosMin, Math.Min(SegundosMax, segundos));
+                EscribirClave(RutaSettings(), Seccion, ClaveSlideshowSegundos, slideshowSegundos);
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Ajustes] guardar intervalo: " + ex.Message);
             }
         }
 

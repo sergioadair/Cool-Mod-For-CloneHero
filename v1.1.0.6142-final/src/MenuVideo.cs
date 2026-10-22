@@ -12,17 +12,13 @@ namespace CloneHeroMod
     //   1. El nombre del archivo cuando el fondo elegido es uno nuestro. El
     //      juego no tiene texto para indices que no conoce, asi que esas
     //      opciones salian en blanco.
-    //   2. Las filas "Menu BG Slideshow" y "Show Difficulty", que hasta ahora
-    //      solo existian en settings.ini.
+    //   2. Las filas "Menu BG Slideshow", "Slideshow Interval", "Show
+    //      Difficulty" y "Show Time Display", que antes solo existian en
+    //      settings.ini. Caben las que hagan falta: FilasMenu.AjustarAlto
+    //      repite la cuenta del juego para el alto del scroll.
     //
-    // NO CABEN MAS: el contenido del scroll tiene una altura fija puesta a mano
-    // — Video 1600 = (18 filas + 2) x 80 — y con estas dos ya va exactamente
-    // lleno. Una tercera fila se sale del area desplazable y no hay forma de
-    // llegar a ella. Se intento agrandar el contenedor y sale caro: segun como
-    // este montado el menu en ese momento, las filas cuelgan de una caja propia
-    // de alto fijo o directamente y ancladas en estiramiento, y en ese segundo
-    // caso agrandar el contenedor estira todas las filas y las solapa. La
-    // tercera opcion vive en Audio, que si tiene un hueco libre.
+    // El intervalo es una barra como la de Framerate; lo explica su seccion,
+    // mas abajo. Las otras tres son Yes/No:
     //
     // El estado va en el propio texto de la fila ("Menu BG Slideshow: Yes") en
     // vez de en un widget Yes/No aparte: el juego no tiene hueco de valor para
@@ -37,6 +33,7 @@ namespace CloneHeroMod
         public const string PrefijoSlideshow = "Menu BG Slideshow";
         public const string PrefijoMostrarDificultad = "Show Difficulty";
         public const string PrefijoMostrarTiempo = "Show Time Display";
+        public const string PrefijoIntervalo = "Slideshow Interval";
 
         // Nombres de los 14 fondos de serie. Sirven para localizar el widget de
         // valor de la fila "Menu Backgrounds": es el unico que muestra uno de
@@ -140,6 +137,7 @@ namespace CloneHeroMod
                 // limites de navegacion, y si la fila se anade despues queda
                 // visible pero inalcanzable.
                 FilasMenu.Anadir(v, TextoSlideshow(), PrefijoSlideshow);
+                intervalo.Anadir(v);
                 FilasMenu.Anadir(v, TextoMostrarDificultad(), PrefijoMostrarDificultad);
                 FilasMenu.Anadir(v, TextoMostrarTiempo(), PrefijoMostrarTiempo);
                 vigilante.Preparar(v);
@@ -355,6 +353,7 @@ namespace CloneHeroMod
             {
                 Conmutar(prefijo);
             }
+            intervalo.Tick(menuVideo);
         }
 
         private static void Conmutar(string prefijo)
@@ -409,6 +408,24 @@ namespace CloneHeroMod
             }
         }
 
+        // ------------------------------------------- intervalo del slideshow
+        // Una barra como la de Framerate, de 1 a 60 minutos en pasos de 30
+        // segundos. Como funciona, en FilaDeslizador.
+        private static readonly FilaDeslizador intervalo = new FilaDeslizador(
+            PrefijoIntervalo, 60, 3600, 30, (int)Ajustes.SegundosPorDefecto,
+            () => Ajustes.SlideshowSegundos,
+            s =>
+            {
+                Ajustes.GuardarSlideshowSegundos(s);
+                FondosPersonalizados.IntervaloCambiado();
+            },
+            TextoIntervalo);
 
+        // "5:00", "1:30", "60:00".
+        private static string TextoIntervalo(float segundos)
+        {
+            int s = (int)Math.Round(segundos);
+            return (s / 60).ToString() + ":" + (s % 60).ToString("00");
+        }
     }
 }
