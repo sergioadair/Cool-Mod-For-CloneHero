@@ -328,6 +328,12 @@ The game already lets you favorite songs and sort by it, but there is no way to
 It reuses the game's own favorites, so nothing is stored separately and your
 existing favorites just work.
 
+### 🤝 No failing in Versus
+
+Versus hides the health bar, so you could fail without any warning. Like in
+earlier versions of the game, you can no longer fail in Versus. Your No Fail
+setting is left untouched.
+
 ### 🔊 Custom sound when you finish a song
 
 Plays the classic **"You Rock"** sound from GH3 when the results screen appears
