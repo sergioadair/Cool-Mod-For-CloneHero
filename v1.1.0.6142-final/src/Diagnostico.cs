@@ -193,6 +193,7 @@ namespace CloneHeroMod
                 Actualizador.LimpiarRestos();
                 OrdenDificultad.Instalar();
                 FondosPersonalizados.Instalar();
+                PrimerArranque.Copiar();
                 FiltroFavoritos.Instalar();
                 FiltroFavoritos.InstalarParche(HarmonyInstance);
                 OrdenDificultad.InstalarParches(HarmonyInstance);

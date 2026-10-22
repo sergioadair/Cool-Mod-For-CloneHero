@@ -363,20 +363,21 @@ and with it on, next to nothing.
 
 ### For game version 1.1.0.6142-final
 
-This build is a **MelonLoader mod**, so it does not touch any game file.
+It does not touch any game file.
 
-1. **Install MelonLoader 0.7.3 or newer** — download from
-   [github.com/LavaGang/MelonLoader](https://github.com/LavaGang/MelonLoader/releases)
-   and extract `MelonLoader.x64.zip` into your Clone Hero folder (the one with
-   `Clone Hero.exe`).
-2. **Run the game once** and wait at the main menu. MelonLoader generates the
-   files it needs — this takes a couple of minutes the first time. Close it.
-3. Copy [`v1.1.0.6142-final/CloneHeroMod.dll`](v1.1.0.6142-final/) into the
-   `Mods` folder that MelonLoader created.
-4. Copy [`assets/Sounds/yourock.opus`](assets/Sounds/) into your
-   **`Custom\Sounds\`** folder.
-5. *(Optional)* Copy the images from [`assets/Menu Backgrounds/`](assets/Menu%20Backgrounds/)
+1. Download [`CoolMod-v1.1.0.6142-AllInOne.zip`](v1.1.0.6142-final/CoolMod-v1.1.0.6142-AllInOne.zip).
+2. Extract it into your Clone Hero folder (the one with `Clone Hero.exe`).
+3. Start the game. **The first launch takes a couple of minutes** — that only
+   happens once.
+4. *(Optional)* Copy the images from [`assets/Menu Backgrounds/`](assets/Menu%20Backgrounds/)
    into your **`Custom\Menu Backgrounds\`** folder.
+
+The package includes [MelonLoader](https://github.com/LavaGang/MelonLoader) 0.7.3,
+which is what loads the mod (its license is in `MelonLoader\Documentation`).
+
+> **Already have MelonLoader?** Just copy
+> [`v1.1.0.6142-final/CloneHeroMod.dll`](v1.1.0.6142-final/) into `Mods` and
+> [`assets/Sounds/yourock.opus`](assets/Sounds/) into your **`Custom\Sounds\`** folder.
 
 > **Where is that folder?** It depends on how the game is installed, and the
 > mod detects it automatically — including when Documents is redirected to
