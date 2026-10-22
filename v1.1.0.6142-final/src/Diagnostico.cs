@@ -143,6 +143,9 @@ namespace CloneHeroMod
                 {
                     fondosListos = true;
                     Ajustes.Cargar();
+                    // Antes que los fondos: en el primer arranque del paquete
+                    // tienen que estar ya en Custom cuando se carguen.
+                    PrimerArranque.Copiar();
                     RachaNotas.ResolverEstilo();
                     EstrellaLista.ResolverEstilo();
                     ImagenesCancion.Cargar();
@@ -193,7 +196,6 @@ namespace CloneHeroMod
                 Actualizador.LimpiarRestos();
                 OrdenDificultad.Instalar();
                 FondosPersonalizados.Instalar();
-                PrimerArranque.Copiar();
                 FiltroFavoritos.Instalar();
                 FiltroFavoritos.InstalarParche(HarmonyInstance);
                 OrdenDificultad.InstalarParches(HarmonyInstance);

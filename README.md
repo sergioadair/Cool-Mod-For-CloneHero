@@ -369,15 +369,17 @@ It does not touch any game file.
 2. Extract it into your Clone Hero folder (the one with `Clone Hero.exe`).
 3. Start the game. **The first launch takes a couple of minutes** — that only
    happens once.
-4. *(Optional)* Copy the images from [`assets/Menu Backgrounds/`](assets/Menu%20Backgrounds/)
-   into your **`Custom\Menu Backgrounds\`** folder.
+
+It comes with a set of menu backgrounds, already in the slideshow.
 
 The package includes [MelonLoader](https://github.com/LavaGang/MelonLoader) 0.7.3,
 which is what loads the mod (its license is in `MelonLoader\Documentation`).
 
 > **Already have MelonLoader?** Just copy
 > [`v1.1.0.6142-final/CloneHeroMod.dll`](v1.1.0.6142-final/) into `Mods` and
-> [`assets/Sounds/yourock.opus`](assets/Sounds/) into your **`Custom\Sounds\`** folder.
+> [`assets/Sounds/yourock.opus`](assets/Sounds/) into your **`Custom\Sounds\`** folder,
+> and *(optionally)* the images from [`assets/Menu Backgrounds/`](assets/Menu%20Backgrounds/)
+> into **`Custom\Menu Backgrounds\`**.
 
 > **Where is that folder?** It depends on how the game is installed, and the
 > mod detects it automatically — including when Documents is redirected to
@@ -425,7 +427,7 @@ has a menu option except the slideshow interval and the sound volume.
 | Key | Default | What it does |
 |---|---|---|
 | `difficulty_reference_nps` | `14` | Notes per second that equals 100/100. Raise it to compress the scale, lower it to expand |
-| `menu_bg_slideshow` | `0` | Background slideshow on/off |
+| `menu_bg_slideshow` | `1` | Background slideshow on/off |
 | `menu_bg_slideshow_seconds` | `300` | Seconds between background changes |
 | `menu_background_custom` | — | Which custom background is selected (written by the mod) |
 | `finished_song_sfx` | `1` | End-of-song sound on/off |
