@@ -124,6 +124,7 @@ namespace CloneHeroMod
                     MenuAudio.InstalarParches(HarmonyInstance);
                     MenuGameplay.InstalarParches(HarmonyInstance);
                     OverlayProgreso.InstalarParches(HarmonyInstance);
+                    DificultadJugador.InstalarParche(HarmonyInstance);
                     // No es de menu, pero tampoco necesita esperar a nada:
                     // engancha el sonido de Star Power listo.
                     EstrellaLista.InstalarParche(HarmonyInstance);
@@ -241,6 +242,7 @@ namespace CloneHeroMod
             // tira para no dar por buena una que ya no existe.
             EtiquetaDificultad.OlvidarPaneles();
             PanelPerfil.EscenaCambiada();
+            DificultadJugador.EscenaCambiada();
             AvisoVersion.EscenaCambiada();
         }
 

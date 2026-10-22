@@ -744,6 +744,7 @@ namespace CloneHeroMod
                 }
                 perfil = new Perfil();
                 perfil.global = -1;
+                perfil.nota = Escalar(PeakNps(times, PeakWindow));
                 Perfilar(perfil, times, mascaras);
                 return true;
             }
@@ -758,6 +759,10 @@ namespace CloneHeroMod
         public class Perfil
         {
             public int global;
+            // La nota de UN chart (instrumento y nivel), solo en los perfiles
+            // de CalcularChart: la misma cuenta que porInstrumento, que es esta
+            // misma sobre el nivel mas alto. -1 en el de la cancion.
+            public int nota = -1;
             public int velocidad;      // que tan denso llega a ponerse
             public int acordes;        // cuanto se toca de mas de una nota
             public int tecnica;        // cuanto se mueve la mano

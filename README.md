@@ -115,6 +115,8 @@ across your CPU cores, leaves one free so the game stays smooth, and skips songs
 it has already done — running it again after adding a few songs takes seconds.
 
 **Sort by it**: `(Hold) Sort List > Sort Options > Difficulty`, grouped in tens.
+**Per player**: when you pick your instrument and difficulty, the number for
+that exact chart shows next to the instrument icon.
 **Hide it**: `Settings > Video > Show Difficulty`.
 **Tune the scale**: `Settings > General > Difficulty Reference NPS`. Your songs
 are recalculated with the new value.
