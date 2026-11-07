@@ -708,6 +708,7 @@ namespace CloneHeroMod
                 object activa = propActiva != null ? propActiva.GetValue(null) : null;
                 if (activa != null)
                 {
+                    OrdenarDentro(activa);
                     Indexar(activa);
                 }
                 return true;
@@ -910,6 +911,70 @@ namespace CloneHeroMod
                 }
             }
             return n == 1 ? encontrado : null;
+        }
+
+        // DENTRO DE CADA SECCION, de mas dificil a menos, como las secciones.
+        //
+        // El agrupador del juego solo ordena las secciones (por la clave). Las
+        // canciones las mete despues en el orden de su lista maestra
+        // (songEntries), que no tiene nada que ver con la dificultad: con una
+        // playlist filtrada es el de la playlist, y dentro de "80-89" salian
+        // revueltas. En sus propios criterios no se nota porque la clave ya es
+        // el texto por el que se ordena.
+        //
+        // Se reordena cada seccion despues de agrupar, sin tocar la lista
+        // maestra. Orden estable: con la misma nota se respeta el que traian.
+        private static void OrdenarDentro(object listaSecciones)
+        {
+            try
+            {
+                PropertyInfo cuenta = listaSecciones.GetType().GetProperty("Count");
+                PropertyInfo item = listaSecciones.GetType().GetProperty("Item");
+                if (cuenta == null || item == null)
+                {
+                    return;
+                }
+                int n = (int)cuenta.GetValue(listaSecciones);
+                for (int i = 0; i < n; i++)
+                {
+                    object seccion = item.GetValue(listaSecciones, new object[] { i });
+                    object lista = seccion == null ? null
+                        : campoCancionesSeccion != null ? campoCancionesSeccion.GetValue(seccion)
+                        : propCancionesSeccion.GetValue(seccion);
+                    if (lista == null)
+                    {
+                        continue;
+                    }
+                    PropertyInfo c = lista.GetType().GetProperty("Count");
+                    PropertyInfo elem = lista.GetType().GetProperty("Item");
+                    int m = c != null ? (int)c.GetValue(lista) : 0;
+                    if (elem == null || m < 2)
+                    {
+                        continue;
+                    }
+                    List<KeyValuePair<int, Il2Cpp.SongEntry>> canciones =
+                        new List<KeyValuePair<int, Il2Cpp.SongEntry>>(m);
+                    for (int k = 0; k < m; k++)
+                    {
+                        canciones.Add(new KeyValuePair<int, Il2Cpp.SongEntry>(
+                            k, elem.GetValue(lista, new object[] { k }) as Il2Cpp.SongEntry));
+                    }
+                    canciones.Sort(delegate (KeyValuePair<int, Il2Cpp.SongEntry> a,
+                                             KeyValuePair<int, Il2Cpp.SongEntry> b)
+                    {
+                        int r = ValorDe(b.Value).CompareTo(ValorDe(a.Value));
+                        return r != 0 ? r : a.Key.CompareTo(b.Key);
+                    });
+                    for (int k = 0; k < m; k++)
+                    {
+                        elem.SetValue(lista, canciones[k].Value, new object[] { k });
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Orden] ordenar dentro de las secciones: " + ex.Message);
+            }
         }
 
         private static int CancionesDe(object seccion)
