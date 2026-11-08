@@ -170,7 +170,7 @@ namespace CloneHeroMod
                 if (actual == Nombre)
                 {
                     MelonLogger.Msg("[Opcion] activada desde el menu");
-                    CalculadorDificultad.Lanzar();
+                    CalculadorDificultad.EscanearYLanzar();
                     return;
                 }
                 if (actual == GeneradorLote.NombreGenerar)

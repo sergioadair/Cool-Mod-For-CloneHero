@@ -1052,6 +1052,49 @@ namespace CloneHeroMod
             }
         }
 
+        // Tras recalcular, si la lista esta ordenada por dificultad, se rehace
+        // con los valores nuevos (antes lo conseguia el escaneo del final).
+        //
+        // Igual que cuando el juego reordena desde la lista
+        // (SongSelect.YellowReleased_2): se apunta la cancion resaltada, se
+        // ordena, se redibuja la lista y se vuelve a resaltar esa cancion.
+        // Llamar antes a LimpiarCache: con nuestro hueco de la cache vacio,
+        // Ordenar agrupa de nuevo.
+        public static void Refrescar()
+        {
+            try
+            {
+                if (!instalado || CriterioActual() != Nombre)
+                {
+                    return;
+                }
+                Il2Cpp.SongSelect lista = UnityEngine.Object.FindObjectOfType<Il2Cpp.SongSelect>();
+                Il2Cpp.SongEntry resaltada = null;
+                if (lista != null)
+                {
+                    var elemento = Il2Cpp.ObjectPublicAbstractSealedLi1SoDi2ObInLi1SoUnique      // SongDirectory
+                        .Method_Public_Static_InterfacePublicAbstractIngeIngeInInUnique_Int32_0(  // m44
+                            lista.prop_Int32_0);                                                  // currentSelectionInt
+                    resaltada = elemento != null ? elemento.TryCast<Il2Cpp.SongEntry>() : null;
+                }
+                Ordenar();
+                if (lista == null)
+                {
+                    return;
+                }
+                lista.Method_Public_Virtual_Void_11();      // SetMenuProperties
+                int indice = resaltada != null
+                    ? Il2Cpp.ObjectPublicAbstractSealedLi1SoDi2ObInLi1SoUnique
+                        .Method_Public_Static_Int32_SongEntry_0(resaltada)                     // m59
+                    : 0;
+                lista.Method_Public_Virtual_New_Void_Int32_Boolean_1(Math.Max(0, indice), true);   // m71
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Orden] refrescar: " + ex.Message);
+            }
+        }
+
         // Tras recalcular hay que tirar lo cacheado para que se reconstruya.
         public static void LimpiarCache()
         {

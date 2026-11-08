@@ -37,24 +37,35 @@ namespace CloneHeroMod
             {
                 return;
             }
+            if (Ahora("tras: " + quien) == null)
+            {
+                intento.Fallo();      // se reintenta espaciado
+                return;
+            }
+            pedido = false;
+        }
+
+        // Lanza el escaneo ya, desde el hilo principal. Devuelve el SongScan
+        // que escanea (para vigilar su isScanning), o null si no se pudo.
+        public static Il2Cpp.SongScan Ahora(string motivo)
+        {
             try
             {
                 Il2Cpp.SongScan scan = UnityEngine.Object.FindObjectOfType<Il2Cpp.SongScan>();
                 if (scan == null)
                 {
-                    intento.Fallo();      // se reintenta espaciado
-                    return;
+                    return null;
                 }
-                pedido = false;
                 scan.Method_Public_Void_0();
                 scan.Method_Public_Coroutine_Boolean_0(true);
-                MelonLogger.Msg("[Reescaneo] escaneando la biblioteca tras: " + quien);
+                MelonLogger.Msg("[Reescaneo] escaneando la biblioteca " + motivo);
+                return scan;
             }
             catch (Exception ex)
             {
-                pedido = false;
                 MelonLogger.Warning("[Reescaneo] no se pudo lanzar el escaneo (" + ex.Message
                     + "); usa Settings > General > Scan Songs");
+                return null;
             }
         }
     }

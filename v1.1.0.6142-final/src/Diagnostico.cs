@@ -126,6 +126,7 @@ namespace CloneHeroMod
                     OverlayProgreso.InstalarParches(HarmonyInstance);
                     DificultadJugador.InstalarParche(HarmonyInstance);
                     VersusSinFallo.InstalarParche(HarmonyInstance);
+                    CancionAleatoria.InstalarParches(HarmonyInstance);
                     // No es de menu, pero tampoco necesita esperar a nada:
                     // engancha el sonido de Star Power listo.
                     EstrellaLista.InstalarParche(HarmonyInstance);
@@ -172,6 +173,7 @@ namespace CloneHeroMod
                 OverlayProgreso.Refrescar();
                 SfxFinDeCancion.Tick();
                 Reescaneo.Tick();
+                CalculadorDificultad.Tick();
 
                 // El juego rehace sus listas de orden y de filtro al reescanear
                 // la biblioteca, y se lleva por delante lo que anadimos. Se

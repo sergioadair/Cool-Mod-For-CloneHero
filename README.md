@@ -110,7 +110,8 @@ It shows up under the instrument icons in the song panel:
 Difficulty: 73
 ```
 
-**Generate it**: `Settings > General > Calculate Difficulty`. It spreads the work
+**Generate it**: `Settings > General > Calculate Difficulty`. It scans your songs
+first, so newly added ones are included. It spreads the work
 across your CPU cores, leaves one free so the game stays smooth, and skips songs
 it has already done — running it again after adding a few songs takes seconds.
 
@@ -327,6 +328,11 @@ The game already lets you favorite songs and sort by it, but there is no way to
 
 It reuses the game's own favorites, so nothing is stored separately and your
 existing favorites just work.
+
+### 🎲 A random song to start
+
+When you open the game or scan your songs, the song list starts on a random
+song instead of always the first one.
 
 ### 🤝 No failing in Versus
 

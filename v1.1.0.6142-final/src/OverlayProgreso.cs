@@ -37,7 +37,8 @@ namespace CloneHeroMod
         {
             get
             {
-                return CalculadorDificultad.Corriendo || GeneradorCharts.Corriendo
+                return CalculadorDificultad.Corriendo || CalculadorDificultad.EsperandoEscaneo
+                    || GeneradorCharts.Corriendo
                     || GeneradorLote.Corriendo || GeneradorAudio.Corriendo;
             }
         }

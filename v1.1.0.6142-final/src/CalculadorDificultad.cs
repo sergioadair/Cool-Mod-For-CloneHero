@@ -57,6 +57,92 @@ namespace CloneHeroMod
         public static int Falladas { get { return fallidas; } }
         public static int AlDia { get { return alDia; } }
 
+        // ----------------------------------------------- escanear y calcular
+        // La opcion del menu escanea primero y calcula despues.
+        //
+        // El calculo recorre la biblioteca que el juego tiene cargada, y esa
+        // solo cambia al escanear: las canciones anadidas a la carpeta sin
+        // escanear no estaban, y el escaneo que se hacia al final las metia
+        // sin dificultad. Asi se ven todas en un solo paso.
+        //
+        // Al final ya no se escanea: todo lo del mod lee la dificultad de los
+        // song.ini (el juego no usa esas claves), basta con vaciar lo
+        // cacheado y, si la lista esta ordenada por dificultad, reordenarla.
+        //
+        // CUANDO TERMINA EL ESCANEO: SongScan.isScanning se pone a true al
+        // arrancar su hilo y vuelve a false al final, con las puntuaciones
+        // cargadas y la biblioteca rehecha. Se espera a verlo pasar de true a
+        // false; si no llega a ponerse a true (el escaneo no arranco), se
+        // calcula igual con lo que haya pasado un rato.
+        private const float EsperaArranque = 10f;
+
+        private static Il2Cpp.SongScan escaneo;
+        private static bool esperando;
+        private static bool escaneoVisto;
+        private static float limiteArranque;
+        private static volatile bool terminada;
+        private static volatile bool cambiadas;
+
+        public static bool EsperandoEscaneo { get { return esperando; } }
+
+        public static void EscanearYLanzar()
+        {
+            if (corriendo || esperando)
+            {
+                MelonLogger.Msg("[Dificultad] ya esta en marcha");
+                return;
+            }
+            escaneo = Reescaneo.Ahora("antes de Calculate Difficulty");
+            if (escaneo == null)
+            {
+                Lanzar();      // sin escaneo, con la biblioteca que haya
+                return;
+            }
+            esperando = true;
+            escaneoVisto = false;
+            limiteArranque = UnityEngine.Time.realtimeSinceStartup + EsperaArranque;
+        }
+
+        // Cada fotograma de menu, en el hilo principal.
+        public static void Tick()
+        {
+            if (esperando)
+            {
+                bool escaneando;
+                try
+                {
+                    escaneando = escaneo != null && escaneo.isScanning;
+                }
+                catch (Exception)
+                {
+                    escaneando = false;      // el SongScan ya no existe
+                    escaneoVisto = true;
+                }
+                if (escaneando)
+                {
+                    escaneoVisto = true;
+                }
+                else if (escaneoVisto || UnityEngine.Time.realtimeSinceStartup >= limiteArranque)
+                {
+                    esperando = false;
+                    escaneo = null;
+                    Lanzar();
+                }
+            }
+            if (terminada)
+            {
+                terminada = false;
+                // Los diff_global cambiaron: se tira lo cacheado para que la
+                // etiqueta y el orden se rehagan con los valores nuevos.
+                OrdenDificultad.LimpiarCache();
+                EtiquetaDificultad.LimpiarCache();
+                if (cambiadas)
+                {
+                    OrdenDificultad.Refrescar();
+                }
+            }
+        }
+
         // ------------------------------------------------------------ arranque
         public static void Lanzar()
         {
@@ -247,11 +333,11 @@ namespace CloneHeroMod
             }
             finally
             {
+                // Lo que toca objetos del juego (la cache del orden, la lista)
+                // lo hace Tick desde el hilo principal.
+                cambiadas = escritas > 0;
+                terminada = true;
                 corriendo = false;
-                // Los diff_global cambiaron: hay que tirar lo cacheado para que
-                // el orden por dificultad se reconstruya con los valores nuevos.
-                OrdenDificultad.LimpiarCache();
-                EtiquetaDificultad.LimpiarCache();
                 TimeSpan dur = DateTime.Now - inicio;
                 MelonLogger.Msg("[Dificultad] TERMINADO en "
                     + ((int)dur.TotalSeconds).ToString() + " s: "
@@ -259,12 +345,6 @@ namespace CloneHeroMod
                     + alDia.ToString() + " ya estaban al dia, "
                     + saltadas.ToString() + " saltadas, "
                     + fallidas.ToString() + " sin datos suficientes");
-                // El juego tiene que releer los song.ini: se le pide el
-                // escaneo, igual que tras generar charts.
-                if (escritas > 0)
-                {
-                    Reescaneo.Pedir("Calculate Difficulty");
-                }
             }
         }
 
