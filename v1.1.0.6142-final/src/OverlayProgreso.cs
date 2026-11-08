@@ -295,6 +295,91 @@ namespace CloneHeroMod
             }
         }
 
+        // ------------------------------------------- indicador de esquina
+        // Para lo que va en segundo plano (normalizar el volumen): una linea
+        // pequena arriba a la izquierda, que no tapa nada ni bloquea. Sin
+        // DontDestroyOnLoad a proposito: al cargar la cancion desaparece sola,
+        // y quien la pide la vuelve a crear al volver a los menus.
+        private static GameObject raizEsquina;
+        private static Il2CppTMPro.TextMeshProUGUI textoEsquina;
+
+        // null la quita.
+        public static void Esquina(string t)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(t))
+                {
+                    if (raizEsquina != null)
+                    {
+                        UnityEngine.Object.Destroy(raizEsquina);
+                    }
+                    raizEsquina = null;
+                    textoEsquina = null;
+                    return;
+                }
+                if (raizEsquina == null || textoEsquina == null)
+                {
+                    CrearEsquina();
+                    if (textoEsquina == null)
+                    {
+                        return;
+                    }
+                }
+                if (textoEsquina.text != t)
+                {
+                    textoEsquina.text = t;
+                }
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        private static void CrearEsquina()
+        {
+            Il2CppTMPro.TextMeshProUGUI plantilla =
+                UnityEngine.Object.FindObjectOfType<Il2CppTMPro.TextMeshProUGUI>();
+            if (plantilla == null || plantilla.font == null)
+            {
+                return;
+            }
+            raizEsquina = new GameObject("CoolModCornerStatus");
+            Canvas lienzo = raizEsquina.AddComponent<Canvas>();
+            lienzo.renderMode = RenderMode.ScreenSpaceOverlay;
+            lienzo.sortingOrder = 31900;
+            CanvasScaler escala = raizEsquina.AddComponent<CanvasScaler>();
+            escala.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            escala.referenceResolution = new Vector2(1920f, 1080f);
+
+            GameObject fondoGo = new GameObject("Panel");
+            fondoGo.transform.SetParent(raizEsquina.transform, false);
+            Image fondo = fondoGo.AddComponent<Image>();
+            fondo.color = new Color(0f, 0f, 0f, 0.75f);
+            fondo.raycastTarget = false;
+            RectTransform rf = fondoGo.GetComponent<RectTransform>();
+            rf.anchorMin = new Vector2(0f, 1f);
+            rf.anchorMax = new Vector2(0f, 1f);
+            rf.pivot = new Vector2(0f, 1f);
+            rf.anchoredPosition = new Vector2(12f, -12f);
+            rf.sizeDelta = new Vector2(560f, 40f);
+
+            GameObject textoGo = new GameObject("Text");
+            textoGo.transform.SetParent(fondoGo.transform, false);
+            textoEsquina = textoGo.AddComponent<Il2CppTMPro.TextMeshProUGUI>();
+            textoEsquina.font = plantilla.font;
+            textoEsquina.fontSize = 22f;
+            textoEsquina.color = Color.white;
+            textoEsquina.alignment = Il2CppTMPro.TextAlignmentOptions.MidlineLeft;
+            textoEsquina.enableWordWrapping = false;
+            textoEsquina.raycastTarget = false;
+            RectTransform rt = textoGo.GetComponent<RectTransform>();
+            rt.anchorMin = Vector2.zero;
+            rt.anchorMax = Vector2.one;
+            rt.offsetMin = new Vector2(14f, 0f);
+            rt.offsetMax = new Vector2(-14f, 0f);
+        }
+
         private static void Ocultar()
         {
             if (raiz == null)

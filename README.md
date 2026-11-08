@@ -329,6 +329,15 @@ The game already lets you favorite songs and sort by it, but there is no way to
 It reuses the game's own favorites, so nothing is stored separately and your
 existing favorites just work.
 
+### 🔉 Even out song volumes
+
+`Settings > General > Normalize Songs Volume` measures every song and evens out
+the ones that are too quiet or too loud, both in the preview and when you play.
+Your audio files are never touched. It works in the background: keep playing
+while it measures, and the next time it only checks new songs.
+
+`Settings > General > Restore Songs Volume` puts every song back as it was.
+
 ### 🎲 A random song to start
 
 When you open the game or scan your songs, the song list starts on a random

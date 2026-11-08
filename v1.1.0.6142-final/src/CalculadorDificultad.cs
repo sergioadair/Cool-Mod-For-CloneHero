@@ -250,7 +250,7 @@ namespace CloneHeroMod
 
         // La biblioteca tiene varias List<SongEntry> estaticas (filtradas,
         // visibles, etc.). Nos quedamos con la mas larga, que es la completa.
-        private static Il2CppSystem.Collections.Generic.List<Il2Cpp.SongEntry> ListaCanciones()
+        public static Il2CppSystem.Collections.Generic.List<Il2Cpp.SongEntry> ListaCanciones()
         {
             Type t = Ofuscado.Tipo(TipoBiblioteca);
             if (t == null)

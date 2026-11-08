@@ -183,6 +183,16 @@ namespace CloneHeroMod
                     GeneradorLote.Lanzar(true);
                     return;
                 }
+                if (actual == VolumenCanciones.NombreNormalizar)
+                {
+                    VolumenCanciones.Normalizar();
+                    return;
+                }
+                if (actual == VolumenCanciones.NombreRestaurar)
+                {
+                    VolumenCanciones.Restaurar();
+                    return;
+                }
                 if (actual == GeneradorAudio.Nombre)
                 {
                     GeneradorAudio.Lanzar();
@@ -227,7 +237,8 @@ namespace CloneHeroMod
                     FilasMenu.Comprobar(ultimoMenu, "General", new[]
                     {
                         Nombre, referencia.Nombre, GeneradorLote.NombreGenerar, GeneradorAudio.Nombre,
-                        GeneradorLote.NombreRestaurar, Actualizador.Etiqueta
+                        GeneradorLote.NombreRestaurar, VolumenCanciones.NombreNormalizar,
+                        VolumenCanciones.NombreRestaurar, Actualizador.Etiqueta
                     });
                 }
             }
@@ -393,6 +404,12 @@ namespace CloneHeroMod
             FilasMenu.Anadir(menu, GeneradorAudio.Nombre, GeneradorAudio.Nombre);
             FilasMenu.Anadir(menu, GeneradorLote.NombreRestaurar,
                                    GeneradorLote.NombreRestaurar);
+            // Aqui y no en Audio: alli las filas no van en cajas y agrandar el
+            // contenedor para que quepan descuadra el menu (ver AjustarAlto).
+            FilasMenu.Anadir(menu, VolumenCanciones.NombreNormalizar,
+                                   VolumenCanciones.NombreNormalizar);
+            FilasMenu.Anadir(menu, VolumenCanciones.NombreRestaurar,
+                                   VolumenCanciones.NombreRestaurar);
             FilasMenu.Anadir(menu, Actualizador.Texto(), Actualizador.Etiqueta);
         }
     }
