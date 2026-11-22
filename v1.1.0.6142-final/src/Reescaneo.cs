@@ -10,10 +10,9 @@ namespace CloneHeroMod
     // COMO LO HACE EL JUEGO. Su opcion Settings > General > Scan Songs, al
     // confirmar, hace exactamente dos llamadas sobre su componente SongScan
     // —y el menu principal, las mismas dos—: una de preparacion y la que
-    // arranca el escaneo con true. En el interop son Method_Public_Void_0 y
-    // Method_Public_Coroutine_Boolean_0: los unicos de su firma con llamadas
-    // entrantes (cuatro y tres); los demas son senuelos del ofuscador, con
-    // _PDM_.
+    // arranca el escaneo con true. Se buscan por su nombre real (Nativo): en
+    // la 6142 eran Method_Public_Void_0 y Method_Public_Coroutine_Boolean_0,
+    // pero ese numero cambia de una version del juego a otra.
     //
     // Las tareas del mod corren en hilos aparte y Unity solo deja tocar sus
     // objetos desde el principal, asi que aqui solo se apunta el pedido, y
@@ -22,6 +21,8 @@ namespace CloneHeroMod
     {
         private static volatile bool pedido;
         private static string quien;
+        private static System.Reflection.MethodInfo preparar;
+        private static System.Reflection.MethodInfo escanear;
         private static readonly Buscador.Intento intento = new Buscador.Intento(17);
 
         // Desde cualquier hilo.
@@ -56,8 +57,19 @@ namespace CloneHeroMod
                 {
                     return null;
                 }
-                scan.Method_Public_Void_0();
-                scan.Method_Public_Coroutine_Boolean_0(true);
+                if (preparar == null || escanear == null)
+                {
+                    preparar = Nativo.Metodo(typeof(Il2Cpp.SongScan), Real.PrepararEscaneo);
+                    escanear = Nativo.Metodo(typeof(Il2Cpp.SongScan), Real.Escanear, typeof(bool));
+                    if (preparar == null || escanear == null)
+                    {
+                        MelonLogger.Warning("[Reescaneo] no se localizo el escaneo del juego;"
+                            + " usa Settings > General > Scan Songs");
+                        return null;
+                    }
+                }
+                preparar.Invoke(scan, null);
+                escanear.Invoke(scan, new object[] { true });
                 MelonLogger.Msg("[Reescaneo] escaneando la biblioteca " + motivo);
                 return scan;
             }

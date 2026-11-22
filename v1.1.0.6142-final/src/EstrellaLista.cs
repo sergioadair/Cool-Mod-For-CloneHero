@@ -28,15 +28,14 @@ namespace CloneHeroMod
     //
     // El SPBar tiene seis metodos (float, bool) casi iguales: el ofuscador
     // mete senuelos. El real es el unico con llamadas entrantes —cinco, desde
-    // BasePlayer y la propia barra—, y Il2CppInterop lo llama
-    // Method_Public_Void_Single_Boolean_0; los senuelos llevan _PDM_.
+    // BasePlayer y la propia barra—. Se busca por su nombre real (Nativo):
+    // en la 6142 el interop lo llamaba Method_Public_Void_Single_Boolean_0.
     //
     // Durante la cancion el parche solo compara dos numeros y, si toca,
     // levanta una bandera; el Tick sale en la primera linea si no hay nada.
     public static class EstrellaLista
     {
         public const string Texto = "SP Ready!";
-        public const string Metodo = "Method_Public_Void_Single_Boolean_0";
 
         // A partir de aqui la barra brilla. Es la mitad, como en todos los
         // juegos de la saga: con media barra ya se puede desplegar.
@@ -104,12 +103,11 @@ namespace CloneHeroMod
             parcheado = true;
             try
             {
-                MethodInfo m = typeof(Il2Cpp.SPBar).GetMethod(Metodo,
-                    BindingFlags.Public | BindingFlags.Instance, null,
-                    new Type[] { typeof(float), typeof(bool) }, null);
+                MethodInfo m = Nativo.Metodo(typeof(Il2Cpp.SPBar), Real.RellenarBarraSp,
+                    typeof(float), typeof(bool));
                 if (m == null)
                 {
-                    MelonLogger.Warning("[Estrella] no esta " + Metodo + " en SPBar;"
+                    MelonLogger.Warning("[Estrella] no esta el relleno de SPBar;"
                         + " el cartel de Star Power queda apagado");
                     return;
                 }

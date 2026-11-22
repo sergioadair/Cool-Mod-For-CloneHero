@@ -173,20 +173,19 @@ namespace CloneHeroMod
                 {
                     continue;
                 }
-                if (ajuste == null || ajuste is string || ajuste.GetType().IsPrimitive)
+                // Solo los ajustes enteros (GameSetting<int>).
+                if (!(ajuste is Il2Cpp.Object2PublicBoSiInSiDoStSiStStUnique))
                 {
                     continue;
                 }
-                PropertyInfo pMax = ajuste.GetType().GetProperty("prop_T_1",
-                    BindingFlags.Public | BindingFlags.Instance);
-                PropertyInfo pMin = ajuste.GetType().GetProperty("prop_T_2",
-                    BindingFlags.Public | BindingFlags.Instance);
-                PropertyInfo pVal = ajuste.GetType().GetProperty("prop_T_0",
-                    BindingFlags.Public | BindingFlags.Instance);
+                Type ta = typeof(Il2Cpp.Object2PublicBoSiInSiDoStSiStStUnique);
+                PropertyInfo pMax = Nativo.Propiedad(ta, Real.AjusteMaximo);
+                PropertyInfo pMin = Nativo.Propiedad(ta, Real.AjusteMinimo);
+                PropertyInfo pVal = Nativo.Propiedad(ta, Real.AjusteValor);
                 if (pMax == null || pMin == null || pVal == null
                     || pMax.PropertyType != typeof(int))
                 {
-                    continue;
+                    return false;
                 }
                 try
                 {

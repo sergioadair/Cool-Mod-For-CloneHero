@@ -29,19 +29,21 @@ namespace CloneHeroMod
     //   - En partida online y en practica el juego ya no deja perder.
     public static class VersusSinFallo
     {
-        // T8288.ChangeHealth(bool increase), del motor de StrikeCore.
-        private const string MetodoCambiarVida = "Method_Protected_Void_Boolean_0";
         private const int ModoVersus = 2;      // GameMode: Quickplay, Practice, Versus
+
+        private static PropertyInfo enLinea;          // CHNetManager: partida online
+        private static PropertyInfo tablasActivas;    // LeaderboardsOnlineManager
 
         public static void InstalarParche(HarmonyLib.Harmony harmony)
         {
             try
             {
-                MethodInfo m = typeof(Il2Cpp.ObjectPublicAbstractDoBoDoInBoObDoInSiBoUnique).GetMethod(
-                    MetodoCambiarVida, BindingFlags.Public | BindingFlags.NonPublic
-                    | BindingFlags.Instance | BindingFlags.DeclaredOnly);
-                if (m == null || m.ReturnType != typeof(void) || m.GetParameters().Length != 1
-                    || m.GetParameters()[0].ParameterType != typeof(bool))
+                // T8288.ChangeHealth(bool increase), del motor de StrikeCore.
+                MethodInfo m = Nativo.Metodo(typeof(Il2Cpp.ObjectPublicAbstractDoBoDoInBoObDoInSiBoUnique),
+                    Real.CambiarVida, typeof(bool));
+                enLinea = Nativo.Propiedad(typeof(Il2Cpp.CHNetManager), Real.EnLinea);
+                tablasActivas = Nativo.Campo(typeof(Il2Cpp.LeaderboardsOnlineManager), Real.TablasActivas);
+                if (m == null || m.ReturnType != typeof(void) || enLinea == null || tablasActivas == null)
                 {
                     MelonLogger.Warning("[Versus] no se localizo la vida del motor: en Versus se"
                         + " puede perder como en el juego sin mod");
@@ -82,12 +84,12 @@ namespace CloneHeroMod
                 return false;
             }
             Il2Cpp.CHNetManager red = Il2Cpp.CHNetManager.instance;
-            if (red != null && red.prop_Boolean_1)      // partida online (CHNetManager.m19)
+            if (red != null && (bool)enLinea.GetValue(red))      // partida online (CHNetManager.m19)
             {
                 return false;
             }
             Il2Cpp.LeaderboardsOnlineManager tablas = Il2Cpp.LeaderboardsOnlineManager.instance;
-            return tablas == null || !tablas.field_Private_Boolean_0;    // leaderboards activos
+            return tablas == null || !(bool)tablasActivas.GetValue(tablas);    // leaderboards activos
         }
     }
 }

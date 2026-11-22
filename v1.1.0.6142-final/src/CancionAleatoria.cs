@@ -21,7 +21,10 @@ namespace CloneHeroMod
     // no: se queda en la primera, como en el juego. Todo lo demas sigue igual.
     public static class CancionAleatoria
     {
-        private const string MetodoResetIndex = "Method_Public_Void_0";
+        private static MethodInfo seleccionar;      // BaseMenu.m71(int, bool)
+        private static MethodInfo elementoEn;       // SongDirectory.m44(int)
+        private static PropertyInfo cuentaLista;    // SongDirectory.m35
+        private static PropertyInfo enLinea;        // CHNetManager: partida online
 
         private static bool pendiente;
         private static IntPtr iniciada = IntPtr.Zero;      // la SongSelect que ya paso por Start
@@ -34,11 +37,16 @@ namespace CloneHeroMod
                 Type t = typeof(Il2Cpp.SongSelect);
                 BindingFlags f = BindingFlags.Public | BindingFlags.NonPublic
                                | BindingFlags.Instance | BindingFlags.DeclaredOnly;
-                MethodInfo reset = t.GetMethod(MetodoResetIndex, f);
+                Type dir = typeof(Il2Cpp.ObjectPublicAbstractSealedLi1SoDi2ObInLi1SoUnique);   // SongDirectory
+                MethodInfo reset = Nativo.Metodo(t, Real.ResetIndex);
                 MethodInfo onEnable = t.GetMethod("OnEnable", f);
                 MethodInfo start = t.GetMethod("Start", f);
-                if (reset == null || onEnable == null || start == null
-                    || reset.GetParameters().Length != 0)
+                seleccionar = Nativo.Metodo(t, Real.Seleccionar, typeof(int), typeof(bool));
+                elementoEn = Nativo.Metodo(dir, Real.ElementoEn, typeof(int));
+                cuentaLista = Nativo.Propiedad(dir, Real.CuentaLista);
+                enLinea = Nativo.Propiedad(typeof(Il2Cpp.CHNetManager), Real.EnLinea);
+                if (reset == null || onEnable == null || start == null || seleccionar == null
+                    || elementoEn == null || cuentaLista == null || enLinea == null)
                 {
                     MelonLogger.Warning("[Aleatoria] SongSelect no tiene la forma esperada:"
                         + " la lista empieza en la primera cancion");
@@ -111,11 +119,11 @@ namespace CloneHeroMod
             try
             {
                 Il2Cpp.CHNetManager red = Il2Cpp.CHNetManager.instance;
-                if (red != null && red.prop_Boolean_1)
+                if (red != null && (bool)enLinea.GetValue(red))
                 {
                     return;
                 }
-                int n = Il2Cpp.ObjectPublicAbstractSealedLi1SoDi2ObInLi1SoUnique.prop_Int32_1;   // SongDirectory.m35
+                int n = (int)cuentaLista.GetValue(null);
                 if (n < 2)
                 {
                     return;
@@ -125,7 +133,7 @@ namespace CloneHeroMod
                 {
                     if (EsCancion(i))
                     {
-                        lista.Method_Public_Virtual_New_Void_Int32_Boolean_1(i, true);      // m71
+                        seleccionar.Invoke(lista, new object[] { i, true });
                         return;
                     }
                 }
@@ -138,8 +146,8 @@ namespace CloneHeroMod
 
         private static bool EsCancion(int i)
         {
-            var e = Il2Cpp.ObjectPublicAbstractSealedLi1SoDi2ObInLi1SoUnique      // SongDirectory
-                .Method_Public_Static_InterfacePublicAbstractIngeIngeInInUnique_Int32_0(i);   // m44
+            var e = elementoEn.Invoke(null, new object[] { i })
+                as Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase;
             return e != null && e.TryCast<Il2Cpp.SongEntry>() != null;
         }
     }

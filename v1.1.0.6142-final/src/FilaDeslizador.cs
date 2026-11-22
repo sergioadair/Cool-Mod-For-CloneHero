@@ -76,7 +76,11 @@ namespace CloneHeroMod
                 {
                     return;
                 }
-                string actual = m.field_Protected_String_0;      // changedSetting
+                if (!Resolver())
+                {
+                    return;
+                }
+                string actual = cambiando.GetValue(m) as string;      // changedSetting
                 if (actual == null || !actual.StartsWith(Nombre, StringComparison.OrdinalIgnoreCase))
                 {
                     if (abierta)
@@ -92,22 +96,21 @@ namespace CloneHeroMod
                 if (ajuste == null)
                 {
                     ajuste = new Il2Cpp.Object2PublicBoSiInSiDoStSiStStUnique(
-                        Il2Cpp.ObjectPublicAbstractSealedCo2Ob1CoStOb2BoStUnique
-                            .field_Public_Static_ValueTypePublicSealedStStUnique_0,
+                        (Il2Cpp.ValueTypePublicSealedStStUnique)sinSeccion.GetValue(null),
                         "coolmod_" + Nombre, porDefecto, min, max, paso);
                 }
                 if (!abierta)
                 {
                     abierta = true;
-                    ajuste.prop_T_0 = Encajar(leer());
-                    visto = ajuste.prop_T_0;
+                    valorAjuste.SetValue(ajuste, Encajar(leer()));
+                    visto = (int)valorAjuste.GetValue(ajuste);
                 }
-                var puesto = m.field_Protected_Object2PublicBoSiInSiDoStSiStStUnique_0;  // currentSetting
+                var puesto = ajusteActual.GetValue(m) as Il2Cpp.Object2PublicBoSiInSiDoStSiStStUnique;  // currentSetting
                 if (puesto == null || puesto.Pointer != ajuste.Pointer)
                 {
-                    m.field_Protected_Object2PublicBoSiInSiDoStSiStStUnique_0 = ajuste;
+                    ajusteActual.SetValue(m, ajuste);
                 }
-                int valor = ajuste.prop_T_0;
+                int valor = (int)valorAjuste.GetValue(ajuste);
                 if (valor != visto)
                 {
                     visto = valor;
@@ -123,6 +126,28 @@ namespace CloneHeroMod
                     MelonLogger.Warning("[Filas] " + Nombre + ": " + ex);
                 }
             }
+        }
+
+        // Los miembros del juego que se tocan, por su nombre real (Nativo).
+        private static System.Reflection.PropertyInfo cambiando;      // BaseMenu.changedSetting
+        private static System.Reflection.PropertyInfo ajusteActual;   // BaseSettingMenu.currentSetting
+        private static System.Reflection.PropertyInfo sinSeccion;     // Settings.NoSection
+        private static System.Reflection.PropertyInfo valorAjuste;    // GameSetting: valor actual
+        private static bool resuelto;
+
+        private static bool Resolver()
+        {
+            if (!resuelto)
+            {
+                resuelto = true;
+                cambiando = Nativo.Campo(typeof(Il2Cpp.BaseSettingMenu), Real.CambiandoAjuste);
+                ajusteActual = Nativo.Campo(typeof(Il2Cpp.BaseSettingMenu), Real.AjusteActual);
+                sinSeccion = Nativo.Campo(typeof(Il2Cpp.ObjectPublicAbstractSealedCo2Ob1CoStOb2BoStUnique),
+                                          Real.SinSeccion);
+                valorAjuste = Nativo.Propiedad(typeof(Il2Cpp.Object2PublicBoSiInSiDoStSiStStUnique),
+                                               Real.AjusteValor);
+            }
+            return cambiando != null && ajusteActual != null && sinSeccion != null && valorAjuste != null;
         }
 
         private int Encajar(float v)

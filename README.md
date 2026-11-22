@@ -16,7 +16,7 @@ Two builds are available, one per game version:
 
 | Game version | Folder | How it works |
 |---|---|---|
-| **1.1.0.6142-final** | [`v1.1.0.6142-final/`](v1.1.0.6142-final/) | MelonLoader mod (`.dll` you drop in) |
+| **1.1.0.6142-final** and **1.1.0.6161** | [`v1.1.0.6142-final/`](v1.1.0.6142-final/) | MelonLoader mod (`.dll` you drop in) |
 | **1.0.0.4080-final** | [`v1.0.0.4080-final/`](v1.0.0.4080-final/) | patched `Assembly-CSharp.dll` |
 
 > Check your version in the upper corner of the main menu. Pick the folder that
@@ -387,7 +387,7 @@ and with it on, next to nothing.
 
 ## 📥 Installation
 
-### For game version 1.1.0.6142-final
+### For game version 1.1.0.6142-final or 1.1.0.6161
 
 It does not touch any game file.
 

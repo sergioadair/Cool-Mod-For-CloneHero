@@ -100,6 +100,7 @@ namespace CloneHeroMod
 
         private static bool parcheado;
         private static Il2Cpp.SongOptions panel;
+        private static MethodInfo cerrar;      // SongOptions: cierra el panel (el _3 de abajo)
         private static bool accionada;
         private static string pulsada;
         private static readonly VigilanteMenu resaltado =
@@ -119,7 +120,8 @@ namespace CloneHeroMod
                     | BindingFlags.Instance | BindingFlags.DeclaredOnly;
 
                 MethodInfo onEnable = t.GetMethod("OnEnable", f);
-                MethodInfo confirmar = t.GetMethod("Method_Public_Virtual_Void_2", f);
+                MethodInfo confirmar = Nativo.Metodo(t, Real.ConfirmarOpciones);
+                cerrar = Nativo.Metodo(t, Real.CerrarOpciones);
                 MethodInfo pre = typeof(ChartsFaltantes).GetMethod("PreOnEnable",
                     BindingFlags.NonPublic | BindingFlags.Static);
                 MethodInfo preConf = typeof(ChartsFaltantes).GetMethod("PreConfirmar",
@@ -131,7 +133,7 @@ namespace CloneHeroMod
                 // una vez —un registro apuntando a un metodo propio que ya no
                 // existia—: HarmonyMethod(null) lanza, el catch se lo tragaba y
                 // quedaba la fila puesta pero muerta, sin una linea en el log.
-                if (onEnable == null || confirmar == null || pre == null
+                if (onEnable == null || confirmar == null || cerrar == null || pre == null
                     || preConf == null || postConf == null)
                 {
                     MelonLogger.Warning("[Charts] no se resolvieron los metodos a"
@@ -255,7 +257,7 @@ namespace CloneHeroMod
                 {
                     return;
                 }
-                panel.Method_Public_Virtual_Void_3();
+                cerrar.Invoke(panel, null);
                 Actuar(pulsada);
             }
             catch (Exception ex)

@@ -50,6 +50,7 @@ namespace CloneHeroMod
         private static RectTransform rt;
         private static bool preparado;
         private static int ultimoSegundo = -1;
+        private static Func<Il2Cpp.BassAudioManager, double> posicion;      // segundo actual
         private static int ultimoTotal = -1;
 
         private static Color color = Color.white;
@@ -97,7 +98,18 @@ namespace CloneHeroMod
                 {
                     return;
                 }
-                int segundo = (int)audio.Method_Public_Double_0();
+                if (posicion == null)
+                {
+                    System.Reflection.MethodInfo m = Nativo.Metodo(
+                        typeof(Il2Cpp.BassAudioManager), Real.PosicionAudio);
+                    if (m == null)
+                    {
+                        return;
+                    }
+                    posicion = (Func<Il2Cpp.BassAudioManager, double>)Delegate.CreateDelegate(
+                        typeof(Func<Il2Cpp.BassAudioManager, double>), m);
+                }
+                int segundo = (int)posicion(audio);
                 int total = (int)audio.audioLength;
                 if (segundo == ultimoSegundo && total == ultimoTotal)
                 {

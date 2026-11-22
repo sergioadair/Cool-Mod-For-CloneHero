@@ -36,6 +36,9 @@ namespace CloneHeroMod
         private static readonly System.Collections.Generic.Dictionary<IntPtr, string> puestos =
             new System.Collections.Generic.Dictionary<IntPtr, string>();
         private static bool avisado;
+        private static System.Reflection.PropertyInfo campoCancion;       // songEntry
+        private static System.Reflection.PropertyInfo campoInstrumento;   // instrument
+        private static System.Reflection.PropertyInfo campoNivel;         // difficulty
 
         public static void EscenaCambiada()
         {
@@ -113,15 +116,24 @@ namespace CloneHeroMod
         // "" mientras no se sabe, o si no hay archivo que leer.
         private static string Valor(Il2Cpp.PlayerSelectionMenu m)
         {
-            Il2Cpp.SongEntry c = m.field_Private_SongEntry_0;      // songEntry
+            if (campoCancion == null)
+            {
+                Type t = typeof(Il2Cpp.PlayerSelectionMenu);
+                campoCancion = Nativo.Campo(t, Real.CancionJugador);
+                campoInstrumento = Nativo.Campo(t, Real.InstrumentoJugador);
+                campoNivel = Nativo.Campo(t, Real.NivelJugador);
+            }
+            if (campoCancion == null || campoInstrumento == null || campoNivel == null)
+            {
+                return "";
+            }
+            Il2Cpp.SongEntry c = campoCancion.GetValue(m) as Il2Cpp.SongEntry;
             if (c == null || c.isEnc || c.isSng)
             {
                 return "";      // cifrada o empaquetada: no hay chart suelto
             }
-            string pista = SeleccionJugador.Pista(
-                m.field_Private_EnumPublicSealedvaGuBaRhSiGuDrSiKePrUnique_0.ToString());   // instrument
-            int nivel = SeleccionJugador.IndiceDificultad(
-                m.field_Private_EnumPublicSealedvaNoEaMeHaExCo7vUnique_0.ToString());      // difficulty
+            string pista = SeleccionJugador.Pista(campoInstrumento.GetValue(m).ToString());
+            int nivel = SeleccionJugador.IndiceDificultad(campoNivel.GetValue(m).ToString());
             if (pista == null || nivel < 0)
             {
                 return "";

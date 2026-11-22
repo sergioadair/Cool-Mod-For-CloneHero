@@ -175,10 +175,8 @@ namespace CloneHeroMod
         }
 
         // ------------------------------------------------------- reproduccion
-        private const string MetodoCargar =
-            "Method_Public_Boolean_SongEntry_Boolean_EnumPublicSealedvaGuBaRhSiGuDrSiKePrUnique_EnumPublicSealedvaGuBaRhSiGuDrSiKePrUnique_0";
-        private const string MetodoPrevia = "Method_Private_Void_PDM_10";          // m80
-        private const string MetodoSalida = "Method_Private_Void_Int32_0";         // m77
+        private static PropertyInfo canalSalida;      // linkedChannel
+        private static PropertyInfo cancionPrevia;    // f_80
 
         [ThreadStatic] private static string claveEnCarga;
         [ThreadStatic] private static bool cargandoPistas;
@@ -193,13 +191,15 @@ namespace CloneHeroMod
             try
             {
                 Type t = typeof(Il2Cpp.BassAudioManager);
-                BindingFlags f = BindingFlags.Public | BindingFlags.NonPublic
-                               | BindingFlags.Instance | BindingFlags.DeclaredOnly;
-                MethodInfo cargar = t.GetMethod(MetodoCargar, f);
-                MethodInfo previa = t.GetMethod(MetodoPrevia, f);
-                MethodInfo salida = t.GetMethod(MetodoSalida, f);
+                Type instrumento = typeof(Il2Cpp.EnumPublicSealedvaGuBaRhSiGuDrSiKePrUnique);
+                MethodInfo cargar = Nativo.Metodo(t, Real.CargarCancion,                    // m106
+                    typeof(Il2Cpp.SongEntry), typeof(bool), instrumento, instrumento);
+                MethodInfo previa = Nativo.Metodo(t, Real.CargarPrevia);                     // m80
+                MethodInfo salida = Nativo.Metodo(t, Real.CrearSalida, typeof(int));         // m77
+                canalSalida = Nativo.Campo(t, Real.CanalSalida);
+                cancionPrevia = Nativo.Campo(t, Real.CancionPrevia);
                 if (cargar == null || previa == null || salida == null
-                    || salida.GetParameters().Length != 1 || previa.GetParameters().Length != 0)
+                    || canalSalida == null || cancionPrevia == null)
                 {
                     MelonLogger.Warning("[Volumen] BassAudioManager no tiene la forma esperada:"
                         + " el volumen de las canciones no se ajusta");
@@ -237,7 +237,7 @@ namespace CloneHeroMod
         {
             try
             {
-                claveEnCarga = Clave(__instance.field_Private_SongEntry_0, out string _);
+                claveEnCarga = Clave(cancionPrevia.GetValue(__instance) as Il2Cpp.SongEntry, out string _);
             }
             catch (Exception)
             {
@@ -251,7 +251,7 @@ namespace CloneHeroMod
             try
             {
                 // Fuera de m106 solo se llega a m77 con un preview.* propio.
-                Aplicar(__instance.field_Private_Int32_0, claveEnCarga, !cargandoPistas);   // linkedChannel
+                Aplicar((int)canalSalida.GetValue(__instance), claveEnCarga, !cargandoPistas);
             }
             catch (Exception)
             {
@@ -301,7 +301,8 @@ namespace CloneHeroMod
             try
             {
                 Il2Cpp.BassAudioManager m = Il2Cpp.BassAudioManager.instance;
-                if (m != null && ultimoCanal != 0 && m.field_Private_Int32_0 == ultimoCanal)
+                if (m != null && ultimoCanal != 0 && canalSalida != null
+                    && (int)canalSalida.GetValue(m) == ultimoCanal)
                 {
                     Aplicar(ultimoCanal, ultimaClave, ultimaPrevia);
                 }

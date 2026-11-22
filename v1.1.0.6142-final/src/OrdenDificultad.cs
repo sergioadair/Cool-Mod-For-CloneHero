@@ -418,14 +418,14 @@ namespace CloneHeroMod
         // nuestro, se hace lo mismo que haria el juego con uno suyo y no se le
         // deja seguir.
         //
-        // Los nombres son los que pone Il2CppInterop a este binario
-        // (v1.1.0.6142); si no aparecen con la forma esperada, no se parchea
-        // nada y el criterio sale sin agrupar, pero el juego sigue intacto.
-        private const string MetodoOrdenar = "Method_Public_Static_Void_String_0";
-        private const string MetodoReordenar = "Method_Public_Static_Void_6";
-        private const string MetodoVaciarGrupos = "Method_Public_Static_Void_5";
-        private const string PropContador = "field_Private_Static_Int32_0";
-        private const string PropSucia = "field_Private_Static_Boolean_2";
+        // Se buscan por su nombre real (Nativo); si no aparecen con la forma
+        // esperada, no se parchea nada y el criterio sale sin agrupar, pero el
+        // juego sigue intacto.
+        private static MethodInfo metodoElementoEn;     // m44(int)
+        private static MethodInfo metodoIndiceDe;       // m59(SongEntry)
+        private static MethodInfo metodoSetMenu;        // SongSelect.SetMenuProperties
+        private static MethodInfo metodoSeleccionar;    // BaseMenu.m71(int, bool)
+        private static PropertyInfo propSeleccion;      // BaseMenu.currentSelectionInt
 
         private static PropertyInfo propContador;
         private static PropertyInfo propSucia;
@@ -443,11 +443,18 @@ namespace CloneHeroMod
                     return;
                 }
                 BindingFlags f = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Static;
-                MethodInfo ordenar = t.GetMethod(MetodoOrdenar, f);
-                MethodInfo reordenar = t.GetMethod(MetodoReordenar, f);
-                metodoVaciarGrupos = t.GetMethod(MetodoVaciarGrupos, f);
-                propContador = t.GetProperty(PropContador, f);
-                propSucia = t.GetProperty(PropSucia, f);
+                MethodInfo ordenar = Nativo.Metodo(t, Real.Ordenar, typeof(string));
+                MethodInfo reordenar = Nativo.Metodo(t, Real.Reordenar);
+                metodoVaciarGrupos = Nativo.Metodo(t, Real.VaciarGrupos);
+                propContador = Nativo.Campo(t, Real.ContadorOrden);
+                propSucia = Nativo.Campo(t, Real.ListaSucia);
+                Type dir = typeof(Il2Cpp.ObjectPublicAbstractSealedLi1SoDi2ObInLi1SoUnique);   // SongDirectory
+                metodoElementoEn = Nativo.Metodo(dir, Real.ElementoEn, typeof(int));
+                metodoIndiceDe = Nativo.Metodo(dir, Real.IndiceDe, typeof(Il2Cpp.SongEntry));
+                metodoSetMenu = Nativo.Metodo(typeof(Il2Cpp.SongSelect), Real.SetMenuProperties);
+                metodoSeleccionar = Nativo.Metodo(typeof(Il2Cpp.SongSelect), Real.Seleccionar,
+                                                  typeof(int), typeof(bool));
+                propSeleccion = Nativo.Propiedad(typeof(Il2Cpp.SongSelect), Real.SeleccionActual);
                 Type tipoLista = typeof(Il2CppSystem.Collections.Generic.List<>).MakeGenericType(tipoSeccion);
                 PropertyInfo[] ps = t.GetProperties(f);
                 for (int i = 0; i < ps.Length; i++)
@@ -1069,25 +1076,26 @@ namespace CloneHeroMod
                     return;
                 }
                 Il2Cpp.SongSelect lista = UnityEngine.Object.FindObjectOfType<Il2Cpp.SongSelect>();
+                bool puedeRedibujar = metodoElementoEn != null && metodoIndiceDe != null
+                    && metodoSetMenu != null && metodoSeleccionar != null && propSeleccion != null;
                 Il2Cpp.SongEntry resaltada = null;
-                if (lista != null)
+                if (lista != null && puedeRedibujar)
                 {
-                    var elemento = Il2Cpp.ObjectPublicAbstractSealedLi1SoDi2ObInLi1SoUnique      // SongDirectory
-                        .Method_Public_Static_InterfacePublicAbstractIngeIngeInInUnique_Int32_0(  // m44
-                            lista.prop_Int32_0);                                                  // currentSelectionInt
+                    var elemento = metodoElementoEn.Invoke(null,
+                        new object[] { propSeleccion.GetValue(lista) })
+                        as Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase;
                     resaltada = elemento != null ? elemento.TryCast<Il2Cpp.SongEntry>() : null;
                 }
                 Ordenar();
-                if (lista == null)
+                if (lista == null || !puedeRedibujar)
                 {
                     return;
                 }
-                lista.Method_Public_Virtual_Void_11();      // SetMenuProperties
+                metodoSetMenu.Invoke(lista, null);
                 int indice = resaltada != null
-                    ? Il2Cpp.ObjectPublicAbstractSealedLi1SoDi2ObInLi1SoUnique
-                        .Method_Public_Static_Int32_SongEntry_0(resaltada)                     // m59
+                    ? (int)metodoIndiceDe.Invoke(null, new object[] { resaltada })
                     : 0;
-                lista.Method_Public_Virtual_New_Void_Int32_Boolean_1(Math.Max(0, indice), true);   // m71
+                metodoSeleccionar.Invoke(lista, new object[] { Math.Max(0, indice), true });
             }
             catch (Exception ex)
             {

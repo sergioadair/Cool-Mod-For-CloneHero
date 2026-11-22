@@ -30,9 +30,6 @@ namespace CloneHeroMod
         // —ningun menu la sobrescribe—, y el propio juego la corta ahi cuando
         // hay un editor abierto (perfiles de color, rutas de canciones). Aqui
         // se corta igual, con un prefix que se salta el metodo.
-        private const string MetodoEntrada =
-            "Method_Protected_Virtual_New_Void_ObjectPublicObPlInPlBoBoObBoObBoUnique_0";
-
         public static bool Trabajando
         {
             get
@@ -47,9 +44,8 @@ namespace CloneHeroMod
         {
             try
             {
-                System.Reflection.MethodInfo entrada = typeof(Il2Cpp.BaseMenu).GetMethod(MetodoEntrada,
-                    System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic
-                    | System.Reflection.BindingFlags.Instance);
+                System.Reflection.MethodInfo entrada = Nativo.Metodo(typeof(Il2Cpp.BaseMenu), Real.Entrada,
+                    typeof(Il2Cpp.ObjectPublicObPlInPlBoBoObBoObBoUnique));      // CHPlayer
                 if (entrada == null || entrada.ReturnType != typeof(void)
                     || entrada.GetParameters().Length != 1)
                 {
