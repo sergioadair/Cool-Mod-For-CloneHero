@@ -19,10 +19,13 @@ namespace CloneHeroMod
     // Esta funcion es para audio suelto que todavia no es una cancion
     // jugable; no es un reemplazo de nada.
     //
-    // LAS CARPETAS DE CANCIONES salen de settings.ini, seccion [directories],
-    // que es donde el juego guarda las que el usuario anadio. No se deducen de
-    // la biblioteca cargada: estas carpetas, al no tener chart, el juego ni
-    // las ha mirado.
+    // LAS CARPETAS DE CANCIONES son las mismas que escanea el juego: su lista
+    // GlobalVariables.uniqueSongPaths, que es su carpeta predeterminada
+    // (<datos>\Songs, que NO aparece en settings.ini) mas las de la seccion
+    // [directories]. Leer solo settings.ini se saltaba la predeterminada
+    // (issue del 26-10). Si la lista no se puede leer, se arma igual a mano.
+    // No se deducen de la biblioteca cargada: estas carpetas, al no tener
+    // chart, el juego ni las ha mirado.
     //
     // TODO EL TEXTO EN INGLES: se ve en pantalla.
     public static class GeneradorAudio
@@ -70,8 +73,10 @@ namespace CloneHeroMod
             total = hechas = generadas = fallidas = saltadas = 0;
             actual = "looking for audio...";
 
-            // Todo lo de aqui es archivo y codigo nativo: nada de Il2Cpp, asi
-            // que puede irse a un hilo y no congelar el juego.
+            // La lista de carpetas es un objeto del juego: se lee aqui, en el
+            // hilo principal. Lo demas es archivo y codigo nativo, nada de
+            // Il2Cpp, asi que puede irse a un hilo y no congelar el juego.
+            raices = CarpetasDeCanciones();
             Thread hilo = new Thread(Trabajar);
             hilo.IsBackground = true;
             hilo.Start();
@@ -130,14 +135,100 @@ namespace CloneHeroMod
         }
 
         // ------------------------------------------------------- candidatas --
+        private static List<string> raices = new List<string>();
+
         public static List<string> Candidatas()
         {
             List<string> salida = new List<string>();
-            foreach (string raiz in CarpetasDeCanciones())
+            foreach (string raiz in raices)
             {
+                if (!TieneChart(raiz))
+                {
+                    AcomodarSueltos(raiz);
+                }
                 Recorrer(raiz, salida, 0);
             }
             return salida;
+        }
+
+        // Artista de las canciones sueltas cuyo nombre no dice de quien son.
+        public const string ArtistaSinNombre = "Cool Mod";
+
+        // Un audio o video dejado DIRECTAMENTE en una carpeta de canciones, sin
+        // carpeta propia, se generaba ahi mismo: la cancion se llamaba como la
+        // carpeta raiz ("Songs", artista desconocido) y, con un notes.chart en
+        // la raiz, el juego y el mod trataban la raiz entera como una sola
+        // cancion. Ahora cada suelto pasa a su propia carpeta, nombrada como el
+        // archivo: "Artista - Cancion" si el nombre ya tiene esa forma, o
+        // "Cool Mod - <nombre>" si no. El artista y el titulo salen despues de
+        // la carpeta (Partir), como en cualquier otra.
+        // Un audio y un video con el mismo nombre van a la misma carpeta.
+        private static void AcomodarSueltos(string raiz)
+        {
+            string[] archivos;
+            try
+            {
+                archivos = Directory.GetFiles(raiz);
+            }
+            catch (Exception)
+            {
+                return;
+            }
+            Dictionary<string, string> destinos =
+                new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            foreach (string f in archivos)
+            {
+                string ext = Path.GetExtension(f).ToLowerInvariant();
+                if (Array.IndexOf(Extensiones, ext) < 0 && Array.IndexOf(ExtensionesVideo, ext) < 0)
+                {
+                    continue;
+                }
+                string baseNombre = Path.GetFileNameWithoutExtension(f).Trim().TrimEnd('.');
+                if (baseNombre.Length == 0)
+                {
+                    continue;
+                }
+                try
+                {
+                    string carpeta;
+                    if (!destinos.TryGetValue(baseNombre, out carpeta))
+                    {
+                        string artista, titulo;
+                        Partir(baseNombre, out artista, out titulo);
+                        string nombre = artista == "Unknown Artist"
+                            ? ArtistaSinNombre + " - " + baseNombre
+                            : baseNombre;
+                        carpeta = CarpetaLibre(Path.Combine(raiz, nombre));
+                        Directory.CreateDirectory(carpeta);
+                        destinos[baseNombre] = carpeta;
+                    }
+                    string destino = Path.Combine(carpeta, Path.GetFileName(f));
+                    File.Move(f, destino);
+                    MelonLogger.Msg("[Audio] suelto: " + Path.GetFileName(f) + " -> "
+                        + Path.GetFileName(carpeta) + "\\");
+                }
+                catch (Exception ex)
+                {
+                    MelonLogger.Warning("[Audio] suelto " + Path.GetFileName(f) + ": " + ex.Message);
+                }
+            }
+        }
+
+        // La ruta tal cual si esta libre; si ya existe, "<ruta> (2)", (3)...
+        private static string CarpetaLibre(string ruta)
+        {
+            if (!Directory.Exists(ruta) && !File.Exists(ruta))
+            {
+                return ruta;
+            }
+            for (int n = 2; ; n++)
+            {
+                string otra = ruta + " (" + n.ToString() + ")";
+                if (!Directory.Exists(otra) && !File.Exists(otra))
+                {
+                    return otra;
+                }
+            }
         }
 
         private static void Recorrer(string carpeta, List<string> salida, int hondura)
@@ -226,7 +317,68 @@ namespace CloneHeroMod
             }
         }
 
-        private static IEnumerable<string> CarpetasDeCanciones()
+        // Las que escanea el juego, sin repetir y solo las que existen.
+        private static List<string> CarpetasDeCanciones()
+        {
+            List<string> salida = new List<string>();
+            try
+            {
+                Il2Cpp.GlobalVariables g = Il2Cpp.GlobalVariables.instance;
+                var lista = g == null ? null : g.uniqueSongPaths;
+                if (lista != null && lista.Count > 0)
+                {
+                    for (int i = 0; i < lista.Count; i++)
+                    {
+                        Anadir(salida, lista[i]);
+                    }
+                    MelonLogger.Msg("[Audio] carpetas del juego: " + string.Join(" | ", salida));
+                    return salida;
+                }
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Audio] lista del juego: " + ex.Message);
+            }
+            // Plan B: la predeterminada y las de settings.ini.
+            Anadir(salida, string.IsNullOrEmpty(RutasJuego.CarpetaDatos)
+                ? null : Path.Combine(RutasJuego.CarpetaDatos, "Songs"));
+            foreach (string c in CarpetasDelIni())
+            {
+                Anadir(salida, c);
+            }
+            MelonLogger.Msg("[Audio] carpetas (settings.ini): " + string.Join(" | ", salida));
+            return salida;
+        }
+
+        private static void Anadir(List<string> salida, string ruta)
+        {
+            if (string.IsNullOrWhiteSpace(ruta))
+            {
+                return;
+            }
+            try
+            {
+                string completa = Path.GetFullPath(ruta.Trim())
+                    .TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+                if (!Directory.Exists(completa))
+                {
+                    return;
+                }
+                for (int i = 0; i < salida.Count; i++)
+                {
+                    if (string.Equals(salida[i], completa, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return;
+                    }
+                }
+                salida.Add(completa);
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        private static IEnumerable<string> CarpetasDelIni()
         {
             List<string> salida = new List<string>();
             try
