@@ -380,8 +380,13 @@ the Guitar Hero games (game version 1.1.0.6161 only). To use both, download
 GHLarp and copy its files into your Clone Hero folder — Cool Mod has the
 install ready for it.
 
-If you got Cool Mod before this was added, press `Update Cool Mod`, restart the
-game once, and then copy GHLarp.
+- **Already have GHLarp?** Just extract the Cool Mod zip as usual. It leaves
+  GHLarp's files alone.
+- **Got Cool Mod before this was added?** Update first: press `Update Cool Mod`,
+  restart the game once, and only then copy GHLarp. You are ready when your
+  Clone Hero folder has a `winmm.dll` and no `version.dll`.
+- **Copied GHLarp first and now Cool Mod does not load?** Extract the Cool Mod
+  zip again over your Clone Hero folder.
 
 ### ⚡ Stays out of the way while you play
 
