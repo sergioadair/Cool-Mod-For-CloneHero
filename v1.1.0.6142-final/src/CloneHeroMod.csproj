@@ -113,6 +113,12 @@
            Text="GameDir does not point to a valid Clone Hero install with MelonLoader run at least once. Expected to find: $(Il2CppDir). Set it in CloneHeroMod.csproj or pass -p:GameDir=&quot;...&quot; on the command line." />
   </Target>
 
+  <ItemGroup>
+    <!-- El plugin de compatibilidad con GHLarp viaja dentro del mod: al
+         arrancar se copia a Plugins (ver PreparacionGHLarp.cs). -->
+    <EmbeddedResource Include="Recursos\CoolModCompat.dll" LogicalName="CoolModCompat.dll" />
+  </ItemGroup>
+
   <!-- Al compilar, deja el .dll directamente en la carpeta Mods del juego. -->
   <Target Name="CopiarAMods" AfterTargets="Build" Condition="Exists('$(GameDir)\Mods')">
     <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(GameDir)\Mods" ContinueOnError="true" />

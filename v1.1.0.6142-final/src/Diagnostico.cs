@@ -201,6 +201,8 @@ namespace CloneHeroMod
             try
             {
                 Actualizador.LimpiarRestos();
+                PreparacionGHLarp.LimpiarRestos();
+                PreparacionGHLarp.Preparar();
                 OrdenDificultad.Instalar();
                 FondosPersonalizados.Instalar();
                 FiltroFavoritos.Instalar();
@@ -242,6 +244,7 @@ namespace CloneHeroMod
             FondosPersonalizados.EscenaCambiada(Buscador.EnJuego);
             TexturasPersonalizadas.EscenaCambiada(nombre, Buscador.EnJuego);
             SfxFinDeCancion.EscenaCambiada(nombre);
+            VersusSinFallo.EscenaCambiada(Buscador.EnJuego);
             // Los paneles del menu se destruyen al cambiar de escena; sus
             // punteros pueden reutilizarse, asi que la cache de etiquetas se
             // tira para no dar por buena una que ya no existe.

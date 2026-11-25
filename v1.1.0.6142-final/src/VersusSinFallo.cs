@@ -1,6 +1,8 @@
 using System;
+using System.IO;
 using System.Reflection;
 using MelonLoader;
+using MelonLoader.Utils;
 
 namespace CloneHeroMod
 {
@@ -27,12 +29,109 @@ namespace CloneHeroMod
     //     Ahi la barra da el aviso que faltaba, y cambiar lo que pasa en local
     //     solo descuadraria la validacion.
     //   - En partida online y en practica el juego ya no deja perder.
+    //
+    // CON GHLARP. GHLarp dibuja su propio medidor de vida y lo pone "vacio"
+    // (estilo No Fail) solo si el ajuste No Fail esta activado o es practica:
+    // no sabe que en Versus tampoco se pierde, asi que ensenaba un medidor que
+    // se movia sin consecuencias. Para que cuadre, mientras se juega una
+    // cancion en Versus el ajuste No Fail RESPONDE que si a quien lo lea
+    // (GameSetting.GetBoolValue), sin cambiar lo guardado. Solo dentro de la
+    // escena Gameplay: la puntuacion y la repeticion se guardan en la escena
+    // EndOfSong, que ya ve el valor de verdad. Dentro de la cancion solo lo
+    // lee BasePlayer, para lo mismo que ya hace este archivo (no perder y no
+    // ensenar la barra, que Versus ya esconde).
+    // Ese lector es comun a todos los ajustes de si/no, asi que solo se
+    // engancha si GHLarp esta instalado.
     public static class VersusSinFallo
     {
         private const int ModoVersus = 2;      // GameMode: Quickplay, Practice, Versus
 
         private static PropertyInfo enLinea;          // CHNetManager: partida online
         private static PropertyInfo tablasActivas;    // LeaderboardsOnlineManager
+
+        private static PropertyInfo ajusteSinFallo;   // Settings.isNoFail (estatico)
+        private static IntPtr sinFallo;               // el GameSetting de No Fail, mientras se finge
+        private static volatile bool fingiendo;
+        private static long lecturas;                 // cuantas veces se leyo un ajuste si/no
+        private static DateTime desde;
+
+        // Lo llama Diagnostico en cada cambio de escena.
+        public static void EscenaCambiada(bool enJuego)
+        {
+            if (ajusteSinFallo == null)
+            {
+                return;          // sin GHLarp, o no se pudo enganchar
+            }
+            if (fingiendo)
+            {
+                double s = (DateTime.Now - desde).TotalSeconds;
+                MelonLogger.Msg("[Versus] GHLarp vio No Fail durante " + s.ToString("0") + " s ("
+                    + lecturas.ToString() + " lecturas de ajustes si/no)");
+            }
+            fingiendo = false;
+            sinFallo = IntPtr.Zero;
+            try
+            {
+                if (!enJuego || !Aplica())
+                {
+                    return;
+                }
+                Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase ajuste =
+                    ajusteSinFallo.GetValue(null) as Il2CppInterop.Runtime.InteropTypes.Il2CppObjectBase;
+                if (ajuste == null)
+                {
+                    return;
+                }
+                sinFallo = ajuste.Pointer;
+                lecturas = 0;
+                desde = DateTime.Now;
+                fingiendo = true;
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Versus] GHLarp: " + ex.Message);
+            }
+        }
+
+        private static void EngancharGHLarp(HarmonyLib.Harmony harmony)
+        {
+            if (!Directory.Exists(Path.Combine(MelonEnvironment.GameRootDirectory, "ghlarp")))
+            {
+                return;
+            }
+            Type tipoAjuste = typeof(Il2Cpp.Object2PublicBoSiInSiDoStSiStStUnique);      // GameSetting
+            MethodInfo leer = Nativo.Metodo(tipoAjuste, Real.AjusteSiNo);
+            PropertyInfo campo = Nativo.Campo(typeof(Il2Cpp.ObjectPublicAbstractSealedBoObObObObObObObObObUnique),
+                Real.SinFallo);                                                         // Settings
+            if (leer == null || leer.ReturnType != typeof(bool) || campo == null)
+            {
+                MelonLogger.Warning("[Versus] no se localizo el ajuste No Fail: GHLarp ensenara"
+                    + " el medidor en Versus");
+                return;
+            }
+            harmony.Patch(leer, new HarmonyLib.HarmonyMethod(typeof(VersusSinFallo).GetMethod(
+                "AntesDeLeerSiNo", BindingFlags.NonPublic | BindingFlags.Static)));
+            ajusteSinFallo = campo;
+            MelonLogger.Msg("[Versus] GHLarp instalado: en Versus vera No Fail");
+        }
+
+        // Corre en CADA lectura de un ajuste si/no del juego: lo primero es
+        // salir si no se esta fingiendo.
+        private static bool AntesDeLeerSiNo(Il2Cpp.Object2PublicBoSiInSiDoStSiStStUnique __instance,
+                                            ref bool __result)
+        {
+            if (!fingiendo)
+            {
+                return true;
+            }
+            lecturas++;
+            if (__instance == null || __instance.Pointer != sinFallo)
+            {
+                return true;
+            }
+            __result = true;
+            return false;
+        }
 
         public static void InstalarParche(HarmonyLib.Harmony harmony)
         {
@@ -51,6 +150,7 @@ namespace CloneHeroMod
                 }
                 harmony.Patch(m, new HarmonyLib.HarmonyMethod(typeof(VersusSinFallo).GetMethod(
                     "AntesDeCambiarVida", BindingFlags.NonPublic | BindingFlags.Static)));
+                EngancharGHLarp(harmony);
             }
             catch (Exception ex)
             {

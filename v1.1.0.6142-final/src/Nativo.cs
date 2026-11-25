@@ -287,6 +287,7 @@ namespace CloneHeroMod
         public const string AjusteValor = "\u02b4\u02be\u02b6\u02b9\u02b3\u02b7\u02b8\u02c0\u02b3\u02bc\u02bd";      // GameSetting: valor actual
         public const string AjusteMaximo = "\u02b6\u02b9\u02b6\u02b8\u02bc\u02c0\u02c1\u02b8\u02b7\u02bb\u02b8";      // GameSetting: maximo
         public const string AjusteMinimo = "\u02be\u02b5\u02b9\u02be\u02b8\u02b7\u02b7\u02b6\u02b5\u02b6\u02bf";      // GameSetting: minimo
+        public const string AjusteSiNo = "\u02bf\u02c1\u02bb\u02b8\u02b6\u02bc\u02c0\u02bf\u02b4\u02b3\u02b2";      // GameSetting.GetBoolValue: valor == 1
 
         // --- Campos
         public const string CambiandoAjuste = "\u02be\u02ba\u02b2\u02bb\u02ba\u02b3\u02b2\u02b2\u02b6\u02bf\u02b3";      // BaseMenu.changedSetting
@@ -295,6 +296,7 @@ namespace CloneHeroMod
         public const string CancionPrevia = "\u02b5\u02b8\u02bb\u02bd\u02bd\u02bc\u02b2\u02bb\u02bd\u02ba\u02b8";      // BassAudioManager.f_80: cancion del preview pendiente
         public const string TablasActivas = "\u02b8\u02b3\u02b7\u02ba\u02b3\u02be\u02b2\u02b7\u02b4\u02bf\u02bb";      // LeaderboardsOnlineManager: leaderboards activos
         public const string SinSeccion = "\u02ba\u02b5\u02b2\u02ba\u02bf\u02bd\u02b9\u02bd\u02c1\u02b3\u02b4";      // Settings.NoSection
+        public const string SinFallo = "\u02bb\u02c0\u02b7\u02b8\u02b3\u02be\u02b7\u02bb\u02ba\u02b8\u02ba";      // Settings.isNoFail (el ajuste No Fail)
         public const string ListaSucia = "\u02b4\u02be\u02c0\u02ba\u02b7\u02bd\u02b3\u02b3\u02c0\u02bd\u02b2";      // SongDirectory: hay que reagrupar
         public const string ContadorOrden = "\u02bd\u02b7\u02c0\u02b6\u02b5\u02bc\u02c1\u02bb\u02ba\u02be\u02bc";      // SongDirectory: contador del orden
         public const string InstrumentoJugador = "\u02b7\u02bb\u02ba\u02bc\u02b4\u02b6\u02b4\u02b3\u02bd\u02ba\u02bf";      // PlayerSelectionMenu.instrument

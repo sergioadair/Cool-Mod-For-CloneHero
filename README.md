@@ -373,6 +373,16 @@ newer build, and if there is one the game's version label in the top right
 corner turns into **Update CoolMod now!** until you take it. Set
 `check_for_updates = 0` in `settings.ini` if you would rather it stayed quiet.
 
+### 🎸 Works with GHLarp
+
+[GHLarp](https://github.com/arceuss/GHLarp/releases) gives the game the look of
+the Guitar Hero games (game version 1.1.0.6161 only). To use both, download
+GHLarp and copy its files into your Clone Hero folder — Cool Mod has the
+install ready for it.
+
+If you got Cool Mod before this was added, press `Update Cool Mod`, restart the
+game once, and then copy GHLarp.
+
 ### ⚡ Stays out of the way while you play
 
 Every one of the mod's per-frame checks is switched off the moment the gameplay
@@ -428,7 +438,8 @@ which is what loads the mod (its license is in `MelonLoader\Documentation`).
 > again — `Settings > General > Update Cool Mod` does it for you.
 
 **To uninstall**, delete `Mods\CloneHeroMod.dll`. To remove everything, delete
-the `MelonLoader` and `Mods` folders and `version.dll`.
+the `MelonLoader`, `Mods` and `Plugins` folders and `winmm.dll` (`version.dll`
+on older installs).
 
 ### For game version 1.0.0.4080-final
 
