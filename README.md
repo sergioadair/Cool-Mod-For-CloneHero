@@ -9,14 +9,14 @@ screen, lets you **replace any texture in the game** with your own, and adds
 **custom menu backgrounds**, a background **slideshow**, a **Favorites** filter
 and a **custom sound** when you finish a song.
 
-The 1.1.0.6142 build also **updates itself** from this repo with one menu
+The 1.1 build also **updates itself** from this repo with one menu
 option, and is built to stay out of the way while you are playing.
 
 Two builds are available, one per game version:
 
 | Game version | Folder | How it works |
 |---|---|---|
-| **1.1.0.6142-final** and **1.1.0.6161** | [`v1.1.0.6142-final/`](v1.1.0.6142-final/) | MelonLoader mod (`.dll` you drop in) |
+| **1.1.0.6161-final** and **1.1.0.6142-final** | [`v1.1.0.6161-final/`](v1.1.0.6161-final/) | MelonLoader mod (`.dll` you drop in) |
 | **1.0.0.4080-final** | [`v1.0.0.4080-final/`](v1.0.0.4080-final/) | patched `Assembly-CSharp.dll` |
 
 > Check your version in the upper corner of the main menu. Pick the folder that
@@ -397,11 +397,11 @@ and with it on, next to nothing.
 
 ## 📥 Installation
 
-### For game version 1.1.0.6142-final or 1.1.0.6161
+### For game version 1.1.0.6161-final or 1.1.0.6142-final
 
 It does not touch any game file.
 
-1. Download [`CoolMod-v1.1.0.6142-AllInOne.zip`](v1.1.0.6142-final/CoolMod-v1.1.0.6142-AllInOne.zip).
+1. Download [`CoolMod-v1.1.0.6161-AllInOne.zip`](v1.1.0.6161-final/CoolMod-v1.1.0.6161-AllInOne.zip).
 2. Extract it into your Clone Hero folder (the one with `Clone Hero.exe`).
 3. Start the game. **The first launch takes a couple of minutes** — that only
    happens once.
@@ -412,7 +412,7 @@ The package includes [MelonLoader](https://github.com/LavaGang/MelonLoader) 0.7.
 which is what loads the mod (its license is in `MelonLoader\Documentation`).
 
 > **Already have MelonLoader?** Just copy
-> [`v1.1.0.6142-final/CloneHeroMod.dll`](v1.1.0.6142-final/) into `Mods` and
+> [`v1.1.0.6161-final/CloneHeroMod.dll`](v1.1.0.6161-final/) into `Mods` and
 > [`assets/Sounds/yourock.opus`](assets/Sounds/) into your **`Custom\Sounds\`** folder,
 > and *(optionally)* the images from [`assets/Menu Backgrounds/`](assets/Menu%20Backgrounds/)
 > into **`Custom\Menu Backgrounds\`**.
@@ -457,7 +457,7 @@ This build replaces a game file, so **make a backup first**.
 
 ## ⚙️ Settings
 
-The 1.1.0.6142 build keeps its settings in a `[mods]` section of your
+The 1.1 build keeps its settings in a `[mods]` section of your
 `settings.ini` (in the folder shown above), next to the game's own. The ones
 you would change most also have a menu option.
 
@@ -492,7 +492,7 @@ On the 1.0.0.4080 build the slideshow interval lives under `[video]` as
 
 ---
 
-## ⚠️ Known limitation (1.1.0.6142 build)
+## ⚠️ Known limitation (1.1 build)
 
 **When you switch to the `Difficulty` sort, the list only redraws once you move
 the selection.** Press up or down and the sections appear. Everything else about
@@ -508,7 +508,7 @@ If you know the engine well and have an idea, PRs are welcome.
 
 ## 🔧 Building from source
 
-The 1.1.0.6142 mod source is in [`v1.1.0.6142-final/src/`](v1.1.0.6142-final/src/).
+The 1.1 mod source is in [`v1.1.0.6161-final/src/`](v1.1.0.6161-final/src/).
 You need the .NET 6 SDK and a copy of the game with MelonLoader already run once
 (the build references the interop assemblies it generates).
 

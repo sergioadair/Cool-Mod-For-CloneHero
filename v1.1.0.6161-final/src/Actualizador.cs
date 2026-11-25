@@ -23,7 +23,7 @@ namespace CloneHeroMod
         public const string Etiqueta = "Update Cool Mod";
 
         public const string Url = "https://raw.githubusercontent.com/sergioadair/"
-            + "Cool-Mod-For-CloneHero/main/v1.1.0.6142-final/CloneHeroMod.dll";
+            + "Cool-Mod-For-CloneHero/main/v1.1.0.6161-final/CloneHeroMod.dll";
 
         private enum Estado
         {
