@@ -501,20 +501,6 @@ On the 1.0.0.4080 build the slideshow interval lives under `[video]` as
 
 ---
 
-## ⚠️ Known limitation (1.1 build)
-
-**When you switch to the `Difficulty` sort, the list only redraws once you move
-the selection.** Press up or down and the sections appear. Everything else about
-it works — filters included.
-
-The sections are rebuilt correctly the moment you pick the criterion; the game
-simply does not repaint the song list by itself, because its own refresh routine
-only knows about its built-in sort criteria. Calling that routine directly does
-not help — the redraw is driven by the song select screen, not by the library.
-If you know the engine well and have an idea, PRs are welcome.
-
----
-
 ## 🔧 Building from source
 
 The 1.1 mod source is in [`v1.1.0.6161-final/src/`](v1.1.0.6161-final/src/).
