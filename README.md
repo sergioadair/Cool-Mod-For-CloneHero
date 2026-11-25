@@ -47,9 +47,13 @@ the folder instead and the mod pulls the audio out of it — and the video plays
 as the background while you play. If you drop both an audio
 file and a video, it uses the audio and keeps the video as the background.
 
-**No folder? No problem.** Drop the file straight into any of your song folders,
-named `Artist - Song.mp3`, and the mod makes its folder for you. If the name has
-no artist, the song is credited to *Cool Mod*.
+**No folder? No problem.** Drop the file straight into your **Songs** folder, or
+next to other songs (say, in your `Caifanes` folder), named `Artist - Song.mp3`.
+The mod makes its folder for you.
+
+**Where the artist and title come from:** the folder's name if it reads
+`Artist - Song`, otherwise the file's name. If neither does, the song is
+credited to *Cool Mod*.
 
 A three-minute song takes about six seconds.
 

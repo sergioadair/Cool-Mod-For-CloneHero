@@ -142,10 +142,6 @@ namespace CloneHeroMod
             List<string> salida = new List<string>();
             foreach (string raiz in raices)
             {
-                if (!TieneChart(raiz))
-                {
-                    AcomodarSueltos(raiz);
-                }
                 Recorrer(raiz, salida, 0);
             }
             return salida;
@@ -154,15 +150,18 @@ namespace CloneHeroMod
         // Artista de las canciones sueltas cuyo nombre no dice de quien son.
         public const string ArtistaSinNombre = "Cool Mod";
 
-        // Un audio o video dejado DIRECTAMENTE en una carpeta de canciones, sin
-        // carpeta propia, se generaba ahi mismo: la cancion se llamaba como la
-        // carpeta raiz ("Songs", artista desconocido) y, con un notes.chart en
-        // la raiz, el juego y el mod trataban la raiz entera como una sola
-        // cancion. Ahora cada suelto pasa a su propia carpeta, nombrada como el
-        // archivo: "Artista - Cancion" si el nombre ya tiene esa forma, o
-        // "Cool Mod - <nombre>" si no. El artista y el titulo salen despues de
-        // la carpeta (Partir), como en cualquier otra.
-        // Un audio y un video con el mismo nombre van a la misma carpeta.
+        // Un audio o video que no tiene carpeta propia se generaba en la carpeta
+        // donde estaba: la cancion se llamaba como esa carpeta ("Songs",
+        // "Caifanes", artista desconocido), solo se usaba el archivo mas
+        // grande, y el notes.chart que quedaba ahi convertia la carpeta entera
+        // en una cancion: el juego y el mod dejaban de ver sus subcarpetas.
+        //
+        // Ahora, en una carpeta CONTENEDORA (ver EsContenedora), cada suelto
+        // pasa a su propia carpeta, nombrada como el archivo: "Artista -
+        // Cancion" si el nombre ya tiene esa forma, o "Cool Mod - <nombre>" si
+        // no. El artista y el titulo salen despues de la carpeta (Partir), como
+        // en cualquier otra. Un audio y un video con el mismo nombre van a la
+        // misma carpeta.
         private static void AcomodarSueltos(string raiz)
         {
             string[] archivos;
@@ -184,9 +183,11 @@ namespace CloneHeroMod
                     continue;
                 }
                 string baseNombre = Path.GetFileNameWithoutExtension(f).Trim().TrimEnd('.');
-                if (baseNombre.Length == 0)
+                if (baseNombre.Length == 0
+                    || baseNombre.Equals("video", StringComparison.OrdinalIgnoreCase)
+                    || Array.IndexOf(NombresPista, baseNombre.ToLowerInvariant()) >= 0)
                 {
-                    continue;
+                    continue;      // "song.ogg", "video.mp4": no dicen de que cancion son
                 }
                 try
                 {
@@ -243,12 +244,18 @@ namespace CloneHeroMod
                 {
                     return;      // ya es una cancion: ni se entra
                 }
+                if (EsContenedora(carpeta, hondura == 0))
+                {
+                    // Sus sueltos pasan a carpeta propia, y esas carpetas se
+                    // recorren abajo como cualquier otra subcarpeta.
+                    AcomodarSueltos(carpeta);
+                }
                 // Vale tanto un archivo de audio como un video con audio
                 // dentro. Esto miraba SOLO audio, asi que una carpeta con un
                 // mp4 y nada mas no entraba en la lista y nunca llegaba a la
                 // parte que sabe sacarle la pista: el barrido contestaba que
                 // no habia nada que hacer.
-                if (AudioDe(carpeta) != null || VideoDe(carpeta) != null)
+                else if (AudioDe(carpeta) != null || VideoDe(carpeta) != null)
                 {
                     salida.Add(carpeta);
                     return;
@@ -260,6 +267,51 @@ namespace CloneHeroMod
             }
             catch (Exception)
             {
+            }
+        }
+
+        // Una carpeta que AGRUPA canciones, no la carpeta de una cancion:
+        //   1. una raiz de canciones;
+        //   2. una con subcarpetas (las de una cancion no tienen: "Caifanes",
+        //      o una de letra como "N");
+        //   3. una con dos o mas audios o videos de nombre distinto, sin contar
+        //      las pistas que el juego reconoce (song, guitar...) ni "video":
+        //      dos clips sueltos son dos canciones.
+        // Una sin subcarpetas y con un solo audio o video (o varios con el
+        // mismo nombre) sigue siendo la carpeta de esa cancion.
+        private static bool EsContenedora(string carpeta, bool esRaiz)
+        {
+            if (esRaiz)
+            {
+                return true;
+            }
+            try
+            {
+                if (Directory.GetDirectories(carpeta).Length > 0)
+                {
+                    return true;
+                }
+                HashSet<string> nombres = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                foreach (string f in Directory.GetFiles(carpeta))
+                {
+                    string ext = Path.GetExtension(f).ToLowerInvariant();
+                    if (Array.IndexOf(Extensiones, ext) < 0 && Array.IndexOf(ExtensionesVideo, ext) < 0)
+                    {
+                        continue;
+                    }
+                    string nombre = Path.GetFileNameWithoutExtension(f).Trim();
+                    if (nombre.Equals("video", StringComparison.OrdinalIgnoreCase)
+                        || Array.IndexOf(NombresPista, nombre.ToLowerInvariant()) >= 0)
+                    {
+                        continue;
+                    }
+                    nombres.Add(nombre);
+                }
+                return nombres.Count >= 2;
+            }
+            catch (Exception)
+            {
+                return false;
             }
         }
 
@@ -428,6 +480,11 @@ namespace CloneHeroMod
                 return false;
             }
             string audio = AudioDe(carpeta);
+            // Los nombres originales, antes de que se renombren a song/video:
+            // pueden decir de quien es la cancion.
+            string nombreAudio = audio == null ? null : Path.GetFileNameWithoutExtension(audio);
+            string videoOriginal = VideoDe(carpeta);
+            string nombreVideo = videoOriginal == null ? null : Path.GetFileNameWithoutExtension(videoOriginal);
             if (audio == null)
             {
                 // Sin archivo de audio, pero puede haber un video que lo
@@ -448,7 +505,7 @@ namespace CloneHeroMod
             }
 
             string nombre, artista;
-            Partir(Path.GetFileName(carpeta), out artista, out nombre);
+            Titular(Path.GetFileName(carpeta), nombreAudio, nombreVideo, out artista, out nombre);
 
             audio = Renombrar(audio);
             RenombrarVideo(carpeta);
@@ -518,6 +575,33 @@ namespace CloneHeroMod
                 MelonLogger.Warning("[Audio] dificultad: " + ex.Message);
                 return 0;
             }
+        }
+
+        // Artista y titulo de una cancion generada, por orden:
+        //   1. la carpeta, si se llama "Artista - Cancion";
+        //   2. si no, el archivo (primero el audio, luego el video), si se
+        //      llama asi;
+        //   3. si ninguno, artista "Cool Mod" y la carpeta como titulo.
+        private static void Titular(string carpeta, string archivoAudio, string archivoVideo,
+                                    out string artista, out string titulo)
+        {
+            Partir(carpeta, out artista, out titulo);
+            if (artista != "Unknown Artist")
+            {
+                return;
+            }
+            foreach (string archivo in new[] { archivoAudio, archivoVideo })
+            {
+                string a, t;
+                Partir(archivo, out a, out t);
+                if (!string.IsNullOrEmpty(archivo) && a != "Unknown Artist")
+                {
+                    artista = a;
+                    titulo = t;
+                    return;
+                }
+            }
+            artista = ArtistaSinNombre;
         }
 
         // "Artista - Cancion" es la forma estandar de nombrar carpetas en esta
