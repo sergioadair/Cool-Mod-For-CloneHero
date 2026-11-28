@@ -9,8 +9,10 @@ screen, lets you **replace any texture in the game** with your own, and adds
 **custom menu backgrounds**, a background **slideshow**, a **Favorites** filter
 and a **custom sound** when you finish a song.
 
-The 1.1 build also **updates itself** from this repo with one menu
-option, and is built to stay out of the way while you are playing.
+The 1.1 build also lets you **use the mouse** in the menus, **imports your
+profiles, settings and scores** from another copy of the game, **updates
+itself** from this repo with one menu option, and is built to stay out of the
+way while you are playing.
 
 Two builds are available, one per game version:
 
@@ -21,6 +23,39 @@ Two builds are available, one per game version:
 
 > Check your version in the upper corner of the main menu. Pick the folder that
 > matches — they are **not** interchangeable.
+
+---
+
+## 📑 Contents
+
+- [Features](#-features)
+  - [Make a song out of any audio or video](#-make-a-song-out-of-any-audio-or-video)
+  - [Generate missing difficulties](#-generate-missing-difficulties)
+  - [Difficulty — a real 0–100 score for every song](#-difficulty--a-real-0100-score-for-every-song)
+  - [Difficulty profile — *how* a song is hard, not just how much](#-difficulty-profile--how-a-song-is-hard-not-just-how-much)
+  - [Note streak callout](#-note-streak-callout)
+  - [SP Ready callout](#-sp-ready-callout)
+  - [Images on screen while you play](#-images-on-screen-while-you-play)
+  - [Song clock](#-song-clock)
+  - [Replace any texture in the game](#-replace-any-texture-in-the-game)
+  - [Custom menu backgrounds](#-custom-menu-backgrounds)
+  - [Menu background slideshow](#-menu-background-slideshow)
+  - [Favorites filter](#-favorites-filter)
+  - [Even out song volumes](#-even-out-song-volumes)
+  - [A random song to start](#-a-random-song-to-start)
+  - [No failing in Versus](#-no-failing-in-versus)
+  - [Import from another copy of the game](#-import-from-another-copy-of-the-game)
+  - [Use the mouse in the menus](#-use-the-mouse-in-the-menus)
+  - [Custom sound when you finish a song](#-custom-sound-when-you-finish-a-song)
+  - [One-click updates](#-one-click-updates)
+  - [Works with GHLarp](#-works-with-ghlarp)
+  - [Stays out of the way while you play](#-stays-out-of-the-way-while-you-play)
+- [Installation](#-installation)
+  - [For game version 1.1.0.6161-final or 1.1.0.6142-final](#for-game-version-1106161-final-or-1106142-final)
+  - [For game version 1.0.0.4080-final](#for-game-version-1004080-final)
+- [Settings](#-settings)
+- [Building from source](#-building-from-source)
+- [Special thanks for their feedback](#-special-thanks-for-their-feedback)
 
 ---
 
@@ -371,6 +406,25 @@ it's done. Changed your mind? **Restore a Backup...** puts everything back the
 way it was before that import.
 
 You can use the mouse in this panel too.
+
+### 🖱️ Use the mouse in the menus
+
+The game's menus only listen to a controller or the keyboard. The 1.1 build
+adds the mouse:
+
+- **Main menu, the Settings sections and the Quit question:** point at an
+  option to highlight it, click to pick it.
+- **Lists that scroll** (each Settings screen, your profile options and the
+  song list): scroll with the **wheel** or drag the **scroll bar**, and click
+  an option to pick it. Moving the mouse alone does not move the list. In
+  Settings, click a switch to flip it or drag a slider to set it.
+- **Right click** goes back, like the red button.
+- **Player 1's "Press Start" box:** click it to join with the keyboard and
+  pick your profile. Click it again to open your profile options; click the
+  name or anywhere outside to close them.
+- **Credits:** click to leave.
+
+It needs `Show Mouse Cursor` on (`Settings > Video`).
 
 ### 🔊 Custom sound when you finish a song
 

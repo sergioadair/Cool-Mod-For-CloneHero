@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using MelonLoader;
 
 namespace CloneHeroMod
@@ -39,6 +39,49 @@ namespace CloneHeroMod
         // Al cerrar la fila (se confirma o se sale), haya cambiado o no.
         public Action AlCerrar;
 
+        // Todas las filas con barra, para que el raton (RatonMenus) pueda
+        // arrastrarlas: no estan en la lista sliders[] del menu.
+        private static readonly System.Collections.Generic.List<FilaDeslizador> todas =
+            new System.Collections.Generic.List<FilaDeslizador>();
+
+        public static System.Collections.Generic.List<FilaDeslizador> Todas
+        {
+            get { return todas; }
+        }
+
+        public UnityEngine.UI.Slider Barra
+        {
+            get { return barra; }
+        }
+
+        // El raton arrastrando la barra: t de 0 (izquierda) a 1 (derecha). Se
+        // fija el valor directamente, encajado a los pasos y al rango. Si la
+        // fila ya esta abierta, se pone tambien en su GameSetting y se da por
+        // visto, para que Tick no lo guarde otra vez; si aun no (Tick la abre
+        // en el siguiente fotograma), al abrirse lee lo que se acaba de
+        // guardar.
+        public void PonerFraccion(float t)
+        {
+            try
+            {
+                int v = Encajar(min + t * (max - min));
+                if (abierta && ajuste != null && valorAjuste != null)
+                {
+                    valorAjuste.SetValue(ajuste, v);
+                    visto = v;
+                }
+                if (Math.Abs(leer() - v) > 0.0001f)
+                {
+                    guardar(v);
+                }
+                Pintar();
+            }
+            catch (Exception ex)
+            {
+                MelonLogger.Warning("[Filas] " + Nombre + " (raton): " + ex.Message);
+            }
+        }
+
         public FilaDeslizador(string nombre, int min, int max, int paso, int porDefecto,
             Func<float> leer, Action<int> guardar, Func<float, string> formato)
         {
@@ -50,6 +93,7 @@ namespace CloneHeroMod
             this.leer = leer;
             this.guardar = guardar;
             this.formato = formato;
+            todas.Add(this);
         }
 
         // En el prefix de OnEnable del menu, como las demas filas.

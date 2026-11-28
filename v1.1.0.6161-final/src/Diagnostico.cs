@@ -173,6 +173,7 @@ namespace CloneHeroMod
                 ChartsFaltantes.Tick();
                 OverlayProgreso.Refrescar();
                 ImportarCopia.Tick();
+                RatonMenus.Tick();
                 SfxFinDeCancion.Tick();
                 Reescaneo.Tick();
                 CalculadorDificultad.Tick();
@@ -254,6 +255,7 @@ namespace CloneHeroMod
             DificultadJugador.EscenaCambiada();
             AvisoVersion.EscenaCambiada();
             ImportarCopia.EscenaCambiada();
+            RatonMenus.EscenaCambiada();
         }
 
         public override void OnLateUpdate()

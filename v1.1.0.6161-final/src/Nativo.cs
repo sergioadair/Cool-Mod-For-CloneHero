@@ -280,6 +280,20 @@ namespace CloneHeroMod
         public const string CrearSalida = "\u02b8\u02be\u02bc\u02b6\u02b8\u02ba\u02bf\u02b2\u02b6\u02b4\u02ba";      // BassAudioManager.m77(int): crea el mezclador de salida
         public const string CambiarVida = "\u02b7\u02b8\u02c1\u02be\u02bf\u02b9\u02bf\u02bd\u02b2\u02c0\u02be";      // motor (StrikeCore).ChangeHealth(bool)
 
+        public const string Confirmar = "\u02b5\u02c1\u02ba\u02bb\u02b2\u02b9\u02c1\u02bb\u02b9\u02ba\u02b3";      // BaseMenu.ConfirmPressed (el verde; los menus lo sobrescriben)
+        public const string Cancelar = "\u02b3\u02bc\u02ba\u02c0\u02c0\u02b8\u02b2\u02b4\u02b3\u02c1\u02b8";      // BaseMenu.CancelPressed (el rojo)
+        public const string Arriba = "\u02c1\u02b3\u02bc\u02b6\u02bd\u02b6\u02bf\u02b7\u02bb\u02b5\u02bb";      // BaseMenu.UpPressed
+        public const string Abajo = "\u02b7\u02ba\u02c0\u02b8\u02be\u02ba\u02bd\u02b4\u02bb\u02b3\u02b6";      // BaseMenu.DownPressed
+        public const string SoltarArriba = "\u02b3\u02b3\u02b9\u02bc\u02b7\u02bf\u02ba\u02b5\u02bb\u02be\u02b8";      // BaseMenu.UpReleased (corta la repeticion)
+        public const string SoltarAbajo = "\u02bf\u02b5\u02bd\u02b6\u02c1\u02bb\u02bd\u02be\u02b5\u02b2\u02bd";      // BaseMenu.DownReleased (corta la repeticion)
+
+        public const string ActualizarMenu = "\u02b2\u02bd\u02b6\u02be\u02b4\u02be\u02b9\u02b6\u02bd\u02b4\u02b7";      // BaseMenu.UpdateMenu: repinta filas y recoloca el resaltado
+        public const string SalirCreditos = "\u02bc\u02b5\u02b5\u02b2\u02b8\u02bf\u02b3\u02be\u02bb\u02b8\u02b3";      // CreditsScroll.m07: vuelve al menu principal (lo que hace el rojo)
+        public const string AsignarJugador = "\u02b8\u02b8\u02b7\u02be\u02b2\u02be\u02b9\u02b8\u02bd\u02b9\u02b6";      // PlayerProfileMenu.Assign(Player): une un control a la casilla (lo que hace Start)
+        public const string EditarPerfil = "\u02bc\u02be\u02be\u02b7\u02b9\u02bc\u02c1\u02bd\u02c1\u02bf\u02bd";      // PlayerProfileMenu.StartModifyingSettings: abre las opciones del perfil (Start ya unido)
+        public const string SoltarConfirmar = "\u02c1\u02b6\u02bd\u02bc\u02bc\u02b3\u02bf\u02bf\u02c0\u02c1\u02bc";      // BaseMenu: el verde al SOLTARLO (vacio en casi todos; la eleccion de perfil actua aqui)
+        public const string EditorAbierto = "\u02bf\u02b3\u02b6\u02b5\u02bb\u02b7\u02be\u02bf\u02c1\u02ba\u02bf";      // SongPathsManager / ColorProfileEditor / ContentPathsManager: static bool, editor abierto
+
         // --- Propiedades (nombre real de su getter)
         public const string EnLinea = "\u02b5\u02b5\u02b8\u02bf\u02b9\u02b7\u02b9\u02b8\u02ba\u02b7\u02b9";      // CHNetManager: partida online
         public const string SeleccionActual = "\u02b9\u02b4\u02b9\u02c0\u02b2\u02be\u02bd\u02b2\u02b9\u02c0\u02b4";      // BaseMenu.currentSelectionInt
@@ -290,6 +304,12 @@ namespace CloneHeroMod
         public const string AjusteSiNo = "\u02bf\u02c1\u02bb\u02b8\u02b6\u02bc\u02c0\u02bf\u02b4\u02b3\u02b2";      // GameSetting.GetBoolValue: valor == 1
 
         // --- Campos
+        public const string JugadorMenu = "\u02b4\u02b2\u02b3\u02b2\u02b2\u02b4\u02bd\u02be\u02b8\u02bb\u02b4";      // BaseMenu.controllingPlayer
+        public const string EditandoPerfil = "\u02bb\u02b6\u02bd\u02b9\u02c0\u02be\u02bc\u02b4\u02c1\u02c1\u02bd";      // CHPlayer.isModifyingProfile: eligiendo perfil u opciones
+        public const string PerfilJugador = "\u02b2\u02bc\u02bd\u02ba\u02bf\u02b9\u02bd\u02bb\u02b5\u02ba\u02b6";      // CHPlayer.playerProfile
+        public const string ListaMenu = "\u02bd\u02b5\u02bc\u02b8\u02b2\u02c0\u02b7\u02b8\u02b9\u02c0\u02b9";      // BaseMenu.scrollRect: el area con scroll de la lista
+        public const string BarraMenu = "\u02bf\u02b2\u02bf\u02c0\u02ba\u02bb\u02b2\u02c0\u02b3\u02ba\u02bd";      // BaseMenu.scrollBar: la barra de desplazamiento de la lista
+        public const string PosicionMenu = "\u02b3\u02bf\u02bb\u02bb\u02b5\u02b7\u02b8\u02be\u02b7\u02b3\u02b3";      // BaseMenu.menuPosition: fila resaltada entre las visibles
         public const string CambiandoAjuste = "\u02be\u02ba\u02b2\u02bb\u02ba\u02b3\u02b2\u02b2\u02b6\u02bf\u02b3";      // BaseMenu.changedSetting
         public const string AjusteActual = "\u02b7\u02b6\u02b7\u02b8\u02b7\u02b6\u02b5\u02bd\u02c1\u02b9\u02bc";      // BaseSettingMenu.currentSetting
         public const string CanalSalida = "\u02b4\u02b5\u02b3\u02c0\u02b4\u02bc\u02b4\u02ba\u02b7\u02b7\u02bd";      // BassAudioManager.linkedChannel
