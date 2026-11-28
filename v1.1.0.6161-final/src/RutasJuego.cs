@@ -235,6 +235,29 @@ namespace CloneHeroMod
             }
         }
 
+        // La carpeta de datos de una instalacion NO portable (Documents\Clone
+        // Hero), aunque la copia que corre sea portable. La usa el importador
+        // para leer otra copia. Si no hay ninguna valida, la de .NET.
+        public static string CarpetaDocumentos()
+        {
+            foreach (string c in Candidatos())
+            {
+                if (EsCarpetaDelJuego(c))
+                {
+                    return c;
+                }
+            }
+            try
+            {
+                return Path.Combine(Environment.GetFolderPath(
+                    Environment.SpecialFolder.MyDocuments), "Clone Hero");
+            }
+            catch (Exception)
+            {
+                return "";
+            }
+        }
+
         // Subcarpeta de Custom, creandola si no existe.
         public static string CarpetaCustom(string nombre)
         {

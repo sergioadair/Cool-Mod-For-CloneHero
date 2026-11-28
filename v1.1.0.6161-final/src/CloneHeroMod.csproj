@@ -61,6 +61,11 @@
       <HintPath>$(Il2CppDir)\Il2CppStrikeCore.dll</HintPath>
       <Private>false</Private>
     </Reference>
+    <!-- Controllers: the import panel reads the same buttons as the menus -->
+    <Reference Include="Il2CppRewired_Core">
+      <HintPath>$(Il2CppDir)\Il2CppRewired_Core.dll</HintPath>
+      <Private>false</Private>
+    </Reference>
 
     <!-- Unity -->
     <Reference Include="UnityEngine.CoreModule">

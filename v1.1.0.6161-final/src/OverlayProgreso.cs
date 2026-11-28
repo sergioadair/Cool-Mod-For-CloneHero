@@ -65,7 +65,8 @@ namespace CloneHeroMod
 
         private static bool AntesDeEntrada()
         {
-            return !Trabajando;
+            // El panel de importar lee los botones por su cuenta.
+            return !Trabajando && !ImportarCopia.BloqueaMenus;
         }
 
         public static void Refrescar()

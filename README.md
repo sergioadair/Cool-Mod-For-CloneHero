@@ -357,6 +357,21 @@ Versus hides the health bar, so you could fail without any warning. Like in
 earlier versions of the game, you can no longer fail in Versus. Your No Fail
 setting is left untouched.
 
+### 📦 Import from another copy of the game
+
+Moving to a new copy of Clone Hero? `Settings > General > Import From Another
+Copy` brings your stuff over. Press **Browse...**, choose the other copy's
+folder and tick what you want: profiles, settings, scores and stats, favorites
+and setlists, your Custom folder and Cool Mod's song volumes. Works from
+versions 1.1.0.6142 and 1.1.0.6161.
+
+What gets replaced is backed up first, and your Custom folder only gets what
+it's missing — nothing in it is overwritten. The game restarts by itself when
+it's done. Changed your mind? **Restore a Backup...** puts everything back the
+way it was before that import.
+
+You can use the mouse in this panel too.
+
 ### 🔊 Custom sound when you finish a song
 
 Plays the classic **"You Rock"** sound from GH3 when the results screen appears

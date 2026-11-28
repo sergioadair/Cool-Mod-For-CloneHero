@@ -198,6 +198,11 @@ namespace CloneHeroMod
                     GeneradorAudio.Lanzar();
                     return;
                 }
+                if (actual == ImportarCopia.Nombre)
+                {
+                    ImportarCopia.Abrir();
+                    return;
+                }
                 // El texto de esta fila cambia segun como vaya la descarga, asi
                 // que se compara por el principio.
                 if (actual != null
@@ -238,7 +243,8 @@ namespace CloneHeroMod
                     {
                         Nombre, referencia.Nombre, GeneradorLote.NombreGenerar, GeneradorAudio.Nombre,
                         GeneradorLote.NombreRestaurar, VolumenCanciones.NombreNormalizar,
-                        VolumenCanciones.NombreRestaurar, Actualizador.Etiqueta
+                        VolumenCanciones.NombreRestaurar, ImportarCopia.Nombre,
+                        Actualizador.Etiqueta
                     });
                 }
             }
@@ -410,6 +416,7 @@ namespace CloneHeroMod
                                    VolumenCanciones.NombreNormalizar);
             FilasMenu.Anadir(menu, VolumenCanciones.NombreRestaurar,
                                    VolumenCanciones.NombreRestaurar);
+            FilasMenu.Anadir(menu, ImportarCopia.Nombre, ImportarCopia.Nombre);
             FilasMenu.Anadir(menu, Actualizador.Texto(), Actualizador.Etiqueta);
         }
     }
